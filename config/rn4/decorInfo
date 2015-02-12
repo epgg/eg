@@ -1,0 +1,16 @@
+xenoRefGene	non-rat RefSeq genes	\N	2	24	0	http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=
+refGene	RefSeq genes	\N	2	24	0	http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=
+cpgisland	CpG island	\N	5	0	0	\N
+CpGsites	CpG sites	\N	5	12	0	\N
+ACGTsites	ACGT Sites (HpyCH4IV)	\N	5	12	0	\N
+ACGTfrags	ACGT Fragments 50-500bp (HpyCH4IV)	\N	5	24	0	\N
+CCGCsites	CCGC Sites (AciI, SsiI)	\N	5	12	0	\N
+CCGCfrags	CCGC Fragments 50-500bp (AciI, SsiI)	\N	5	24	0	\N
+CCGGsites	CCGG Sites (HpaII, HapII)	\N	5	12	0	\N
+CCGGfrags	CCGG Fragments 50-500bp (HpaII, HapII)	\N	5	24	0	\N
+CGCGsites	CGCG Sites (BstUI)	\N	5	12	0	\N
+CGCGfrags	CGCG Fragments 50-500bp (BstUI)	\N	5	24	0	\N
+GCGCsites	GCGC Sites (HhaI, Hin6I)	\N	5	12	0	\N
+GCGCfrags	GCGC Fragments 50-500bp (HhaI, Hin6I)	\N	5	24	0	\N
+gc5Base	GC percent	\N	5	14	0	\N
+rmsk_ensemble	RepeatMasker slim	\N	4	12	0	\N

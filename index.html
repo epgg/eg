@@ -1,0 +1,95 @@
+<html>
+  <head>
+    <title>WashU Epigenome Browser</title>
+	<!--<script type="text/javascript" src="../browser/base.js"></script>
+	-->
+	<script type="text/javascript" src="face.js"></script>
+  </head>
+
+
+<body style='margin:0px;position:relative;width:100%;height:100%;background-color:black;
+background-image:url("2.gif");background-repeat:no-repeat;
+background-position-y:0px;
+background-position-y:0px;
+overflow:hidden;' 
+onload="setTimeout('readygo()', 1000)"
+onmousedown="md(event)"
+>
+
+<style type='text/css'>
+.butt {
+position:absolute;
+border:solid 1px transparent;cursor:pointer;
+padding:20px;
+font-size:18px;font-weight:bold;
+bottom:50px;border-radius:5px;-moz-border-radius:5px;
+}
+.butt:hover {border-color:white;}
+
+.butt1 {
+position:absolute;
+border:solid 1px transparent;cursor:pointer;
+padding:10px;
+font-size:14px;font-weight:bold;
+bottom:50px;border-radius:5px;-moz-border-radius:5px;
+}
+.butt1:hover {border-color:white;}
+
+@-webkit-keyframes blinker {
+          from { opacity: 1.0; }
+                  to { opacity: 0.0; }
+}
+.css3-blink {
+          -webkit-animation-name: blinker;
+                  -webkit-animation-iteration-count: infinite;
+                            -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);
+                                        -webkit-animation-duration: 1s;
+}
+
+</style>
+
+<div id=board style='position:absolute;left:0px;bottom:-200px;width:100%;height:150px;
+border-top:solid 2px white;'>
+  <div style='position:relative;'>
+
+	<div style='opacity:0.5;width:100%;height:100%;
+	background-color:#ccc;'></div>
+
+<table  style="margin-left:20px;" border=0 cellpadding=0 cellspacing=0 width="100%" align="center"><tr>
+        <td>
+	<div class=butt1
+	style='background-color:crimson;color:white;'
+	onclick="window.open('http://epigenomegateway.wustl.edu/browser')">
+	WashU EpiGenome Browser</div>
+        </td>
+        <td>
+	<div class=butt1
+	style='background-color:darkred;color:white;'
+	onclick="window.open('http://epigenomegateway.wustl.edu/browser/roadmap')">
+	Roadmap EpiGenome Browser</div>
+        </td>
+        <td>
+	<div style='
+        background-color: rgb(180, 17, 215);
+	border-color:#ccc;
+	color:#ccc;'
+	class="butt1 css3-blink"
+	onclick="window.open('http://epigenomegateway.wustl.edu/support/workshop.html')">
+	Workshop@ASHG2014</div>
+        </td>
+        <td>
+	<div style='
+        background-color: rgb(5, 95, 44);
+	border-color:#ccc;
+	color:#ccc;'
+	class=butt1
+	onclick="window.open('http://epigenomegateway.wustl.edu/support')">
+	Training and Support</div>
+        </td>
+</tr></table>
+
+  </div>
+</div>
+
+</body>
+</html>

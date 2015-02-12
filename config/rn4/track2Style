@@ -1,0 +1,8 @@
+refGene	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'rgb(0,77,153)',dbsearch:true,isgene:true
+xenoRefGene	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'rgb(0,77,77)',dbsearch:true,isgene:true
+cpgisland	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'rgb(0,77,153)'
+ACGTfrags	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'#FF0000'
+CCGCfrags	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'#0000FF'
+CCGGfrags	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'#008040'
+CGCGfrags	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'#CC6600'
+GCGCfrags	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'#5900B3'

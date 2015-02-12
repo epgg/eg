@@ -1,0 +1,9 @@
+[
+{
+id:'ykhe',
+name:'Re-sequencing two subspecies of B. rapa',
+url:'http://vizhub.wustl.edu/public/rapa1_1/ykHE/hub',
+institution:['<a href=http://sippe.ac.cn/hyk/ target=_blank>He Yuke laboratory, SIPPE, SIBS, CAS</a>'],
+desc:'The two collection of genome-wide sequencing results are from Heading Chinese cabbage (B. rapa ssp. pekinensis. cv Bre) and non-heading Chinese cabbage (B. rapa ssp. chinensis. cv Wut) respectively. Four RNA sequencing data are from the seedling (3 weeks-old) and inflorescence apices (IA) (2 month-old) of Bre and Wut, respectively.  Data are available as sequencing reads aligned to the reference genome.',
+},
+]

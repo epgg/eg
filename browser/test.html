@@ -1,0 +1,24 @@
+<html>
+<head><title>test</title></head>
+<body>
+<style type='text/css'>
+button {margin:20px;padding:10px;width:300px;}
+</style>
+
+<table style='width:100%;height:100%;'><tr><td align=center valign=middle>
+
+<button onclick='window.open("http://localhost/browser/?genome=hg19&session=what")'>Restore session</button>
+<br>
+<button onclick='window.open("http://localhost/browser/?genome=hg19&datahub=http://vizhub.wustl.edu/dli/skin01_hub.txt&coordinate=chr10:23632235-23633954")'>Data Hub</button>
+<br>
+<button onclick='window.open("http://localhost/browser/?genome=hg19&datahub=http://remc.wustl.edu/xzhou/hub.txt&geneset=CYP4V2,CYP51A1,CYP2C19,CYP26B1,CYP11B2,CYP24A1,CYP4B1")'>Gene Set View</button>
+<br>
+<button onclick='window.open("http://localhost/browser/?genome=hg19&datahub=http://remc.wustl.edu/xzhou/hub.txt&juxtapose=refGene")'>Juxtaposition (on genes)</button>
+<br>
+<button onclick='window.open("http://localhost/browser/?genome=hg19&datahub=http://remc.wustl.edu/xzhou/hub.txt&juxtapose=http://remc.wustl.edu/xzhou/hg19/sample.bigBed&juxtaposecustom=on")'>Juxtaposition (on custom bigbed track)</button>
+
+</td></tr></table>
+
+
+</body>
+</html>

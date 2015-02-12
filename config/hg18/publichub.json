@@ -1,0 +1,41 @@
+[
+
+{
+id:'methylome',
+name:'H1 ESC and IMR90 whole-genome methylome',
+trackcount:2,
+url:'http://vizhub.wustl.edu/public/hg18/pmid19829295/hub',
+institution:['<a href=http://epigenome.ucsd.edu/ target=_blank>San Diego Epigenome Center</a>'],
+desc:'This data set contains whole-genome DNA methylome data at single-base resolution. Data is available for two human cell lines: H1 embryonic stem cell, and lung fibroblast (IMR90).',
+cite:['Ryan Lister et. al., Nature 462, 315-322'],
+},
+{
+id:'mm1s',
+name:'Multiple Myeloma cell line with JQ1 treatment',
+trackcount:27,
+logo:'http://bradner.dfci.harvard.edu/images/generegulationchemistry.jpg',
+url:'http://vizhub.wustl.edu/public/hg18/mm1s/hub',
+institution:['<a href=http://younglab.wi.mit.edu target=_blank>Richard Young at Whitehead Institute</a>',
+	'<a href=http://bradner.dfci.harvard.edu/ target=_blank>James E. Bradner at Harvard Medical School</a>'],
+desc:'This collection of genome-wide sequencing results is from multiple myeloma 1S cell line under JQ1 treatment. The experiments systematically characterized response to JQ1 treatment from many aspects: histone protein modifications, oncogene transcription regulator binding of DNA, and gene transcription. Data are available as sequencing reads aligned to the reference genome.',
+cite:['Lin C. et. al., Cell. 2012 Sept 28;151(1):56-67','Loven J et. al., Cell. 2013 Apr 11;153(2):320-34'],
+},
+{
+id:'fimo',
+name:'Motif Scan by Fimo',
+trackcount:2,
+logo:'http://meme.nbcr.net/meme/doc/images/fimo_logo.png',
+url:'http://vizhub.wustl.edu/public/hg18/fimo_motif/hub',
+institution:['<a href=http://meme.nbcr.net/meme/cgi-bin/fimo.cgi target=_blank>Fimo</a>'],
+desc:'The tracks (downloaded from the link above) display statistically significant matches between the human genome and motifs from the <a href=http://jaspar.genereg.net>JASPAR CORE 2009</a> and <a href=http://biobase-international.com/index.php?id=transfac>TRANSFAC 10.2</a> motif databases. The quality of each match is summarized as a q-value, defined as the minimal false discovery rate threshold at which the match would be deemed significant.  Only matches with a q-value ≤ 0.1 are shown.',
+},
+{
+id:'encodehmm',
+name:'ENCODE cell line chromatin states',
+trackcount:10,
+url:'http://vizhub.wustl.edu/public/hg18/encode.md',
+logo:'http://genome.ucsc.edu/images/ENCODE_scaleup_logo.png',
+institution:['<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>'],
+desc:'The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active (quoted from UCSC ENCODE website).',
+},
+]

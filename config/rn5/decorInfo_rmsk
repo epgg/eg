@@ -1,0 +1,79 @@
+srpRNA	srpRNA	\N	4	24	0	\N
+LTR	LTR	\N	4	24	0	\N
+Satellite	Satellite	\N	4	24	0	\N
+rRNA	rRNA	\N	4	24	0	\N
+DNA	DNA	\N	4	24	0	\N
+Simple_repeat	Simple_repeat	\N	4	24	0	\N
+SINE?	SINE?	\N	4	24	0	\N
+Unknown	Unknown	\N	4	24	0	\N
+scRNA	scRNA	\N	4	24	0	\N
+RC	RC	\N	4	24	0	\N
+DNA?	DNA?	\N	4	24	0	\N
+RC?	RC?	\N	4	24	0	\N
+snRNA	snRNA	\N	4	24	0	\N
+Other	Other	\N	4	24	0	\N
+LINE?	LINE?	\N	4	24	0	\N
+tRNA	tRNA	\N	4	24	0	\N
+RNA	RNA	\N	4	24	0	\N
+LINE	LINE	\N	4	24	0	\N
+SINE	SINE	\N	4	24	0	\N
+LTR?	LTR?	\N	4	24	0	\N
+Low_complexity	Low_complexity	\N	4	24	0	\N
+rRNArRNA	rRNA (rRNA)	rRNA	4	24	0	\N
+DNATcMar	TcMar (DNA)	DNA	4	24	0	\N
+DNAhAT-Tip100	hAT-Tip100 (DNA)	DNA	4	24	0	\N
+LTRLTR	LTR (LTR)	LTR	4	24	0	\N
+LINERTE-X	RTE-X (LINE)	LINE	4	24	0	\N
+UnknownUnknown	Unknown (Unknown)	Unknown	4	24	0	\N
+LTRERVL	ERVL (LTR)	LTR	4	24	0	\N
+LTRERVK	ERVK (LTR)	LTR	4	24	0	\N
+DNAhAT-Tip100?	hAT-Tip100? (DNA)	DNA	4	24	0	\N
+OtherOther	Other (Other)	Other	4	24	0	\N
+DNAhAT-Charlie	hAT-Charlie (DNA)	DNA	4	24	0	\N
+SINEMIR	MIR (SINE)	SINE	4	24	0	\N
+RC?Helitron?	Helitron? (RC?)	RC?	4	24	0	\N
+LINERTE-BovB	RTE-BovB (LINE)	LINE	4	24	0	\N
+SatelliteSatellite	Satellite (Satellite)	Satellite	4	24	0	\N
+DNAhAT?	hAT? (DNA)	DNA	4	24	0	\N
+SINE?SINE?	SINE? (SINE?)	SINE?	4	24	0	\N
+DNATcMar-Pogo	TcMar-Pogo (DNA)	DNA	4	24	0	\N
+scRNAscRNA	scRNA (scRNA)	scRNA	4	24	0	\N
+DNA?DNA?	DNA? (DNA?)	DNA?	4	24	0	\N
+DNATcMar-Mariner	TcMar-Mariner (DNA)	DNA	4	24	0	\N
+DNAMuDR	MuDR (DNA)	DNA	4	24	0	\N
+LTRERVL-MaLR	ERVL-MaLR (LTR)	LTR	4	24	0	\N
+DNADNA	DNA (DNA)	DNA	4	24	0	\N
+snRNAsnRNA	snRNA (snRNA)	snRNA	4	24	0	\N
+LINEL1?	L1? (LINE)	LINE	4	24	0	\N
+LTRERVK?	ERVK? (LTR)	LTR	4	24	0	\N
+DNAPiggyBac	PiggyBac (DNA)	DNA	4	24	0	\N
+SINEDeu	Deu (SINE)	SINE	4	24	0	\N
+DNATcMar-Tc2	TcMar-Tc2 (DNA)	DNA	4	24	0	\N
+LTRERV1	ERV1 (LTR)	LTR	4	24	0	\N
+LINEL2	L2 (LINE)	LINE	4	24	0	\N
+RCHelitron	Helitron (RC)	RC	4	24	0	\N
+LINEL1	L1 (LINE)	LINE	4	24	0	\N
+LINEDong-R4	Dong-R4 (LINE)	LINE	4	24	0	\N
+SINEID	ID (SINE)	SINE	4	24	0	\N
+LINE?Penelope?	Penelope? (LINE?)	LINE?	4	24	0	\N
+LTRGypsy?	Gypsy? (LTR)	LTR	4	24	0	\N
+srpRNAsrpRNA	srpRNA (srpRNA)	srpRNA	4	24	0	\N
+DNAhAT-Blackjack	hAT-Blackjack (DNA)	DNA	4	24	0	\N
+LTRERVL?	ERVL? (LTR)	LTR	4	24	0	\N
+LINECR1	CR1 (LINE)	LINE	4	24	0	\N
+DNAPiggyBac?	PiggyBac? (DNA)	DNA	4	24	0	\N
+Simple_repeatSimple_repeat	Simple_repeat (Simple_repeat)	Simple_repeat	4	24	0	\N
+DNAMULE-MuDR	MULE-MuDR (DNA)	DNA	4	24	0	\N
+DNATcMar-Tigger	TcMar-Tigger (DNA)	DNA	4	24	0	\N
+tRNAtRNA	tRNA (tRNA)	tRNA	4	24	0	\N
+RNARNA	RNA (RNA)	RNA	4	24	0	\N
+LTRERV1?	ERV1? (LTR)	LTR	4	24	0	\N
+SINEB4	B4 (SINE)	SINE	4	24	0	\N
+LTRGypsy	Gypsy (LTR)	LTR	4	24	0	\N
+SINEB2	B2 (SINE)	SINE	4	24	0	\N
+DNATcMar?	TcMar? (DNA)	DNA	4	24	0	\N
+SINEAlu	Alu (SINE)	SINE	4	24	0	\N
+DNAhAT	hAT (DNA)	DNA	4	24	0	\N
+LTR?LTR?	LTR? (LTR?)	LTR?	4	24	0	\N
+Low_complexityLow_complexity	Low_complexity (Low_complexity)	Low_complexity	4	24	0	\N
+rmsk_all	RepeatMasker	\N	4	24	0	\N

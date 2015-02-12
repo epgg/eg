@@ -1,0 +1,4 @@
+xenoRefGene	non-rat RefSeq genes	\N	2	24	0	http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=
+refGene	RefSeq genes	\N	2	24	0	http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=
+gc5Base	GC percent	\N	5	14	0	\N
+rmsk_ensemble	RepeatMasker slim	\N	4	12	0	\N

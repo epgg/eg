@@ -1,0 +1,2 @@
+refGene	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'rgb(0,77,153)',dbsearch:true,isgene:true
+xenoRefGene	'textcolor':'rgb(0,0,0)','fontsize':'8pt','fontfamily':'sans-serif','fontbold':false,'bedcolor':'rgb(0,77,77)',dbsearch:true,isgene:true
