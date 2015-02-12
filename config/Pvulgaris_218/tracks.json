@@ -1,0 +1,22 @@
+{
+
+Genes : [
+	{name:'gene',label:'phytozome genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/Pvulgaris_218/gene.gz',
+		queryUrl:'http://www.phytozome.net/cgi-bin/gbrowse/commonbean/?q=',
+		boxcolor:'#002EB8',
+		isgene:true,dbsearch:true },
+],
+
+'G/C related' : [
+	{name:'gc5Base',label:'GC percent',
+		filetype:'bigwig',
+		url:'http://egg.wustl.edu/d/Pvulgaris_218/gc5Base.bigWig',
+		height:50,
+		colorpositive:'#4785C2/#4747C2',
+		fixedscale:{min:0,max:100},
+	},
+],
+
+}

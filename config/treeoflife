@@ -1,0 +1,34 @@
+{
+Animalia : {
+	Primates : [
+		{assembly:'hg19',commonname:'Human',scientificname:'Homo sapiens',ismajor:true,logofontcolor:'white',snp:'snp137'},
+		{assembly:'hg38',commonname:'Human',scientificname:'Homo sapiens',major:'hg19'},
+		{assembly:'hg18',commonname:'Human',scientificname:'Homo sapiens',major:'hg19'},
+		{assembly:'rheMac3',commonname:'Rhesus macaque',scientificname:'Rhesus macaque',ismajor:true,logofontcolor:'white'},
+		{assembly:'macFas_BGI',commonname:'Crab-eating macaque',scientificname:'Macaca fascicularis',ismajor:true,logofontcolor:'white'},
+		],
+	Rodentia : [
+		{assembly:'mm9',commonname:'Mouse',scientificname:'Mus musculus',ismajor:true,logofontcolor:'white'},
+		{assembly:'mm10',commonname:'Mouse',scientificname:'Mus musculus',major:'mm9'},
+		{assembly:'rn4',commonname:'Rat',scientificname:'Rattus norvegicus',ismajor:true,logofontcolor:'white'},
+		{assembly:'rn5',commonname:'Rat',scientificname:'Rattus norvegicus',major:'rn4'},
+		{assembly:'cavPor3',commonname:'Guinea pig',scientificname:'Cavia porcellus',ismajor:true,logofontcolor:'black'},
+		],
+	Rest : [
+		{assembly:'danRer7',commonname:'Zebrafish',scientificname:'Danio rerio',ismajor:true,logofontcolor:'white'},
+		{assembly:'dm3',commonname:'Fruit fly',scientificname:'Drosophila melanogaster',ismajor:true,logofontcolor:'white'},
+		],
+	},
+Plantae : [
+	{assembly:'tair10',commonname:'Arabidopsis',scientificname:'Arabidopsis thaliana',ismajor:true,logofontcolor:'white'},
+	{assembly:'AGPv2',commonname:'Maize',scientificname:'Zea mays',ismajor:true,logofontcolor:'white'},
+	{assembly:'Gmax_275',commonname:'Soybean',scientificname:'Glycine max',ismajor:true,logofontcolor:'black'},
+	{assembly:'Gmax_189',commonname:'Soybean',scientificname:'Glycine max',major:'Gmax_275',logofontcolor:'black'},
+	{assembly:'Pvulgaris_218',commonname:'Common bean',scientificname:'Phaseolus vulgaris',ismajor:true,logofontcolor:'black'},
+	{assembly:'rapa1_1',commonname:'Chinese cabbage',scientificname:'Brassica rapa',ismajor:true,logofontcolor:'black'},
+	],
+Rest : [
+	{assembly:'spombe201203',commonname:'Fission yeast',scientificname:'Schizosaccharomyces pombe',ismajor:true,logofontcolor:'white'},
+	{assembly:'AcNPV',commonname:'Autographa californica NPV',scientificname:'Autographa californica NPV',ismajor:true,logofontcolor:'white'},
+	],
+}

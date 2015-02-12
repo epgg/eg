@@ -1,0 +1,2 @@
+refGene	download date=March 7, 2014; source=http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/; note=this is a copy of refSeq Genes track of UCSC Genome Browser
+xenoRefGene	download date=March 7, 2014; source=http://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/; note=this is a copy of non-human RefSeq Genes track of UCSC Genome Browser

@@ -1,0 +1,12 @@
+{
+
+Genes : [
+	{name:'gene',label:'phytozome genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/Gmax_275/gene.gz',
+		queryUrl:'http://www.phytozome.net/cgi-bin/gbrowse/soybean/?q=',
+		boxcolor:'#002EB8',
+		isgene:true,dbsearch:true },
+],
+
+}

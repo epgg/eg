@@ -1,0 +1,30 @@
+{
+
+Genes : [
+	{name:'gene',label:'genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/AcNPV/gene.gz',
+		queryUrl:'http://www.ncbi.nlm.nih.gov/gene/?term=',
+		boxcolor:'#002EB8',
+		isgene:true,dbsearch:true },
+],
+
+Repeat : [
+	{name:'repeat_region',label:'repeats',
+		filetype:'bed',
+		url:'http://egg.wustl.edu/d/AcNPV/repeat_region.gz',
+	},
+],
+
+
+'G/C related' : [
+	{name:'gc5Base',label:'GC percent',
+		filetype:'bigwig',
+		url:'http://egg.wustl.edu/d/AcNPV/gc5Base.bigWig',
+		height:50,
+		colorpositive:'#4785C2/#4747C2',
+		fixedscale:{min:0,max:100},
+	},
+],
+
+}

@@ -1,0 +1,7 @@
+rmsk_ensemble	1:['SINE - short interspersed nuclear elements','#cc0000'], 2:['LINE - long interspersed nuclear element','#FF6600'], 3:['LTR - long terminal repeat element','#006600'], 4:['DNA transposon','#4A72E8'], 5:['Simple repeat, micro-satellite','#AB833B'], 7:['Low complexity repeat','#663333'], 6:['Satellite repeat','#660000'], 9:['Other repeats','#488E8E'],8:['RNA repeat','#cc33ff'], 10:['Unknown','#5C5C5C']
+CpGsites	1:['CpG sites','rgb(134,0,179)']
+ACGTsites	1:['ACGT Sites (HpyCH4IV)','#FF0000']
+CCGCsites	1:['CCGC Sites (AciI, SsiI)','#0000FF']
+CCGGsites	1:['CCGG Sites (HpaII, HapII)','#008040']
+CGCGsites	1:['CGCG Sites (BstUI)','#CC6600']
+GCGCsites	1:['GCGC Sites (HhaI, Hin6I)','#5900B3']

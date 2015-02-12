@@ -1,0 +1,30 @@
+{
+
+Genes : [
+	{name:'pombase_gene',label:'PomBase gene',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/spombe201203/pombase_gene.gz',
+		queryUrl:'http://www.arabidopsis.org/servlets/TairObject?type=gene&name=',
+		boxcolor:'#002EB8',
+		isgene:true,dbsearch:true },
+],
+
+Repeat : [
+	{name:'repeat',label:'LTR and repeats',
+		filetype:'bed',
+		url:'http://egg.wustl.edu/d/spombe201203/repeat.gz',
+	},
+],
+
+
+'G/C related' : [
+	{name:'gc5Base',label:'GC percent',
+		filetype:'bigwig',
+		url:'http://egg.wustl.edu/d/spombe201203/gc5Base.bigWig',
+		height:50,
+		colorpositive:'#4785C2/#4747C2',
+		fixedscale:{min:0,max:100},
+	},
+],
+
+}

@@ -1,0 +1,3 @@
+gcc -O -g  -Wall -Wformat -Wimplicit -Wreturn-type -Wuninitialized -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_GNU_SOURCE -DCOLOR32 -D_USE_KURL -Wall -Wformat -Wimplicit -Wreturn-type -I/srv/epgg/data/tabix-lidaof -I/srv/epgg/data/samtools-legacy -I/usr/include/mysql -o subtleKnife.o -c subtleKnife.c
+gcc -O2 -g  -Wall -Wformat -Wimplicit -Wreturn-type -Wuninitialized -o subtleKnife subtleKnife.o -pthread /usr/lib/x86_64-linux-gnu/libmysqlclient.a -L/srv/epgg/data/tabix-lidaof -L/srv/epgg/data/samtools-legacy -lbam -ltabix -lz -lm -lpthread -ldl -L/usr/local/lib -lcurl
+mv subtleKnife /usr/lib/cgi-bin
