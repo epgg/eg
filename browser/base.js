@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='39.3.4';
+var washUver='39.3.5';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -4212,6 +4212,15 @@ if(tkobj.ft==FT_matplot) {
 						textcolor= 'rgba('+textcolorlst+','+Math.min(1,(thisscore-tkobj.minv)/_rv)+')';
 						bedcolor= 'rgba('+bedcolorlst+','+Math.min(1,(thisscore-tkobj.minv)/_rv)+')';
 					}
+//leepc12_hotfix for bed color strand
+                                        if(tkobj.ft==FT_bed_c) {
+                                                ctx.font='0pt Sans-serif';
+                                                if ( item.strand=='+'||item.strand=='>')
+                                                        bedcolor='#FF0000';//'#800000'; // maroon
+                                                if ( item.strand=='-'||item.strand=='<')
+                                                        bedcolor='#0000FF';//'#0000A0'; // dark blue
+                                        }
+//leepc12
 				}
 
 				if(isThin) {

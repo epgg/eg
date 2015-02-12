@@ -1,4 +1,13 @@
 # EpiGenome Gateway - WashU EpiGenome Browser
 
-### version 39.3.4
-the last final version as Xin left, thanks to Xin for building the nice work. 
+### public server
+http://epigenomegateway.wustl.edu/browser/
+
+### wiki
+http://wiki.wubrowse.org/
+
+### community @ google+
+http://egg.wustl.edu/+
+
+### facebook page
+https://www.facebook.com/WashUEpiGenomeBrowser

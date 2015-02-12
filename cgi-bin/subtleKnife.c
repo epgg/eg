@@ -93,11 +93,11 @@
 #define ymdayfile "yearmonthday" // a bed file
 #define Rose_input_fn "input_bed_file"
 #define trashDir "/usr/lib/trash"
-#define WWWT "/var/www/html/browser/t"
+#define WWWT "/var/www/browser/t"
 #define BINdir "."
-#define Mysqlserver "localhost" // 10.200.0.11
-#define Mysqluser "root"
-#define Mysqlpswd "xzhou"
+#define Mysqlserver "10.200.0.11"
+#define Mysqluser "hguser"
+#define Mysqlpswd "hguser"
 
 /* miscellaneous */
 #define SQUAWK 1 // set to 1 for squawking
@@ -1701,12 +1701,16 @@ boolean bigwigQuery(char *urlpath, char *chrom, unsigned int start, unsigned int
 // space alien
 // dummy path name conversion
 int i;
+ //leepc12: hot fix for long bigwig url
 char *dummyname=strdup(urlpath);
 for(i=0; i<strlen(urlpath); i++)
-	{
-	if(urlpath[i]=='/')
-		dummyname[i]='_';
-	}
+        {
+        if(urlpath[i]=='/')
+                dummyname[i]='_';
+        }
+ //leepc12
+//char *dummyname=strdup("temp");
+//leepc12
 srand(time(0));
 int rr=rand();
 char *outfile;
