@@ -8,6 +8,7 @@
 * bug fix, sometimes generated svg didn have no .svg prefix
 * parse json hub file using C through network instead of `wget` to local (ref: http://alisdair.mcdiarmid.org/2012/08/14/jsmn-example.html)
 * a `Makefile` was added for building the C binary program
+* bug fix, `Error fetching SNP information` was fixed
 
 ### version 39.3.4
 * the last final version as Xin left, thanks to Xin for building the nice work. 

@@ -6160,7 +6160,7 @@ if(cgiVarExists("load_dblst"))
 		printf("abort:'File not found: %s'}",treeoflife);
 		return 1;
 		}
-	printf("dblst:");
+	printf("\"dblst\":");
 	char *line=malloc(1);
 	size_t s=1;
 	while(getline(&line,&s,fin)!=-1)

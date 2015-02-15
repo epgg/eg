@@ -2652,16 +2652,24 @@ for(var i=0; i<this.tklst.length; i++) {
 function str2jsonobj(str)
 {
 var j=null;
-if(str[0]=='{') {
-	if(str[str.length-1]=='}') {
-		try{
-			j=eval('('+str+')');
-		} catch(err) {}
-	}
-} else {
-	try{
-		j=eval('({'+str+'})');
-	} catch(err) {}
+try {
+    var j = JSON.parse(str);
+}catch(e){
+    try{
+        if(str[0]=='{') {
+        	if(str[str.length-1]=='}') {
+    	        	try{
+	    	        	j=eval('('+str+')');
+        		} catch(err) {}
+	        }
+            } else {
+	        try{
+		    j=eval('({'+str+'})');
+	        } catch(err) {}
+            }       
+    }catch(e){
+        return null;
+    }
 }
 return j;
 }
@@ -6553,7 +6561,9 @@ req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		try {
-			var data = eval('('+t+')');
+                        console.log(t);
+			var data = eval('('+t+')'); //dli
+                        console.log(data);
 		} catch(err) {
 			// unrecoverable??
 			gflag.badjson.push(t);
@@ -24650,12 +24660,21 @@ return nlst.join('');
 function parse_jsontext(text)
 {
 if(!text) return null;
-var t2=jsontext_removecomment(text);
-if(!t2) return null;
 try {
-	var j=eval('('+t2+')');
-} catch(err) {
-	return null;
+    var j = JSON.parse(text);
+}catch(e){
+    try {
+        var t2=jsontext_removecomment(text);
+        if(!t2) return null;
+        try {
+	    var j=eval('('+t2+')');
+        } catch(err) {
+        	return null;
+        }
+        return j;
+    }catch(e){
+        return null;
+    }
 }
 return j;
 }
