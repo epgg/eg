@@ -1535,7 +1535,8 @@ return num.toFixed(2);
 function neatstr(num)
 {
 // try make it "%.6g"
-var s = num.toFixed(6);
+//var s = num.toFixed(6);
+var s = num.toFixed(2); //dli
 if(s.indexOf('.')==-1) return s;
 var lst = s.split('.');
 var a=lst[0], b=lst[1];
@@ -12865,8 +12866,9 @@ palettegrove_paint(event.target.style.backgroundColor);
 function indicator3cover(bbj)
 {
 var c = absolutePosition(bbj.hmdiv.parentNode);
-placeIndicator3(c[0], c[1], bbj.hmSpan,
-	bbj.hmdiv.clientHeight+bbj.ideogram.canvas.height+bbj.decordiv.clientHeight+bbj.tklst.length);
+//placeIndicator3(c[0], c[1], bbj.hmSpan,
+//	bbj.hmdiv.clientHeight+bbj.ideogram.canvas.height+bbj.decordiv.clientHeight+bbj.tklst.length);
+placeIndicator3(c[0], c[1], bbj.hmSpan,bbj.hmdiv.clientHeight); //dli, apply to all don't select track under ideogram
 }
 
 function toggle15(event)
@@ -13052,7 +13054,8 @@ var lst=[];
 for(var i=0; i<lst2.length; i++) {
 	var t=bbj.findTrack(lst2[i].name, lst2[i].cotton);
 	if(!t) continue;
-	if(!tkishidden(t)) {
+	//if(!tkishidden(t)) {
+	if(!tkishidden(t) && t.where!=2) { //dli
 		lst.push(t);
 	}
 }

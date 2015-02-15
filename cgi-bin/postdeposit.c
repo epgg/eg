@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define WWWT "/var/www/html/browser/t"
+#define WWWT "/var/www/browser/t"
 
 int main()
 {

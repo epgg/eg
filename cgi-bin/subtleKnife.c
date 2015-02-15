@@ -17,7 +17,11 @@
 #include <glob.h>
 #include "sam.h"
 #include "tabix.h"
-#include "jsmn/jsmn.c"
+#include <curl/curl.h>
+#include "jsmn-example/jsmn.h"
+#include "jsmn-example/json.h"
+#include "jsmn-example/log.h"
+#include "jsmn-example/buf.h"
 
 #define MAXbpwidth 10
 #define StartChrom_cgi "startChr"
@@ -1702,20 +1706,27 @@ boolean bigwigQuery(char *urlpath, char *chrom, unsigned int start, unsigned int
 // dummy path name conversion
 int i;
  //leepc12: hot fix for long bigwig url
-char *dummyname=strdup(urlpath);
-for(i=0; i<strlen(urlpath); i++)
-        {
-        if(urlpath[i]=='/')
-                dummyname[i]='_';
-        }
- //leepc12
-//char *dummyname=strdup("temp");
-//leepc12
+//char *dummyname=strdup(urlpath);
+//for(i=0; i<strlen(urlpath); i++)
+//        {
+//        if(urlpath[i]=='/')
+//                dummyname[i]='_';
+//        }
+//dli
+char *urlbase = basename(strdup(urlpath));
+char dummyname[201];
+if (strlen(urlbase) > 200){
+    strncpy(dummyname, urlbase, 200);
+    dummyname[200] = '\0';
+}else{
+    strcpy(dummyname, urlbase);
+}
+//dli
 srand(time(0));
 int rr=rand();
 char *outfile;
 assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
-free(dummyname);
+//free(dummyname);
 
 char *command;
 assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
@@ -5402,12 +5413,22 @@ if(cgiVarExists("graphviz"))
 	}
 
 
-
-
 if(cgiVarExists("loaddatahub"))
 	{
-	/* simply read a datahub file
-	*/
+	// simply read a datahub file
+	//
+	printf("Content-Type:text/plain\n\n");
+        char *js = json_fetch(cgiString("url"));
+        printf("%s\n",js);
+	done();
+	return 1;
+        }
+
+/*
+if(cgiVarExists("loaddatahub"))
+	{
+	// simply read a datahub file
+	//
 	printf("Content-Type:text/plain\n\n");
 	srand(time(0));
 	int r = rand();
@@ -5446,6 +5467,7 @@ if(cgiVarExists("loaddatahub"))
 	done();
 	return 1;
 	}
+*/
 
 
 /*
