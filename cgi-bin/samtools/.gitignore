@@ -1,0 +1,5 @@
+*.o
+.*.swp
+*.a
+*.dSYM
+samtools

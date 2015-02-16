@@ -1,0 +1,3 @@
+*.o
+tabix
+bgzip
