@@ -1,4 +1,4 @@
-# EpiGenome Gateway - WashU EpiGenome Browser
+## EpiGenome Gateway - WashU EpiGenome Browser
 
 ### public server
 http://epigenomegateway.wustl.edu/browser/

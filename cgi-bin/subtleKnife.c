@@ -807,11 +807,14 @@ int i;
 for (i=0; i<inLength;++i)
 	{    
 	c = *in++;
+        /* add support when url has '+'
 	if (c == '+') 
 		{
 		*out++ = ' '; 
 		}
 	else if (c == '%') 
+        */
+	if (c == '%') 
 		{
 		int code;
 		if (sscanf(in, "%2x", &code) != 1)
