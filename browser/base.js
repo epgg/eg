@@ -6532,7 +6532,7 @@ req.onreadystatechange= function() {
 		bbj.ajaxSaveUrlpiece(callback);
 	}
 };
-req.open("POST", gflag.cors_host+"/cgi-bin/subtleKnife?NODECODE=on&offset="+this.urloffset+"&saveURLpiece="+escape(url.substr(this.urloffset, urllenlimit))+"&session="+this.sessionId+"&dbName="+this.genome.name, true);
+req.open("POST", gflag.cors_host+"/cgi-bin/subtleKnife?NODECODE=on&offset="+this.urloffset+"&saveURLpiece="+encodeURIComponent(url.substr(this.urloffset, urllenlimit))+"&session="+this.sessionId+"&dbName="+this.genome.name, true);
 req.send();
 }
 
@@ -6561,9 +6561,9 @@ req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		try {
-                        console.log(t);
+                        //console.log(t);
 			var data = eval('('+t+')'); //dli
-                        console.log(data);
+                        //console.log(data);
 		} catch(err) {
 			// unrecoverable??
 			gflag.badjson.push(t);
@@ -6574,7 +6574,7 @@ req.onreadystatechange= function() {
 		callback(data);
 	}
 };
-req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
+req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+encodeURIComponent(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
 	(this.ajax_phrase?this.ajax_phrase:''), true);
 req.send();
 }
@@ -6614,7 +6614,7 @@ req.onreadystatechange= function() {
 		}
 	}
 };
-req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(url),true);
+req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+encodeURIComponent(url),true);
 req.send();
 }
 
@@ -8422,7 +8422,7 @@ if(tosvg) return s;
 
 Browser.prototype.init_hmSpan=function()
 {
-var tobe = document.body.clientWidth-this.leftColumnWidth-100;
+var tobe = document.body.clientWidth-this.leftColumnWidth-140;
 if(tobe < 800)
 	this.hmSpan=800;
 else
@@ -14967,7 +14967,7 @@ if(tk.ft==FT_lr_n || tk.ft==FT_lr_c) {
 }
 var s=result.strand;
 picasays.innerHTML='<div style="padding:5px;"><div style="color:white;line-height:1.5;">'+
-	(result.name2?result.name2:(result.name?result.name:((tk.ft==FT_bam_n||tk.ft==FT_bam_c)?'Read':'Unamed item')))+'<br>'+
+	(result.name2?result.name2:(result.name?result.name:((tk.ft==FT_bam_n||tk.ft==FT_bam_c)?'Read':'Unnamed item')))+'<br>'+
 	((result.category!=undefined && tk.cateInfo) ?
 		'<span class=squarecell style="padding:0px 8px;background-color:'+tk.cateInfo[result.category][1]+';">&nbsp;</span> '+tk.cateInfo[result.category][0]+'<br>':'')+
 	(result.scorelst?(tk.showscoreidx>=0?
@@ -24620,25 +24620,38 @@ bbj.ajaxText('loaddatahub=on&url='+url, function(text){bbj.loadhub_urljson_cb(te
 
 Browser.prototype.loadhub_urljson_cb=function(text,url,callback)
 {
+var that = this;
 if(this.genome.custtk) {
 	this.genome.custtk.ui_hub.submit_butt.disabled=false;
 }
 if(!text) {
 	print2console('Cannot load this hub: '+url,2);
 } else {
-	var j=parse_jsontext(text);
-	if(j) {
-		this.loaddatahub_json(j,url);
-		if(apps.custtk && apps.custtk.main.style.display=='block') { toggle7_2(); }
-		/* this callback is currently only used for public hubs
-		*/
-		if(callback) {
-			callback();
-		}
-		return;
-	} else {
-		print2console('Invalid JSON from this hub: '+url,2);
-	}
+	//var j=null;
+	print2console('Parsing hub file...',0);
+        var j = parse_jsontext(text);
+        //if (!!window.Worker) {
+            //var myWorker = new Worker("worker.js");
+            //myWorker.postMessage(text);
+            //console.log('Message posted to worker');
+            //myWorker.onmessage = function(e) {
+                //console.log('Message received from worker');
+           //     j = e.data;
+                //console.log(j);
+                if(j) {
+                        that.loaddatahub_json(j,url);
+                        if(apps.custtk && apps.custtk.main.style.display=='block') { toggle7_2(); }
+                        /* this callback is currently only used for public hubs
+                        */
+                        if(callback) {
+                                callback();
+                        }
+                        return;
+                } else {
+                        print2console('Invalid JSON from this hub: '+url,2);
+                }
+         //   }   
+        //}
 }
 this.ajax_loadbbjdata(this.init_bbj_param);
 }
@@ -24659,23 +24672,24 @@ return nlst.join('');
 
 function parse_jsontext(text)
 {
-if(!text) return null;
-try {
-    var j = JSON.parse(text);
-}catch(e){
+var j = null;
+if(!text) return j;
     try {
-        var t2=jsontext_removecomment(text);
-        if(!t2) return null;
-        try {
-	    var j=eval('('+t2+')');
-        } catch(err) {
-        	return null;
-        }
-        return j;
+        var j = JSON.parse(text);
     }catch(e){
-        return null;
+        try {
+            var t2=jsontext_removecomment(text);
+            if(!t2) return null;
+            try {
+                var j=eval('('+t2+')');
+            } catch(err) {
+                    return null;
+            }
+            return j;
+        }catch(e){
+            return null;
+        }
     }
-}
 return j;
 }
 
@@ -24815,7 +24829,7 @@ if(this.init_bbj_param && this.init_bbj_param.forceshowallhubtk) {
 }
 
 if(!obj.name) {
-	obj.name='Unamed hub track';
+	obj.name='Unnamed hub track';
 }
 obj.label=obj.name.replace(/,/g,' ');
 if(obj.url && this.genome.tkurlInUse(obj.url)) {
