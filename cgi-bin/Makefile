@@ -11,7 +11,7 @@ TABIXLIB=$(TABIX)/libtabix.a
 L = -pthread -lm -lz -ldl `curl-config --libs`
 
 MYF = subtleKnife postdeposit
-OBJS=jsmn-example/buf.o jsmn-example/log.o jsmn-example/json.o jsmn-example/jsmn.o
+OBJS=jsmn-example/buf.o jsmn-example/log.o jsmn-example/json.o jsmn/jsmn.o
 
 %.o: %.c
 	$(CC) $(COPT) $(CFLAGS) $(DFLAGS) $(INCLUDES) -o $@ -c $<

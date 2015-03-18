@@ -18,7 +18,7 @@
 #include "sam.h"
 #include "tabix.h"
 #include <curl/curl.h>
-#include "jsmn-example/jsmn.h"
+#include "jsmn/jsmn.h"
 #include "jsmn-example/json.h"
 #include "jsmn-example/log.h"
 #include "jsmn-example/buf.h"

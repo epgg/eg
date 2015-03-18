@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='39.3.5';
+var washUver='39.3.5.2';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -2652,9 +2652,9 @@ for(var i=0; i<this.tklst.length; i++) {
 function str2jsonobj(str)
 {
 var j=null;
-try {
-    var j = JSON.parse(str);
-}catch(e){
+//try {
+//    var j = JSON.parse(str);
+//}catch(e){
     try{
         if(str[0]=='{') {
         	if(str[str.length-1]=='}') {
@@ -2670,7 +2670,7 @@ try {
     }catch(e){
         return null;
     }
-}
+//}
 return j;
 }
 
@@ -6561,9 +6561,7 @@ req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		try {
-                        //console.log(t);
-			var data = eval('('+t+')'); //dli
-                        //console.log(data);
+			var data = eval('('+t+')');
 		} catch(err) {
 			// unrecoverable??
 			gflag.badjson.push(t);
@@ -6574,11 +6572,10 @@ req.onreadystatechange= function() {
 		callback(data);
 	}
 };
-req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+encodeURIComponent(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
+req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
 	(this.ajax_phrase?this.ajax_phrase:''), true);
 req.send();
 }
-
 
 function ajaxPost(data2post, callback)
 {
@@ -12876,9 +12873,9 @@ palettegrove_paint(event.target.style.backgroundColor);
 function indicator3cover(bbj)
 {
 var c = absolutePosition(bbj.hmdiv.parentNode);
-//placeIndicator3(c[0], c[1], bbj.hmSpan,
-//	bbj.hmdiv.clientHeight+bbj.ideogram.canvas.height+bbj.decordiv.clientHeight+bbj.tklst.length);
-placeIndicator3(c[0], c[1], bbj.hmSpan,bbj.hmdiv.clientHeight); //dli, apply to all don't select track under ideogram
+placeIndicator3(c[0], c[1], bbj.hmSpan,
+	bbj.hmdiv.clientHeight+bbj.ideogram.canvas.height+bbj.decordiv.clientHeight+bbj.tklst.length);
+//placeIndicator3(c[0], c[1], bbj.hmSpan,bbj.hmdiv.clientHeight); //dli, apply to all don't select track under ideogram
 }
 
 function toggle15(event)
@@ -13064,8 +13061,8 @@ var lst=[];
 for(var i=0; i<lst2.length; i++) {
 	var t=bbj.findTrack(lst2[i].name, lst2[i].cotton);
 	if(!t) continue;
-	//if(!tkishidden(t)) {
-	if(!tkishidden(t) && t.where!=2) { //dli
+	if(!tkishidden(t)) {
+	//if(!tkishidden(t) && t.where!=2) { //dli
 		lst.push(t);
 	}
 }
@@ -24674,9 +24671,9 @@ function parse_jsontext(text)
 {
 var j = null;
 if(!text) return j;
-    try {
-        var j = JSON.parse(text);
-    }catch(e){
+    //try {
+    //    var j = JSON.parse(text);
+    //}catch(e){
         try {
             var t2=jsontext_removecomment(text);
             if(!t2) return null;
@@ -24689,7 +24686,7 @@ if(!text) return j;
         }catch(e){
             return null;
         }
-    }
+    //}
 return j;
 }
 
@@ -25735,8 +25732,6 @@ if(this.__golden_loadhubcb) {
 	this.ajax_loadbbjdata(ibp);
 }
 }
-
-
 
 
 function custmdanno_parsestr(str,obj)
