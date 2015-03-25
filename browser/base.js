@@ -7102,6 +7102,7 @@ if(param.tklst) {
 				print2console('URL-less custom track: ('+t.name+', '+t.label+')',2);
 				continue;
 			}
+                        /*
 			if(!this.mustaddcusttk) {
 				if(this.genome.tkurlInUse(t.url)) {
 					// XXXb
@@ -7117,6 +7118,7 @@ if(param.tklst) {
 					}
 				}
 			}
+                        */
 			// must check tk on display
 			var skip=false;
 			for(var j=0; j<this.tklst.length; j++) {
@@ -23747,10 +23749,12 @@ hash/oo: raw materials for making registry object
 */
 if(!isCustom(hash.ft)) fatalError("registerCustomtrack: not custom track filetype");
 if(!hash.name) fatalError('cannot registery nameless custom track');
+/* dli
 if(hash.url) {
 	// XXXb
 	if(this.tkurlInUse(hash.url)) return;
 }
+*/
 
 var oo=this.pending_custtkhash[hash.name];
 delete this.pending_custtkhash[hash.name];
@@ -24057,10 +24061,12 @@ case FT_weaver_c:
 	break;
 default: fatalError('ft exception: '+ft);
 }
+/* dli
 if(bbj.genome.tkurlInUse(_tmp.url)) {
 	print2console('This track has already been submitted',2);
 	return;
 }
+*/
 if(newCustomTrack_isInvalid(_tmp)) {
 	return;
 }
@@ -24829,6 +24835,7 @@ if(!obj.name) {
 	obj.name='Unnamed hub track';
 }
 obj.label=obj.name.replace(/,/g,' ');
+/* dli
 if(obj.url && this.genome.tkurlInUse(obj.url)) {
 	// XXXb
 	for(var n in this.genome.hmtk) {
@@ -24841,6 +24848,8 @@ if(obj.url && this.genome.tkurlInUse(obj.url)) {
 } else {
 	obj.name= this.genome.newcustomtrackname();
 }
+*/
+obj.name= this.genome.newcustomtrackname();
 
 if(obj.ft==FT_cm_c) {
 	if(!obj.tracks) {
@@ -24877,12 +24886,14 @@ if(obj.ft==FT_cm_c) {
 			alertbox_addmsg({text:msg});
 			return null;
 		}
+                /* dli
 		if(this.genome.tkurlInUse(u)) {
 			var msg='methylC track "'+obj.label+'" problem: track file url of member track '+n+'/forward is already in use.';
 			print2console(msg,2);
 			alertbox_addmsg({text:msg+' A track file URL cannot be used at multiple places in the same session. One way to get around this issue is to duplicate this file by soft-linking it to a new file name and obtain a new file URL.'});
 			return null;
 		}
+                */
 	}
 	if(obj.tracks.reverse) {
 		for(var n in obj.tracks.reverse) {
@@ -24893,12 +24904,14 @@ if(obj.ft==FT_cm_c) {
 				alertbox_addmsg({text:msg});
 				return null;
 			}
+                        /* dli
 			if(this.genome.tkurlInUse(u)) {
 				var msg='methylC track '+obj.label+' problem: track file url of member track '+n+'/reverse already in use.';
 				print2console(msg,2);
 				alertbox_addmsg({text:msg+' A track file URL cannot be used at multiple places in the same session. One way to get around this issue is to duplicate this file by soft-linking it to a new file name and obtain a new file URL.'});
 				return null;
 			}
+                        */
 		}
 	}
 	obj.cm={set:{},color:{},bg:{}};
@@ -25048,6 +25061,7 @@ if(obj.ft==FT_cm_c) {
 			print2console('missing member track URL of '+t.name+' in '+obj.label,2);
 			return null;
 		}
+                /*
 		if(this.genome.tkurlInUse(t.url)) {
 			// XXXb
 					var f=false;
@@ -25063,6 +25077,7 @@ if(obj.ft==FT_cm_c) {
 			return null;
 			}
 		}
+                */
 		var t2=this.parse_custom_track(t);
 		if(!t2) {
 			print2console('cannot load '+obj.label+': invalid member track '+t.name,2);
@@ -25078,6 +25093,7 @@ if(obj.ft==FT_cm_c) {
 		return null;
 	}
 	// TODO redundant tkurl from this hub
+        /* dli
 	if(!this.mustaddcusttk) {
 		// XXXb
 		if(this.genome.tkurlInUse(obj.url)) {
@@ -25094,6 +25110,7 @@ if(obj.ft==FT_cm_c) {
 			}
 		}
 	}
+                */
 }
 if(!obj.md) { obj.md=[]; }
 if(obj.metadata) {
