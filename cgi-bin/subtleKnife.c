@@ -6641,6 +6641,32 @@ if(cgiVarExists("searchtable"))
 	return 1;
 	}
 
+if(cgiVarExists("searchsnptable"))
+	{
+	char *query;
+	char *table=cgiString("searchsnptable");
+	assert(asprintf(&query,"show tables like \"%s\"",table)>0);
+	if(mysqlResultAffirmative(query))
+		{
+		free(query);
+		assert(asprintf(&query,"select * from %s where name=\"%s\"",table,cgiString("text"))>0);
+		MYSQL_RES *sr=mysqlGetResult(query);
+		char **row;
+		printf("lst:[");
+		while((row=mysql_fetch_row(sr))!=NULL)
+			{
+			printf("{chrom:'%s',start:%s,stop:%s,name:'%s'},",row[0],row[1],row[2],row[3]);
+			}
+		printf("]}");
+		}
+	else
+		{
+		printf("error:'table does not exist'}");
+		}
+	done();
+	return 1;
+	}
+
 
 
 

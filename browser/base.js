@@ -26450,7 +26450,7 @@ if(ss.length==0) {
 }
 var bbj=gflag.menu.bbj;
 stripChild(menu.c47.table,0);
-bbj.ajax('searchtable='+bbj.genome.snptable+'&dbName='+bbj.genome.name+'&text='+ss,
+bbj.ajax('searchsnptable='+bbj.genome.snptable+'&dbName='+bbj.genome.name+'&text='+ss,
 	function(data){bbj.tkitemkwsearch_cb(data);});
 }
 
