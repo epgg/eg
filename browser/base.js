@@ -27637,6 +27637,8 @@ if(!key) {
 	return;
 }
 apps.svg.urlspan.innerHTML='<a href=t/'+key+' target=_blank>Link to the svg file</a>';
+var key2 = key.split('.')[0];
+apps.svg.bbj.ajaxText('svg2pdf=on&key='+key2, function(){dom_addtext(apps.svg.urlspan, '&nbsp;&nbsp;&nbsp;&nbsp;<a href=t/'+key2+'.pdf target=_blank>Link to the pdf file</a>');});
 }
 
 

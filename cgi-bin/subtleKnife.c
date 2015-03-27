@@ -5415,6 +5415,20 @@ if(cgiVarExists("graphviz"))
 	return 1;
 	}
 
+if(cgiVarExists("svg2pdf"))
+	{
+	printf("Content-Type:text/plain\n\n");
+	char *key=cgiString("key");
+	char *command;
+	assert(asprintf(&command, "rsvg-convert -f pdf -o %s/%s.pdf %s/%s.svg", WWWT,key,WWWT,key)>0);
+	if(system(command) == -1)
+		{
+		printf("ERROR:Cannot run svg2pdf");
+		return 1;
+		}
+	done();
+	return 1;
+        }
 
 if(cgiVarExists("loaddatahub"))
 	{
