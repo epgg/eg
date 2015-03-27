@@ -1,0 +1,52 @@
+<html>
+<head>
+	<title>Roadmap Epigenome Browser</title>
+	<script type="text/javascript" src="../base.js"></script>
+	<script type="text/javascript" src="../session.js"></script>
+	<script type="text/javascript" src="../personality.js"></script>
+	<script type="text/javascript" src="../gsm.js"></script>
+	<script type="text/javascript" src="../math.js"></script>
+	<script type="text/javascript" src="goldenCompass.js"></script>
+	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=iso-8859-1">
+	<link rel="stylesheet" type="text/css" href="../style.css" />
+</head>
+
+<body style="cursor:default;color:#545454;position:relative;margin:0px;background-image:url('../images/bg.jpg');position:relative;font-family:Arial;" onload='readygo()'>
+<style type='text/css'>
+div._cel {
+display:inline-block;
+width:16px;
+height:16px;
+}
+</style>
+
+<div style='padding-left:20px;'>
+	<div style='display:inline-block;padding:5px 20px 5px 0px;'>
+		<span style="font-size:90%">
+		<span style="font-size:140%">R</span>OADMAP
+		<span style="font-size:140%">E</span>PI<span style="font-size:130%">G</span>ENOME
+		<span style="font-size:140%">B</span>ROWSER
+		</span>
+		&nbsp;
+		<span id=goldenversion style='font-size:80%;'></span>
+	</div>
+	<div style='display:inline-block;padding:5px 20px 5px 15px;'>
+		<span style="font-size:60%">POWERED BY</span>
+		<span id=wugbtag style='cursor:default;font-size:80%;' onclick="window.open('http://epigenomegateway.wustl.edu/browser/')"></span>
+		<span id=wugbversion style='font-size:80%;'></span>
+	</div>
+	<div style='display:none;padding:5px 20px 5px 15px;' id=goldenpin onclick='golden_pin(event)'>
+	<img src=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAABIElEQVQ4T2NkoDJgxGKeElCsC4j5Cdj1EShfCsT3kdVhM9AbqGATIyMjEz4D/////w8o7wPE2wkZCJLnAeJPQPweiN2AeBXQApDLwQBo2H8gxQfEX9AtxeZCmBqQCy4DsT4Q7wQaCDIY2UCsPhg1ECWIQWF4D4hVgPgIMAytKQlDW6ABh6AxehVIawH5KOENjGhbkEXExLITUNFmoH4udMXIfKCB34B8XyDehyyOHssOQMmthAxD8jrIUFDi3g8TQzfwDNAwY3wuQ5cDuvQsUMwEl4Gg3ADPEVBFgkBLVkE1VmCxDBRxIAwG+BI2TI040MAXQAN3AQXcCbl+eBgoCvTyK6CXdwK960ENLzMwMTG1/fv3D5TQd1DFQEKGIMsDAHo5bhXMT90KAAAAAElFTkSuQmCC style="opacity:.6;" />PIN</div>
+</div>
+<!-- genome -->
+<div id=quest1 class=anim_height style='margin:20px 20px 1px 20px;border-bottom:solid 1px #858585;'></div>
+<!-- region -->
+<div id=quest1b class=anim_height style='margin:1px 20px;border-bottom:solid 1px #858585;'></div>
+<!-- sample scroll -->
+<div id=quest1a class=anim_height style='margin:1px 20px;border-bottom:solid 1px #858585;'><div style='margin:10px;'>says</div><div style='margin:10px;height:270px;overflow-y:scroll;'></div></div>
+<!-- assay -->
+<div id=quest2 class=anim_height style='margin:20px;'><table cellPadding=5></table></div>
+<div id=compasswrapper class=anim_height style='overflow-x:scroll;display:none;'><table><tr id=compass></tr></table></div>
+<div id=legendholder style='display:none;padding:10px 20px;color:#858585;'></div>
+</body>
+</html>
