@@ -13,6 +13,9 @@
 * use `decodeURIComponent` instead of `unescape` which is deprecated
 * Roadmap browser max-height (js and css) bug fix, details see: http://stackoverflow.com/questions/2244773/set-max-height-using-javascript
 * add `curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);` for following location support
+* SNP search switched to exact match
+* add PDF output when using screenshot app
+* moving help link to wiki
 
 ### version 39.3.4
 * the last final version as Xin left, thanks to Xin for building the nice work. 

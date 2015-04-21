@@ -33,7 +33,7 @@ d3=make_headertable(d2);
 d3.style.marginBottom=20;
 d3._h.innerHTML='1 - Data track';
 d3._h.align='left';
-dom_addtext(d3._c,'Select a <a href=http://washugb.blogspot.com/2012/09/generate-tabix-files-from-bigwig-files.html target=_blank>numerical track</a> to provide data for plotting');
+dom_addtext(d3._c,'Select a <a href=http://wiki.wubrowse.org/BedGraph target=_blank>numerical track</a> to provide data for plotting');
 dom_create('br',d3._c); dom_create('br',d3._c);
 dom_addbutt(d3._c,'Select numerical track &#187;',geneplot_invoketkselect);
 G.numtk_holder=dom_addtext(d3._c);

@@ -10673,7 +10673,7 @@ menu.c14.unify.style.color='white';
 
 menu.c46=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 menu.c46.checkbox=dom_addcheckbox(menu.c46,'Smooth window&nbsp;&nbsp;&nbsp;',menu_smoothwindow_checkbox);
-dom_addtext(menu.c46,'<a href=http://washugb.blogspot.com/2013/10/v26-3-of-3-smoothing-curves.html target=_blank>&nbsp;?&nbsp;</a>');
+dom_addtext(menu.c46,'<a href=http://wiki.wubrowse.org/V26_(3_of_3):_smoothing_curves target=_blank>&nbsp;?&nbsp;</a>');
 var d=dom_create('div',menu.c46,'display:none;',{c:'menushadowbox'});
 menu.c46.div=d;
 menu.c46.says=dom_addtext(d);
@@ -10972,7 +10972,7 @@ if(param.app_bbjconfig) {
 
 	d2=dom_create('div',d,'margin:20px;');
 	d.allow_packhide_tkdata=dom_addcheckbox(d2,'Allow "pack and hide" for track items',toggle14);
-	dom_create('div',d2,'display:none;margin:10px;').innerHTML='Please use with caution! <a href=http://washugb.blogspot.com/2014/03/v33-2-of-2-hide-undesirable-items-from.html target=_blank>Learn more.</a>';
+	dom_create('div',d2,'display:none;margin:10px;').innerHTML='Please use with caution! <a href="http://wiki.wubrowse.org/V33_(2_of_2):_hide_%22undesirable_items%22_from_a_track!" target=_blank>Learn more.</a>';
 }
 
 var d=dom_create('div',menu,'margin:10px;width:220px;color:#858585;');
@@ -24160,15 +24160,15 @@ d._c.style.padding='20px 30px';
 var ftname;
 switch(ft){
 case FT_bedgraph_c:
-	d._h.innerHTML='bedGraph track | <a href=http://washugb.blogspot.com/2012/09/generate-tabix-files-from-bigwig-files.html target=_blank>help</a>';
+	d._h.innerHTML='bedGraph track | <a href=http://wiki.wubrowse.org/BedGraph target=_blank>help</a>';
 	ftname='bedGraph';
 	break;
 case FT_cat_c:
-	d._h.innerHTML='Categorical track | <a href=http://washugb.blogspot.com/2013/08/v23-custom-categorical-track.html target=_blank>help</a>';
+	d._h.innerHTML='Categorical track | <a href=http://wiki.wubrowse.org/V23:_custom_categorical_track target=_blank>help</a>';
 	ftname='categorical';
 	break;
 case FT_bed_c:
-	d._h.innerHTML='Bed track | <a href=http://washugb.blogspot.com/2012/09/generate-tabix-files-from-bigbed-files.html target=_blank>help</a>';
+	d._h.innerHTML='Bed track | <a href=http://wiki.wubrowse.org/Simple_bed target=_blank>help</a>';
 	ftname='BED';
 	break;
 case FT_anno_c:
@@ -24176,15 +24176,15 @@ case FT_anno_c:
 	ftname='hammock';
 	break;
 case FT_lr_c:
-	d._h.innerHTML='Pairwise interaction track <a href=http://washugb.blogspot.com/2012/09/prepare-custom-long-range-interaction.html target=_blank>help</a>';
+	d._h.innerHTML='Pairwise interaction track <a href=http://wiki.wubrowse.org/Long-range target=_blank>help</a>';
 	ftname='long-range interaction';
 	break;
-case FT_sam_c:
-	d._h.innerHTML='<a href=http://washugb.blogspot.com/2012/09/generate-tabix-file-from-bam-file.html target=_blank>help</a>';
-	ftname='SAM';
-	break;
+//case FT_sam_c:
+//	d._h.innerHTML='<a href=http://washugb.blogspot.com/2012/09/generate-tabix-file-from-bam-file.html target=_blank>help</a>';
+//	ftname='SAM';
+//	break;
 case FT_huburl:
-	d._h.innerHTML= 'Data hub | <a href='+FT2noteurl[FT_huburl]+' target=_blank>JSON format preferred</a>, <a href=http://washugb.blogspot.com/2013/11/v29-2-of-4-displaying-track-hubs-from.html target=_blank>UCSC format partially supported</a>';
+	d._h.innerHTML= 'Data hub | <a href='+FT2noteurl[FT_huburl]+' target=_blank>JSON format preferred</a>, <a href=http://wiki.wubrowse.org/V29_(2_of_4):_displaying_track_hubs_from_UCSC_Genome_Browser target=_blank>UCSC format partially supported</a>';
 	ftname='Datahub';
 	break;
 case FT_bigwighmtk_c:
@@ -24192,7 +24192,7 @@ case FT_bigwighmtk_c:
 	ftname='bigWig';
 	break;
 case FT_bam_c:
-	d._h.innerHTML='BAM track | <a href=http://washugb.blogspot.com/2013/05/v18-new-page-look-bam-file-support.html target=_blank>help</a>';
+	d._h.innerHTML='BAM track | <a href=http://wiki.wubrowse.org/BAM target=_blank>help</a>';
 	ftname='BAM';
 	break;
 case FT_weaver_c:
@@ -28445,12 +28445,12 @@ return '<div style="color:white;"><table style="margin:5px;color:inherit;">'+
 /** __cmtk__ ends */
 
 /** __misc__ */
-function blog_facet() {window.open("http://washugb.blogspot.com/2013/09/v24-3-of-3-facet-panel.html");}
-function blog_session() {window.open("http://washugb.blogspot.com/2014/01/v31-2-of-3-sessions.html");}
-function blog_fud() {window.open("http://washugb.blogspot.com/2014/01/v31-3-of-3-file-upload.html");}
-function blog_publichub() {window.open("http://washugb.blogspot.com/2013/07/v22-2-of-3-public-datahubs.html");}
-function blog_geneset() {window.open("http://washugb.blogspot.com/2013/07/v21-creating-and-managing-multiple-gene.html");}
-function blog_circlet() {window.open('http://washugb.blogspot.com/2013/04/v17-circlet-view.html');}
+function blog_facet() {window.open("http://wiki.wubrowse.org/V24_(3_of_3):_facet_panel");}
+function blog_session() {window.open("http://wiki.wubrowse.org/V31_(2_of_3):_Sessions");}
+function blog_fud() {window.open("http://wiki.wubrowse.org/V31_(3_of_3):_File_upload");}
+function blog_publichub() {window.open("http://wiki.wubrowse.org/V22_(2_of_3):_public_datahubs");}
+function blog_geneset() {window.open("http://wiki.wubrowse.org/V21:_Creating_and_managing_multiple_gene_sets");}
+function blog_circlet() {window.open('http://wiki.wubrowse.org/V17:_Circlet_View');}
 function app_get_sequence(event)
 {
 var bbj=gflag.menu.bbj;
