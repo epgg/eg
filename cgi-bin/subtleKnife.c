@@ -1716,7 +1716,9 @@ int i;
 //                dummyname[i]='_';
 //        }
 //dli
+fprintf(stderr, "urlpath = (%s)\n", urlpath);
 char *urlbase = basename(strdup(urlpath));
+fprintf(stderr, "urlbase = (%s)\n", urlbase);
 char dummyname[201];
 if (strlen(urlbase) > 200){
     strncpy(dummyname, urlbase, 200);
@@ -1725,6 +1727,7 @@ if (strlen(urlbase) > 200){
     strcpy(dummyname, urlbase);
 }
 //dli
+fprintf(stderr, "dummyname = (%s)\n", dummyname);
 srand(time(0));
 int rr=rand();
 char *outfile;
@@ -1733,6 +1736,7 @@ assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
 
 char *command;
 assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+fprintf(stderr, "querying bigwig (%s)\n", command);
 if(system(command)==-1)
 	{
 	fprintf(stderr, "cannot run command (%s)\n", command);
@@ -5766,6 +5770,7 @@ if(cgiVarExists("refreshcusttkcache"))
 	if(ft==FT_bigwighmtk_c)
 		{
 		bigwigQuery(url,chrom,start,start+1,1,x, summeth_mean);
+                fprintf(stderr, "query url = (%s)\n", url);
 		// TODO how to detect invalid bigwig file?
 		}
 	else if(ft==FT_bam_c)
