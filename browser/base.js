@@ -18892,18 +18892,19 @@ Browser.prototype.mdgettrack = function (term, mdidx, tkset) {
                 tkset[n] = 1;
             }
         }*/
-        //Re-implement the above logic by inverting the loop call
 
-        /*var hmtkCache = this.genome.hmtk,
-            tkCache = {},
-            tkmdCache = {};
-        for( var n in hmtkCache ){
-            tkCache = hmtkCache[n];
-            tkmdCache = tkCache.md;
-            if(!tkmdCache) continue;
-            if( tkmdCache[mdidx] == undefined ) continue;
-            if ( term in tkmdCache[mdidx] ) tkset[n] = 1;
-        }*/
+        /**
+ 		* Edited by dpuru on 4/27/15.
+ 		
+        * Re-implement the above logic by inverting the loop call
+        * flatHmtk is set in the first line of Browser.prototype.generateTrackselectionGrid 
+        * 
+        * Browser.prototype.flattenhmtk = Creates accesses this.genome.hmtk and generates
+        * a data structure upfront - just ONCE - instead of this.genome.hmtk invoked 
+        * every time mdgettrack is called
+
+        */
+
         var termFetch = this.flatHmtk[term];
         if ( termFetch ) {
             for( var n in termFetch[mdidx] ) {
@@ -20362,6 +20363,9 @@ this.generateTrackselectionGrid();
 }
 
 Browser.prototype.flattenhmtk = function(){
+	/**
+ 	* Created by dpuru on 4/27/15.
+ 	*/
     /* # Before you call this - lets flatten genome.hmtk
      # create a global object that has key as cterm
      # and array, where index is md #
@@ -20392,8 +20396,10 @@ Browser.prototype.flattenhmtk = function(){
     return globalHMhash;
 };
 
+/**
+ * Created by dpuru on 4/27/15.
+ */
 Browser.prototype.flatHmtk = {};
-
 
 
 Browser.prototype.generateTrackselectionGrid=function()
@@ -20402,6 +20408,10 @@ Browser.prototype.generateTrackselectionGrid=function()
 make grid for track selection, each cell corresponds to metadata categories
 rerun when criteria changed
 */
+
+/**
+ * Next line added by dpuru on 4/27/15.
+ */
 this.flatHmtk = this.flattenhmtk();
 
 var attr2tkset = {};
