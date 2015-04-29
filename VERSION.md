@@ -1,7 +1,7 @@
 ## EpiGenome Gateway - WashU EpiGenome Browser
 
-### version 39.3.5
-* long url (url longer than 256 characters ) fix by Jin Lee and dli
+### version 40
+* long url (url longer than 256 characters ) fix by Jin Lee and Daofeng
 * simple bed track with different color in different strand  by Jin Lee
 * value of y-axis limited to 2 decimal points in case of floating number
 * bug fix, sometimes generated svg link have no .svg prefix
@@ -16,6 +16,7 @@
 * SNP search switched to exact match
 * add PDF output when using screenshot app
 * moving help link to wiki
+* performance upgrade by Deepak
 
 ### version 39.3.4
 * the last final version as Xin left, thanks to Xin for building the nice work. 

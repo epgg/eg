@@ -11,3 +11,6 @@ http://egg.wustl.edu/+
 
 ### facebook page
 https://www.facebook.com/WashUEpiGenomeBrowser
+
+### twitter
+https://twitter.com/wuepgg
