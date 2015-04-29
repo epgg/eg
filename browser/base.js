@@ -18867,34 +18867,54 @@ default:
 
 
 
-Browser.prototype.mdgettrack=function(term,mdidx,tkset)
-{
-/* search for any tracks annotated by an attribute, store in hash, key is track name
+Browser.prototype.mdgettrack = function (term, mdidx, tkset) {
+    /* search for any tracks annotated by an attribute, store in hash, key is track name
 
-args:
-- term: term name
-- mdidx: genome.mdlst array index, to find the voc
-	(term and mdidx must be consistent!)
-- tkset: {}
-*/
-var voc=gflag.mdlst[mdidx];
-if(term in voc.p2c) {
-	// not leaf
-	for(var cterm in voc.p2c[term]) {
-		this.mdgettrack(cterm, mdidx, tkset);
-	}
-} else {
-	// is leaf
-	for(var n in this.genome.hmtk) {
-		var tk=this.genome.hmtk[n];
-		if(!tk.md) continue;
-		if(tk.md[mdidx]==undefined) continue;
-		if(term in tk.md[mdidx]) {
-			tkset[n] = 1;
-		}
-	}
-}
-}
+     args:
+     - term: term name
+     - mdidx: genome.mdlst array index, to find the voc
+     (term and mdidx must be consistent!)
+     - tkset: {}
+     */
+    var voc = gflag.mdlst[mdidx];
+    if (term in voc.p2c) {
+        // not leaf
+        for (var cterm in voc.p2c[term]) {
+            this.mdgettrack(cterm, mdidx, tkset);
+        }
+    } else {
+        // is leaf
+/*        for (var n in this.genome.hmtk) {
+            var tk = this.genome.hmtk[n];
+            if (!tk.md) continue;
+            if (tk.md[mdidx] == undefined) continue;
+            if (term in tk.md[mdidx]) {
+                tkset[n] = 1;
+            }
+        }*/
+        //Re-implement the above logic by inverting the loop call
+
+        /*var hmtkCache = this.genome.hmtk,
+            tkCache = {},
+            tkmdCache = {};
+        for( var n in hmtkCache ){
+            tkCache = hmtkCache[n];
+            tkmdCache = tkCache.md;
+            if(!tkmdCache) continue;
+            if( tkmdCache[mdidx] == undefined ) continue;
+            if ( term in tkmdCache[mdidx] ) tkset[n] = 1;
+        }*/
+        var termFetch = this.flatHmtk[term];
+        if ( termFetch ) {
+            for( var n in termFetch[mdidx] ) {
+                var foundArr = termFetch[mdidx];
+                for ( var i = 0; i < foundArr.length ; i++){
+                    tkset[foundArr[i]] = 1;
+                }
+            }
+        }
+    }
+};
 
 Browser.prototype.drawMcm_onetrack=function(tkobj,tosvg)
 {
@@ -20341,12 +20361,49 @@ for(var cterm in gflag.mdlst[this.facet.dim2.mdidx].p2c[this.facet.dim2.term]) {
 this.generateTrackselectionGrid();
 }
 
+Browser.prototype.flattenhmtk = function(){
+    /* # Before you call this - lets flatten genome.hmtk
+     # create a global object that has key as cterm
+     # and array, where index is md #
+     # value is an array of track num
+     */
+
+    var globalHMhash = {};
+    for ( var track in this.genome.hmtk){
+        var tkNum = this.genome.hmtk[track];
+        var arrLen = tkNum.md.length;
+        for (var m = 1; m < arrLen; m++ ) {
+            for (var n in tkNum.md[m]){
+                var arr = [];
+                var trackArr = [];
+                trackArr.push(track);
+                arr[m] = trackArr;
+                if ( globalHMhash[n] ) {
+                    var curArr = globalHMhash[n];
+                    if ( curArr[m] ){
+                        curArr[m].push(track);
+                    }
+                } else {
+                    globalHMhash[n] = arr;
+                }
+            }
+        }
+    }
+    return globalHMhash;
+};
+
+Browser.prototype.flatHmtk = {};
+
+
+
 Browser.prototype.generateTrackselectionGrid=function()
 {
 /* for two criteria case
 make grid for track selection, each cell corresponds to metadata categories
 rerun when criteria changed
 */
+this.flatHmtk = this.flattenhmtk();
+
 var attr2tkset = {};
 // key: attr, val: set of track
 for(var i=0; i<this.facet.rowlst.length; i++) {
