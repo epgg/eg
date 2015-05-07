@@ -18,6 +18,8 @@
 		{"assembly":"danRer7","commonname":"Zebrafish","scientificname":"Danio rerio","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"danRer10","commonname":"Zebrafish","scientificname":"Danio rerio","major":"danRer7"},
 		{"assembly":"dm3","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","ismajor":true,"logofontcolor":"white"}
+		{"assembly":"canFam3","commonname":"Dog","scientificname":"Canis lupus familiaris","ismajor":true,"logofontcolor":"white"},
+		{"assembly":"galGal4","commonname":"Chicken","scientificname":"Gallus gallus","ismajor":true,"logofontcolor":"white"},
 		]
 	},
 "Plantae" : [
