@@ -11,7 +11,7 @@ Genes : [
 			'download date':'May 6, 2015',
 			},
 		isgene:true,dbsearch:true },
-	{name:'xenoRefGene',label:'non-zebrafish RefSeq genes',
+	{name:'xenoRefGene',label:'non-chicken RefSeq genes',
 		filetype:'hammock',
 		url:'http://egg.wustl.edu/d/galGal4/xenoRefGene.gz',
 		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
