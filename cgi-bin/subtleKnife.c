@@ -6992,7 +6992,11 @@ if(cgiVarExists("loadgenome"))
 
 
 	// publichub
-	assert(asprintf(&fpath,"%s/config/publichub.json",bbiDir)>0);
+	if(cgiVarExists("rpbr_init")){
+	    assert(asprintf(&fpath,"%s/config/repeathub.json",bbiDir)>0);
+        }else{
+	    assert(asprintf(&fpath,"%s/config/publichub.json",bbiDir)>0);
+        }
 	fin=fopen(fpath,"r");
 	free(fpath);
 	if(fin!=NULL)
@@ -7002,7 +7006,6 @@ if(cgiVarExists("loadgenome"))
 		printf(",");
 		fclose(fin);
 		}
-
 
 	// decors
 	assert(asprintf(&fpath,"%s/config/tracks.json",bbiDir)>0);
