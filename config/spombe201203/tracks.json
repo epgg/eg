@@ -3,9 +3,18 @@
 Genes : [
 	{name:'pombase_gene',label:'PomBase gene',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/spombe201203/pombase_gene.gz',
-		queryUrl:'http://www.arabidopsis.org/servlets/TairObject?type=gene&name=',
+		url:'http://egg.wustl.edu/d/spombe201203/pombe_annotation.gz',
+		queryUrl:'http://www.pombase.org/spombe/result/',
 		boxcolor:'#002EB8',
+                "categories": {
+                    "1": ["ncRNA","#f37736"],
+                    "2": ["protein coding gene","#0392cf"],
+                    "3": ["snoRNA","#858585"],
+                    "4": ["rRNA","#858585"],
+                    "5": ["snRNA","#858585"],
+                    "6": ["tRNA","#7bc043"],
+                    "-1": ["no information","transparent"]
+                },
 		isgene:true,dbsearch:true },
 ],
 
