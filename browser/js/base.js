@@ -10282,7 +10282,7 @@ if(param.cp_svg) {
 	hd.style.color=colorCentral.background;
 	var p=dom_create('p',hd,'color:inherit;line-height:1.5;');
 	apps.svg.showtklabel=dom_addcheckbox(p,'show track name',null);
-	var bt=dom_addbutt(hd,'Take screen shot',makesvg_browserpanel_pushbutt,'margin-right:20px;');
+	var bt=dom_addbutt(hd,'Take screenshot',makesvg_browserpanel_pushbutt,'margin-right:20px;');
 	bt.addEventListener('mousedown',makesvg_clear,false);
 	apps.svg.submitbutt=bt;
 	apps.svg.urlspan=dom_addtext(hd,'');
@@ -10911,7 +10911,7 @@ if(param.cp_session) {
 }
 if(param.cp_svg) {
 	apps.svg.shortcut=menu_appoption(d,'&#9113;','Screenshot','Make publication-quality image',svgpanelshow);
-	gflag.applst.push({name:'Screen shot',label:'Make publication-quality image',toggle:svgpanelshow});
+	gflag.applst.push({name:'Screenshot',label:'Make publication-quality image',toggle:svgpanelshow});
 }
 if(param.cp_geneplot) {
 	apps.gplot.shortcut=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'gene plot',clc:toggle4});
@@ -22496,6 +22496,9 @@ if(tk.showscoreidx!=undefined) {
 		dom_create('div',menu.c48,'margin:5px 5px 15px 5px;padding:5px;background-color:rgba(255,204,51,.5);font-size:70%;text-align:center;',{t:'This track shares Y scale with other tracks.'});
 	}
 	for(var i=-1; i<tk.scorenamelst.length; i++) {
+                //add by dli
+                if(tk.scorenamelst[i] == 'fbin') continue;
+                //add by dli --end
 		var d0=dom_create('div',menu.c48);
 		var ip=dom_create('input',d0);
 		ip.type='radio';

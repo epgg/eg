@@ -43,7 +43,7 @@ cp_custtk:{htext:'Add new custom tracks',
 		fg:'white',
 		bg:'#545454'},
 	},
-cp_svg:{htext:'Screen shot',
+cp_svg:{htext:'Screenshot',
 	hbutt1:{text:'&#10005;',call:svgpanelhide}
 	},
 cp_gsm:{htext:'Gene & region set',
