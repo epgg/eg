@@ -322,7 +322,9 @@ var defaultQtcStyle = {
 	ft13:{height:15},
 	// bev tracks
 	bev:{pr:115,pg:0,pb:230,nr:179,ng:0,nb:179,pth:'#4d0099',nth:'#4D004d', thtype:scale_auto,thmin:0,thmax:10,thpercentile:95,height:30,summeth:summeth_mean},
-	density:{pr:0,pg:77,pb:0,nr:0,ng:0,nb:230,pth:'#800000',nth:'#000099', thtype:scale_auto,thmin:0,thmax:10,thpercentile:95,height:50,summeth:summeth_mean},
+	//dpuru : Sep 25, 2015 : Patch fix for https://github.com/epgg/eg/issues/17
+	// changed rgb(0,77,0) dark green -> rgb(255,0,0) red
+	density:{pr:255,pg:0,pb:0,nr:0,ng:0,nb:230,pth:'#800000',nth:'#000099', thtype:scale_auto,thmin:0,thmax:10,thpercentile:95,height:50,summeth:summeth_mean},
 }
 
 var urllenlimit = 4000; // url string length limit
@@ -6081,6 +6083,15 @@ case 2:
 		case 30:
 			if(tk.showscoreidx!=undefined) {
 				tk.showscoreidx=gflag.menu.hammock_focus.scoreidx;
+				// dpuru : Sep 25, 2015 - patch fix for https://github.com/epgg/eg/issues/17				
+				// Also - set the default qtc style on density to Red
+				if (tk.showscoreidx == 1 ){
+					tk.qtc.pr = 0;
+				} else {
+					if (tk.qtc.pr == 0) {
+						tk.qtc.pr = 255;
+					}
+				}
 				tkreg.showscoreidx=tk.showscoreidx;
 				if(tk.ft==FT_ld_c ||tk.ft==FT_ld_n) {
 					bbj.stack_track(tk,0);
