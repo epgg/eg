@@ -18119,7 +18119,7 @@ if(!apps.wvfind.geneset) {
 	return;
 }
 apps.wvfind.tracks={};
-apps.wvfind.goldenbutt.style.display=
+apps.wvfind.goldenbutt.style.display= 
 //apps.wvfind.trackbutt.style.display=
 apps.wvfind.textbutt.style.display='none';
 stripChild(apps.wvfind.table,0);
@@ -18352,7 +18352,8 @@ if(bbj.genome.name in apps.wvfind.goldengenomes) {
 		}
 	}
 	if(all) {
-		apps.wvfind.goldenbutt.style.display='inline';
+		// apps.wvfind.goldenbutt.style.display='inline';
+		apps.wvfind.goldenbutt.style.display='none' // dpuru : Sep 30, 2015 - https://github.com/epgg/eg/issues/21
 	}
 }
 }
