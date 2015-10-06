@@ -1,7 +1,7 @@
 BODY {font:15px arial,sans-serif;
     margin:0px;
     background-color:rgb(182,185,164);
-    background-image:url("images/bg.jpg");
+    background-image:url("../images/bg.jpg");
 }
 .olinebut { /* overline button */
     cursor:pointer;

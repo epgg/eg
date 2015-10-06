@@ -19,7 +19,7 @@
 		{"assembly":"danRer7","commonname":"Zebrafish","scientificname":"Danio rerio","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"danRer10","commonname":"Zebrafish","scientificname":"Danio rerio","major":"danRer7"}
 		],
-	"Rest" : [
+	"Other" : [
 		{"assembly":"dm3","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"ce10","commonname":"C.elegans","scientificname":"Caenorhabditis elegans","ismajor":true,"logofontcolor":"black"}
 		]
@@ -32,7 +32,7 @@
 	{"assembly":"Pvulgaris_218","commonname":"Common bean","scientificname":"Phaseolus vulgaris","ismajor":true,"logofontcolor":"black"},
 	{"assembly":"rapa1_1","commonname":"Chinese cabbage","scientificname":"Brassica rapa","ismajor":true,"logofontcolor":"black"}
 	],
-"Rest" : [
+"Other" : [
 	{"assembly":"spombe201203","commonname":"Fission yeast","scientificname":"Schizosaccharomyces pombe","ismajor":true,"logofontcolor":"white"},
 	{"assembly":"AcNPV","commonname":"Autographa californica NPV","scientificname":"Autographa californica NPV","ismajor":true,"logofontcolor":"white"}
 	]
