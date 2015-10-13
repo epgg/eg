@@ -21,6 +21,7 @@
 		],
 	"Other" : [
 		{"assembly":"dm3","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","ismajor":true,"logofontcolor":"white"},
+		{"assembly":"dm6","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","major":"dm3"},
 		{"assembly":"ce10","commonname":"C.elegans","scientificname":"Caenorhabditis elegans","ismajor":true,"logofontcolor":"black"}
 		]
 	},
