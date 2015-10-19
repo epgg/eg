@@ -419,10 +419,56 @@ for(var i=0; i<obj.lst.length; i++) {
 		hash[e.name]=1;
 	}
 }
-obj.gss_down=2500;
+if (obj.gss_opt !== "custom") {
+	obj.gss_down=2500;
+	obj.gss_up=2500;
+	obj.gss_origin='txstart';
+	obj.gss_opt='genebody';
+} else {
+	// dpuru : Oct 18 - As part of fix for - https://github.com/epgg/eg/issues/32
+	var style_slider = 130 - (parseInt(obj.gss_up) * (130/5000));
+	var style_trail = parseInt(obj.gss_up) * (130/5000);
+	var styleValue = style_slider.toString().concat('px');
+	var styleValue_trail = style_trail.toString().concat('px');
+
+	// we have to calculate and set - 
+	gsselect.upslider.style.left = styleValue;
+	gsselect.uptrail.style.width = styleValue_trail;
+	document.getElementById("leftgliderlength").innerHTML = parseInt(obj.gss_up);
+
+	//gsselect.downslider.style.left = 
+
+	var down_style_slider = parseInt(obj.gss_down) * (130/5000);
+	var down_style_trail = parseInt(obj.gss_down) * (130/5000);
+	var down_styleValue = down_style_slider.toString().concat('px');
+	var down_styleValue_trail = down_style_trail.toString().concat('px');
+
+	// we have to calculate and set -
+	gsselect.downslider.style.left = down_styleValue;
+	gsselect.downtrail.style.width = down_styleValue_trail;
+	document.getElementById("rightgliderlength").innerHTML = parseInt(obj.gss_down);
+
+
+
+
+
+/*	function gss_slider_uplength() {
+	// upstream coordinate slider select length in base pair
+		var len = 130 - parseInt(gsselect.upslider.style.left);
+		if(len == 0) return 0;
+		return parseInt((5000/130)*len);
+	}
+	function gss_slider_downlength() {
+	// downstream coordinate slider select length in base pair
+		var len = parseInt(gsselect.downslider.style.left);
+		if(len == 0) return 0;
+		return parseInt((5000/130)*len);
+	}*/
+}
+/*obj.gss_down=2500;
 obj.gss_up=2500;
 obj.gss_origin='txstart';
-obj.gss_opt='genebody';
+obj.gss_opt='genebody';*/
 var _s=this.geneset;
 _s.lst.push(obj);
 var idx=_s.lst.length-1;
