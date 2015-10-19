@@ -1,0 +1,9 @@
+[
+{
+id:'longrange',
+trackcount:1,
+name:'Long-range chromatin interaction experiments',
+url:'http://vizhub.wustl.edu/public/dm6/longrange',
+desc:'A collection of long-range chromatin interaction data sets on fly samples.'
+},
+]
