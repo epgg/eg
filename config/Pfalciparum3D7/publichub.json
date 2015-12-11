@@ -1,0 +1,9 @@
+[
+{
+id:'longrange',
+trackcount:11,
+name:'Long-range chromatin interaction experiments',
+url:'http://vizhub.wustl.edu/public/Pfalciparum3D7/longrange',
+desc:'A collection of long-range chromatin interaction data sets from http://noble.gs.washington.edu/proj/plasmo3d/.'
+},
+]
