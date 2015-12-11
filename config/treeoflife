@@ -22,8 +22,7 @@
 	"Other" : [
 		{"assembly":"dm3","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"dm6","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","major":"dm3"},
-		{"assembly":"ce10","commonname":"C.elegans","scientificname":"Caenorhabditis elegans","ismajor":true,"logofontcolor":"black"},
-		{"assembly":"Pfalciparum3D7","commonname":"Pfalciparum","scientificname":"Plasmodium falciparum","ismajor":true,"logofontcolor":"black"}
+		{"assembly":"ce10","commonname":"C.elegans","scientificname":"Caenorhabditis elegans","ismajor":true,"logofontcolor":"black"}
 		]
 	},
 "Plantae" : [
@@ -36,6 +35,7 @@
 	],
 "Other" : [
 	{"assembly":"spombe201203","commonname":"Fission yeast","scientificname":"Schizosaccharomyces pombe","ismajor":true,"logofontcolor":"white"},
-	{"assembly":"AcNPV","commonname":"Autographa californica NPV","scientificname":"Autographa californica NPV","ismajor":true,"logofontcolor":"white"}
+	{"assembly":"AcNPV","commonname":"Autographa californica NPV","scientificname":"Autographa californica NPV","ismajor":true,"logofontcolor":"white"},
+	{"assembly":"Pfalciparum3D7","commonname":"Pfalciparum","scientificname":"Plasmodium falciparum","ismajor":true,"logofontcolor":"black"}
 	]
 }
