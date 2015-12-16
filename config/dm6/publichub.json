@@ -6,4 +6,11 @@ name:'Long-range chromatin interaction experiments',
 url:'http://vizhub.wustl.edu/public/dm6/longrange',
 desc:'A collection of long-range chromatin interaction data sets on fly samples.'
 },
+{
+id:'chipseq',
+trackcount:36,
+name:'ChIP-seq experiments',
+url:'http://vizhub.wustl.edu/public/dm6/vcorces_dm6_chip-seq_hub.json',
+desc:'A collection of ChIP-seq data sets on fly samples.'
+},
 ]
