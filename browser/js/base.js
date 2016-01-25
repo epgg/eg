@@ -369,6 +369,7 @@ this.sessionId=s2.join('');
 this.statusId=1;
 this.urloffset=0;
 this.highlight_regions=[];
+this.highlight_regionlst=[];
 
 this.horcrux=Math.random().toString();
 horcrux[this.horcrux]=this;
@@ -2255,6 +2256,12 @@ function toggle14(event)
 var cc=event.target;
 gflag.allow_packhide_tkdata=cc.checked;
 cc.nextSibling.nextSibling.style.display=cc.checked?'block':'none';
+}
+function toggle16(event)
+{
+var cc=event.target;
+gflag.browser.highlight_regions = cc.checked?[]:gflag.browser.highlight_regionlst;
+gflag.browser.render_update();
 }
 
 function toggle2(event) {
@@ -10981,6 +10988,8 @@ if(param.app_bbjconfig) {
 			]);
 	}
 
+	d4=dom_create('div',d,'margin:20px;');
+	d.disable_highlight_region=dom_addcheckbox(d4,'Disable region highlighting',toggle16);
 	d2=dom_create('div',d,'margin:20px;');
 	d.allow_packhide_tkdata=dom_addcheckbox(d2,'Allow "pack and hide" for track items',toggle14);
 	dom_create('div',d2,'display:none;margin:10px;').innerHTML='Please use with caution! <a href="http://wiki.wubrowse.org/V33_(2_of_2):_hide_%22undesirable_items%22_from_a_track!" target=_blank>Learn more.</a>';
@@ -14533,6 +14542,7 @@ menu.c33.genome=bbj.genome.name;
 menu.bbjconfig.leftwidthdiv.style.display=bbj.hmheaderdiv?'table-cell':'none';
 menu.bbjconfig.setbutt.style.display='none';
 menu.bbjconfig.allow_packhide_tkdata.checked=gflag.allow_packhide_tkdata;
+menu.bbjconfig.disable_highlight_region.checked=gflag.disable_highlight_region;
 menu_show_beneathdom(0,event.target);
 }
 
@@ -26413,6 +26423,7 @@ if(bbj.jump_callback) {
 }
 bbj.cgiJump2coord(coord);
 bbj.__pending_coord_hl=[gene.c,start,stop];
+bbj.highlight_regionlst=[[gene.c,start,stop]]; // dli add
 menu_hide();
 if(gflag.syncviewrange) {
 	var lst=gflag.syncviewrange.lst;
