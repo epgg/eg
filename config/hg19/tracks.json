@@ -16,9 +16,10 @@ Genes : [
 		url:'http://egg.wustl.edu/d/hg19/xenoRefGene.gz',
 		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
 		isgene:true,dbsearch:true },
-	{name:'gencodeV17',label:'GENCODE V17 genes',
+	{name:'gencodeV19',label:'GENCODE V19 genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/hg19/gencodeV17.gz',
+                categories:{1:['coding','rgb(0,60,179)'], 2:['non-coding','rgb(0,128,0)'], 3:['pseudogene','rgb(230,0,172)'], 4:['problem','rgb(255,0,0)'], 5:['polyA','rgb(0,0,51)']},
+		url:'http://egg.wustl.edu/d/hg19/gencodeV19.gz',
 		isgene:true,dbsearch:true },
 ],
 

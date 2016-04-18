@@ -99,7 +99,7 @@
 #define trashDir "/usr/lib/trash"
 #define WWWT "/var/www/browser/t"
 #define BINdir "."
-#define Mysqlserver "localhost"
+#define Mysqlserver "10.200.0.11"
 #define Mysqluser "hguser"
 #define Mysqlpswd "hguser"
 
