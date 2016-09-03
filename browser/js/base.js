@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='40.0.0';
+var washUver='40.0.4';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -124,6 +124,7 @@ FT_htest=7,
 FT_qdecor_n=8, // not in use
 FT_lr_n=9,
 FT_lr_c=10,
+FT_hi_c=30, // the hic format from juicebox
 FT_tkgrp=11,
 FT_cat_n=12, // categorical hmtk
 FT_cat_c=13,
@@ -174,7 +175,9 @@ var FT2verbal = ['bed', 'bed', 'bedgraph', 'bedgraph', 'sam', 'sam', 'pwc', 'hte
 'ld',
 'hammock','hammock',
 'ld',
-'quantitativecategoryseries',
+'quantitativecategoryseries', //27
+'unknown', //28
+'hic','hic'    //29,30
 ];
 
 var M_hide=0,
@@ -251,6 +254,49 @@ magenta5:'rgba(153,51,153,0.5)',
 magenta2:'rgba(153,51,153,0.2)',
 magenta1:'rgba(153,51,153,0.1)',
 };
+
+var hicMatrixOptions=[
+	{value:'observed',text:'observed'},
+	{value:'oe',text:'oe',selected:true},
+	//{value:'norm',text:'norm',selected:true},
+	//{value:'expected',text:'expected'},
+	//{value:'pearson',text:'pearson'},
+	];
+var hicNormOptions=[
+	{value:'NONE',text:'NONE'},
+	{value:'VC',text:'VC'},
+	{value:'VC_SQRT',text:'VC_SQRT'},
+	{value:'KR',text:'KR',selected:true},
+    ];
+var hicUnitOptions=[
+	{value:'BP',text:'BP',selected:true},
+	{value:'FRAG',text:'FRAG'},
+    ];
+var hicUnitRes = {
+options_bp:[
+	{text:'auto',value:'0',selected:true},
+	{text:'2.5M',value:'2500000'},
+	{text:'1M',value:'1000000'},
+	{text:'500K',value:'500000'},
+	{text:'250K',value:'250000'},
+	{text:'100K',value:'100000'},
+	{text:'50K',value:'50000'},
+	{text:'25K',value:'25000'},
+	{text:'10K',value:'10000'},
+	{text:'5K',value:'5000'},
+    ],
+options_frag:[
+	{value:'500',text:'500',selected:true},
+	{value:'200',text:'200'},
+	{value:'100',text:'100'},
+	{value:'50',text:'50'},
+	{value:'20',text:'20'},
+	{value:'5',text:'5'},
+	{value:'2',text:'2'},
+	{value:'1',text:'1'},
+    ]
+}
+
 var gapfillcolor=colorCentral.background;
 
 // cytoband, monotonic color
@@ -316,6 +362,24 @@ var defaultQtcStyle = {
 		nfilterscore:0,
 		height:50, // for density mode
 		anglescale:1,
+	},
+	hic:{ textcolor:'#000000',
+		thtype:scale_auto,
+		fontsize:'8pt',
+		fontfamily:'sans-serif',
+		fontbold:false,
+		pr:184,pg:0,pb:138,
+		nr:0,ng:99,nb:133,
+		pcolorscore:10,
+		ncolorscore:-10,
+		pfilterscore:0,
+		nfilterscore:0,
+		height:50, // for density mode
+		anglescale:1,
+                matrix:'oe', // matrix
+                norm:'KR', //KR
+                unit_res:'BP',
+                bin_size:0,
 	},
 	// categorical
 	ft12:{height:15},
@@ -474,7 +538,12 @@ this.__hubfailedmdvurl={};
 return this;
 }
 
-
+function prettyBinSize(value){
+    for(var i=0;i<hicUnitRes.options_bp.length;i++){
+        if (hicUnitRes.options_bp[i].value == value) return hicUnitRes.options_bp[i].text;
+    }
+    return 'unknown'
+}
 
 
 /*** __dom__ ***/
@@ -929,6 +998,11 @@ if(param.custom_track) {
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_lr_c);},false);
 	d3.innerHTML='Interaction<div style="color:inherit;font-weight:normal;font-size:70%;">pairwise interaction</div>';
+	
+        d3=dom_create('div',d2);
+	d3.className='largebutt';
+	d3.addEventListener('click',function(){custtkpanel_show(FT_hi_c);},false);
+	d3.innerHTML='Hi-C<div style="color:inherit;font-weight:normal;font-size:70%;">Hi-C format interaction</div>';
 
 	d3=dom_create('div',d2);
 	d3.className='largebutt';
@@ -961,6 +1035,7 @@ if(param.custom_track) {
 	this.custtk.ui_weaver=this.custtk_makeui(FT_weaver_c,d2);
 	this.custtk.ui_bed=this.custtk_makeui(FT_bed_c,d2);
 	this.custtk.ui_lr=this.custtk_makeui(FT_lr_c,d2);
+	this.custtk.ui_hi=this.custtk_makeui(FT_hi_c,d2);
 	this.custtk.ui_bigwig=this.custtk_makeui(FT_bigwighmtk_c,d2);
 	this.custtk.ui_cat=this.custtk_makeui(FT_cat_c,d2);
 	this.custcate_idnum_change(5);
@@ -1054,6 +1129,7 @@ if(this.custtk) {
 		if(!(FT_anno_c in v)) this.custtk.ui_hammock.examplebutt.style.display='none';
 		if(!(FT_huburl in v)) this.custtk.ui_hub.examplebutt.style.display='none';
 		if(!(FT_lr_c in v)) this.custtk.ui_lr.examplebutt.style.display='none';
+		if(!(FT_hi_c in v)) this.custtk.ui_hi.examplebutt.style.display='none';
 		if(FT_weaver_c in v) {
 			var g=this;
 			for(var qn in v[FT_weaver_c]) {
@@ -1457,6 +1533,7 @@ case FT_bed_c:
 case FT_sam_c:
 case FT_bam_c:
 case FT_lr_c:
+case FT_hi_c:
 case FT_cm_c:
 case FT_ld_c:
 case FT_anno_c:
@@ -2596,7 +2673,12 @@ function tk_height(tk)
 {
 if(tkishidden(tk)) return 0;
 if(!tk.canvas) return 0;
-return tk.canvas.height;
+
+if (window.devicePixelRatio){
+        return tk.canvas.height/window.devicePixelRatio;
+    }else{
+        return tk.canvas.height;
+    }
 }
 function cmtk_height(tk)
 {
@@ -2942,6 +3024,22 @@ var svgdata=[];
 tkobj.header.width=this.leftColumnWidth;
 tkobj.header.height=tk_height(tkobj);
 var ctx = tkobj.header.getContext('2d'); // for header
+//retina fix for header
+///*
+if (window.devicePixelRatio){
+    var ctxWidth = tkobj.header.getAttribute('width');
+    var ctxHeight = tkobj.header.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    tkobj.header.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    tkobj.header.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    tkobj.header.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    if (tkobj.header.parentNode){
+        tkobj.header.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    }
+}
+//*/
 ctx.fillStyle=colorCentral.foreground_faint_1;
 ctx.fillRect(0,0,tkobj.header.width,1);
 if(tosvg) svgdata.push({type:svgt_line_notscrollable,x1:0,y1:0,x2:tkobj.header.width,y2:0,color:ctx.fillStyle});
@@ -3010,7 +3108,6 @@ if(tkobj.ft==FT_cm_c) {
 	if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:25,text:tkobj.label,color:ctx.fillStyle});
 	return svgdata;
 }
-
 if(tkobj.ft==FT_weaver_c) {
 	ctx.font = "bold 9pt Sans-serif";
 	ctx.fillStyle=weavertkcolor_target;
@@ -3126,6 +3223,28 @@ if(tkobj.skipped>0) {
 	ctx.fillText('(data exceeds limit)', 1, y);
 }
 
+
+//add data lable to hic
+if(tkobj.ft == FT_hi_c){
+    var b=densitydecorpaddingtop+1+tkobj.qtc.height-5;
+    var m = 'matrix:'+tkobj.qtc.matrix;
+    ctx.fillText(m, 1, b);
+    if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b,text:m,color:'red'});
+    m = 'norm:'+tkobj.qtc.norm;
+    ctx.fillText(m, 1, b+15);
+    if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b+15,text:m,color:'red'});
+    m = 'unit:'+tkobj.qtc.unit_res;
+    ctx.fillText(m, 1, b+30);
+    if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b+30,text:m,color:'red'});
+    if (tkobj.qtc.bin_size == 0){
+        m = 'bin:(auto)'+prettyBinSize(tkobj.qtc.d_binsize);
+    }else{
+        m = 'bin:'+prettyBinSize(tkobj.qtc.d_binsize);
+    }
+    ctx.fillText(m, 1, b+45);
+    if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b+45,text:m,color:'red'});
+}
+
 if(tosvg) return svgdata;
 }
 
@@ -3172,6 +3291,23 @@ if(tkobj.ft==FT_matplot || tkobj.ft==FT_qcats) {
 	tc.height=1+tkobj.qtc.height;
 } else if(tkobj.ft==FT_catmat) {
 }
+//retina fix for track
+//var oheight = tc.height;
+///*
+if (window.devicePixelRatio){
+    var ctxWidth = tc.getAttribute('width');
+    var ctxHeight = tc.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    tc.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    tc.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    tc.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    //tc.parentNode.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    //tc.parentNode.setAttribute('style','height:'+ctxCssHeight+'px');
+    //tkobj.qtc.height = ctxCssHeight;
+}
+//*/
 ctx.clearRect(0,0,tc.width,tc.height);
 
 if(this.weaver) {
@@ -3520,7 +3656,7 @@ if(tkobj.ft==FT_matplot) {
 	var drawTriheatmap = tkobj.mode==M_trihm;
 	var drawArc = tkobj.mode==M_arc;
 	var isSam = (tkobj.ft==FT_bam_c||tkobj.ft==FT_bam_n);
-	var isChiapet = (tkobj.ft==FT_lr_n||tkobj.ft==FT_lr_c);
+	var isChiapet = (tkobj.ft==FT_lr_n||tkobj.ft==FT_lr_c||tkobj.ft==FT_hi_c);
 
 	var isThin = tkobj.mode==M_thin;
 	var stackHeight = tkobj.qtc.stackheight?tkobj.qtc.stackheight : (isThin ? thinStackHeight : fullStackHeight);
@@ -3556,7 +3692,7 @@ if(tkobj.ft==FT_matplot) {
 	*/
 	var pcolorscore=ncolorscore= // lr
 		colorscore_min=colorscore_max=null; // hammock
-	if(tkobj.ft==FT_lr_c||tkobj.ft==FT_lr_n) {
+	if(tkobj.ft==FT_lr_c||tkobj.ft==FT_lr_n||tkobj.ft==FT_hi_c) {
 		pcolorscore=tkobj.qtc.pcolorscore;
 		ncolorscore=tkobj.qtc.ncolorscore;
 		if(tkobj.qtc.thtype==scale_auto) {
@@ -4586,7 +4722,7 @@ if(ft==FT_ld_c || ft==FT_ld_n) {
 var Data=[]; // stack data of all tracks
 var Data2=[]; // only for arc or trihm
 
-var isChiapet = (ft==FT_lr_n||ft==FT_lr_c);
+var isChiapet = (ft==FT_lr_n||ft==FT_lr_c||tkobj.ft==FT_hi_c);
 var isSam = (ft==FT_sam_c||ft==FT_sam_n||ft==FT_bam_c||ft==FT_bam_n);
 var drawTriheatmap = tkobj.mode==M_trihm;
 var drawArc = tkobj.mode==M_arc;
@@ -5251,6 +5387,20 @@ this.rulercanvas.width=this.entire.spnum;
 this.rulercanvas.height=20;
 var ctx = this.rulercanvas.getContext('2d');
 var h=this.rulercanvas.height;
+//retina fix for ruler
+/*
+if (window.devicePixelRatio){
+    var ctxWidth = this.rulercanvas.getAttribute('width');
+    var ctxHeight = this.rulercanvas.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    this.rulercanvas.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    this.rulercanvas.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    this.rulercanvas.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    //this.rulercanvas.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+}
+*/
 
 if(this.highlight_regions.length>0) {
 	var cl=colorCentral.hl;
@@ -6256,6 +6406,17 @@ case 2:
 				U=true;
 			}
 			break;
+                case 41: //hic configure change
+                        tk.qtc.matrix = menu.lr.matrix.value;
+                        tk.qtc.norm = menu.lr.norm.value;
+                        tk.qtc.unit_res = menu.lr.unit.value;
+                        tk.qtc.bin_size = menu.lr.binsize.value;
+                        A=true;
+                        U=true;
+                        M=true
+                        H=true
+			A_tklst.push(tk);
+                        break;
 			// eee
 		default: fatalError('bbj tk: unknown update context');
 		}
@@ -7438,6 +7599,7 @@ lst[FT_cat_c]=[];
 lst[FT_cat_n]=[];
 lst[FT_lr_n]=[];
 lst[FT_lr_c]=[];
+lst[FT_hi_c]=[];
 lst[FT_qdecor_n]=[];
 lst[FT_weaver_c]=[];
 lst[FT_ld_c]=[];
@@ -7493,6 +7655,9 @@ for(var i=0; i<_tklst.length; i++) {
 	case FT_lr_c:
 		lst[FT_lr_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore);
 		break;
+	case FT_hi_c:
+		lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size);
+		break;
 	case FT_ld_c:
 		lst[FT_ld_c].push(name+','+label+','+url);
 		break;
@@ -7532,6 +7697,7 @@ return ''+
 	(lst[FT_bed_c].length>0 ? '&decor1='+lst[FT_bed_c].join(',') : '') +
 	(lst[FT_lr_n].length>0 ? '&decor9='+lst[FT_lr_n].join(',') : '') +
 	(lst[FT_lr_c].length>0 ? '&decor10='+lst[FT_lr_c].join(',') : '') +
+	(lst[FT_hi_c].length>0 ? '&decor30='+lst[FT_hi_c].join(',') : '') +
 	(lst[FT_qdecor_n].length>0 ? '&decor8='+lst[FT_qdecor_n].join(',') : '') +
 	(lst[FT_sam_n].length>0 ? '&decor4='+lst[FT_sam_n].join(',') : '') +
 	(lst[FT_sam_c].length>0 ? '&decor5='+lst[FT_sam_c].join(',') : '')+
@@ -8152,6 +8318,20 @@ td.vAlign='top';
 var c=dom_create('canvas',td);
 //c.width= td.style.width=this.leftColumnWidth;
 c.height=12;
+//retina fix for lower sep line
+/*
+if (window.devicePixelRatio){
+    var ctxWidth = c.getAttribute('width');
+    var ctxHeight = c.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    c.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    c.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    c.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    //ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    c.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+}
+*/
 c.style.marginTop=2;
 c.style.display='none';
 this.basepairlegendcanvas=c;
@@ -10093,6 +10273,7 @@ if(getmdidx_internal()==-1) {
 		FT2verbal[FT_anno_c],
 		FT2verbal[FT_bam_c],
 		FT2verbal[FT_lr_c],
+		FT2verbal[FT_hi_c],
 		FT2verbal[FT_cat_c],
 		FT2verbal[FT_matplot],
 		FT2verbal[FT_weaver_c],
@@ -10579,6 +10760,28 @@ menu.lr.nfscore=dom_inputnumber(d3,{call:stc_longrange_nfilterscore_KU});
 dom_addbutt(d3,'set',stc_longrange_nfilterscore);
 dom_create('div',d,'background-color:white;').innerHTML='Negative score';
 
+//matrix
+menu.lr.matrixdiv=dom_create('div',menu.lr,'margin-top:5px;');
+dom_addtext(menu.lr.matrixdiv,'Matrix&nbsp;');
+menu.lr.matrix=dom_addselect(menu.lr.matrixdiv,null,hicMatrixOptions);
+//norm
+menu.lr.normdiv=dom_create('div',menu.lr,'margin-top:5px;');
+dom_addtext(menu.lr.normdiv,'Normalization&nbsp;');
+menu.lr.norm=dom_addselect(menu.lr.normdiv,null,hicNormOptions);
+//unit
+menu.lr.unitdiv=dom_create('div',menu.lr,'margin-top:5px;');
+dom_addtext(menu.lr.unitdiv,'Unit of Resolution&nbsp;');
+menu.lr.unit=dom_addselect(menu.lr.unitdiv,changeUnitMenu,hicUnitOptions);
+//binsize
+menu.lr.binsizediv=dom_create('div',menu.lr,'margin-top:5px;');
+dom_addtext(menu.lr.binsizediv,'Bin Size&nbsp;');
+menu.lr.binsize=dom_addselect(menu.lr.binsizediv,null,hicUnitRes.options_bp);
+
+var d6=dom_create('div',menu.lr,'margin-top:5px;');
+dom_addbutt(d6,'Update',update_hic_data);
+
+
+
 menu.bam=dom_create('div',menu,'margin:10px;');
 menu.bam.f=dom_addtext(menu.bam,'&nbsp;forward&nbsp;','white','coloroval');
 menu.bam.f.addEventListener('click',stc_forwardcolor_initiator,false);
@@ -10886,6 +11089,9 @@ if(param.cp_custtk) {
 	fn=function(){custtk_shortcut(FT_lr_c);};
 	apps.custtk.shortcut[FT_lr_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'interaction',clc:fn});
 	gflag.applst.push({name:'Long-range interaction',toggle:fn});
+	fn=function(){custtk_shortcut(FT_hi_c);};
+	apps.custtk.shortcut[FT_hi_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'hic',clc:fn});
+	gflag.applst.push({name:'Hi-C interaction',toggle:fn});
 	fn=function(){custtk_shortcut(FT_bed_c);};
 	apps.custtk.shortcut[FT_bed_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'bed',clc:fn});
 	gflag.applst.push({name:'Bed track',toggle:fn});
@@ -13510,6 +13716,10 @@ if(score > 0) {
 menu_update_track(24);
 }
 
+function update_hic_data(){
+    menu_update_track(41);
+}
+
 /*** __palette__ ends ***/
 
 
@@ -15067,6 +15277,7 @@ case FT_bed_n:
 case FT_bed_c:
 case FT_lr_n:
 case FT_lr_c:
+case FT_hi_c:
 case FT_weaver_c:
 	if(tk.ft==FT_weaver_c && tk.weaver.mode==W_rough) {
 		if(y>=tk.canvas.height-fullStackHeight) {
@@ -15105,7 +15316,7 @@ case FT_weaver_c:
 		var stkh = tk.mode==M_full ? fullStackHeight+1 : thinStackHeight+1;
 		clickstack = parseInt(y / (stkh));
 	}
-	var _data=(tk.ft==FT_lr_n||tk.ft==FT_lr_c) ? tk.data_chiapet : tk.data;
+	var _data=(tk.ft==FT_lr_n||tk.ft==FT_lr_c||tk.ft==FT_hi_c) ? tk.data_chiapet : tk.data;
 	for(var i=0; i<_data.length; i++) {
 		for(var j=0; j<_data[i].length; j++) {
 			var item = _data[i][j];
@@ -15691,6 +15902,7 @@ case FT_qdecor_n:
 	break;
 case FT_lr_c:
 case FT_ld_c:
+case FT_hi_c:
 	qtc_paramCopy(defaultQtcStyle.interaction, tk.qtc);
 	break;
 case FT_cat_n:
@@ -16183,7 +16395,7 @@ if(tk.ft==FT_ld_c||tk.ft==FT_ld_n) {
 		'&stopCoord='+(_rs2.coord+1)+trackParam([tk.querytrack]),function(data){sbj.lditemclick_gotdata(data,tk,rs1,rs2);});
 	return;
 }
-if(tk.ft==FT_lr_c||tk.ft==FT_lr_n) {
+if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c) {
 	var item;
 	switch(tk.mode) {
 	case M_arc:
@@ -16864,9 +17076,14 @@ for(var i=0; i<lst.length; i++) {
 	if(!isHmtk(obj.ft)) {
 		// decor track's stuff
 		if('mode' in lst[i]) obj.mode=lst[i].mode;
-		if(obj.ft==FT_lr_c) {
+		if(obj.ft==FT_lr_c||obj.ft==FT_hi_c) {
 			if('pfilterscore' in lst[i]) obj.qtc.pfilterscore=lst[i].pfilterscore;
 			if('nfilterscore' in lst[i]) obj.qtc.nfilterscore=lst[i].nfilterscore;
+			if('matrix' in lst[i]) obj.qtc.matrix=lst[i].matrix;
+			if('norm' in lst[i]) obj.qtc.norm=lst[i].norm;
+			if('unit_res' in lst[i]) obj.qtc.unit_res=lst[i].unit_res;
+			if('bin_size' in lst[i]) obj.qtc.bin_size=lst[i].bin_size;
+			if('d_binsize' in lst[i]) obj.qtc.d_binsize=lst[i].d_binsize;
 		}
 	}
 	// work out the data
@@ -21639,7 +21856,7 @@ Browser.prototype.mayShowDsp=function()
 var show=false;
 for(var i=0; i<this.tklst.length; i++) {
 	var t=this.tklst[i];
-	if((t.ft==FT_lr_c||t.ft==FT_lr_n) && (t.mode==M_trihm||t.mode==M_arc)) {
+	if((t.ft==FT_lr_c||t.ft==FT_lr_n||t.ft==FT_hi_c) && (t.mode==M_trihm||t.mode==M_arc)) {
 		show=true;break;
 	}
 }
@@ -22656,6 +22873,7 @@ case FT_anno_c:
 	break;
 case FT_lr_n:
 case FT_lr_c:
+case FT_hi_c:
 	config_lr(tk);
 	break;
 case FT_bam_c:
@@ -23004,6 +23222,7 @@ case FT_bam_c:
 	break;
 case FT_lr_n:
 case FT_lr_c:
+case FT_hi_c:
 	if(menu.c3) {
 		menu.c3.style.display=tk.mode==M_den?'none':'block';
 	}
@@ -23060,7 +23279,7 @@ return false;
 function menu_showmodebutt(tk)
 {
 menu.c22.style.display='block';
-if(tk.ft==FT_lr_c||tk.ft==FT_lr_n) {
+if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c) {
 	menu.c10.style.display=tk.mode==M_trihm?'none':'table-cell';
 	menu.c11.style.display=tk.mode==M_arc?'none':'table-cell';
 } else {
@@ -23675,6 +23894,32 @@ if(num>40) {
 _g.custcate_idnum_change(num);
 }
 
+function cust_hic_unit_change(){
+var _g=apps.custtk.bbj.genome;
+var value=_g.custtk.ui_hi.unit_res.value;
+var options = [];
+if (value == 'FRAG'){
+    options = hicUnitRes.options_frag;
+}else{
+    options = hicUnitRes.options_bp;
+}
+_g.custtk.ui_hi.resoptionstd.innerHTML='';
+_g.custtk.ui_hi.resoptions = dom_addselect(_g.custtk.ui_hi.resoptionstd,null,options);
+}
+
+function changeUnitMenu(){
+var value = menu.lr.unit.value;
+var options = [];
+if (value == 'FRAG'){
+    options = hicUnitRes.options_frag;
+}else{
+    options = hicUnitRes.options_bp;
+}
+menu.lr.binsizediv.innerHTML='';
+dom_addtext(menu.lr.binsizediv,'Bin Size&nbsp;');
+menu.lr.binsize=dom_addselect(menu.lr.binsizediv,null,options);
+}
+
 Genome.prototype.custcate_idnum_change=function(num)
 {
 var table=this.custtk.ui_cat.category_table;
@@ -23781,6 +24026,10 @@ case FT_lr_c:
 	c.ui_lr.input_url.value=info[ft].url;
 	c.ui_lr.input_name.value=info[ft].name;
 	return;
+case FT_hi_c:
+	c.ui_hi.input_url.value=info[ft].url;
+	c.ui_hi.input_name.value=info[ft].name;
+	return;
 case FT_bigwighmtk_c:
 	c.ui_bigwig.input_url.value=info[ft].url;
 	c.ui_bigwig.input_name.value=info[ft].name;
@@ -23816,6 +24065,7 @@ c.ui_bedgraph.style.display=ft==FT_bedgraph_c?'block':'none';
 c.ui_cat.style.display=ft==FT_cat_c?'block':'none';
 c.ui_bam.style.display=ft==FT_bam_c?'block':'none';
 c.ui_lr.style.display=ft==FT_lr_c?'block':'none';
+c.ui_hi.style.display=ft==FT_hi_c?'block':'none';
 c.ui_bigwig.style.display=ft==FT_bigwighmtk_c?'block':'none';
 c.ui_hammock.style.display=ft==FT_anno_c?'block':'none';
 c.ui_weaver.style.display=ft==FT_weaver_c?'block':'none';
@@ -24124,6 +24374,31 @@ case FT_lr_c:
 	}
 	_tmp.qtc={pfilterscore:score1,nfilterscore:score2};
 	break;
+case FT_hi_c:
+	c=bbj.genome.custtk.ui_hi;
+	_tmp.url=c.input_url.value.trim();
+	_tmp.label=c.input_name.value;
+	_tmp.mode=parseInt(c.mode.options[c.mode.selectedIndex].value);
+	var score1=parseFloat(c.input_pscore.value);
+	if(isNaN(score1)) {
+		print2console('Invalid positive threshold value',2);
+		return;
+	}
+	if(score1<0) {
+		print2console('Positive threshold value must be >=0',2);
+		return;
+	}
+	var score2=parseFloat(c.input_nscore.value);
+	if(isNaN(score2)) {
+		print2console('Invalid negative threshold value',2);
+		return;
+	}
+	if(score2>0) {
+		print2console('Negative threshold value must be <=0',2);
+		return;
+	}
+	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};
+	break;
 case FT_bam_c:
 	c=bbj.genome.custtk.ui_bam;
 	_tmp.url=c.input_url.value.trim();
@@ -24189,12 +24464,14 @@ ui.submit_butt.disabled=false;
 this.unveil();
 if(!data || data.brokenbeads) {
 	print2console('Something about this track is broken. Please check your input.',2);
+        if(tk.ft !== FT_hi_c){
 	menu_blank();
 	dom_create('div',menu.c32,'margin:10px;width:200px;').innerHTML='Failed to add this track.<br><br>If this is an updated version of a previously used track, you need to refresh cache.';
 	var d=dom_create('div',menu.c32,'margin:20px;');
 	this.refreshcache_maketkhandle(d,tk);
 	menu_show_beneathdom(0,ui.submit_butt);
 	gflag.menu.bbj=apps.custtk.bbj;
+        }
 	return;
 }
 this.jsonAddtracks(data);
@@ -24271,6 +24548,10 @@ case FT_lr_c:
 	d._h.innerHTML='Pairwise interaction track <a href=http://wiki.wubrowse.org/Long-range target=_blank>help</a>';
 	ftname='long-range interaction';
 	break;
+case FT_hi_c:
+	d._h.innerHTML='Hi-C interaction track <a href=http://wiki.wubrowse.org/HiC target=_blank>help</a>';
+	ftname='Hi-C interaction';
+	break;
 //case FT_sam_c:
 //	d._h.innerHTML='<a href=http://washugb.blogspot.com/2012/09/generate-tabix-file-from-bam-file.html target=_blank>help</a>';
 //	ftname='SAM';
@@ -24329,7 +24610,7 @@ if(ft==FT_huburl) {
 }
 dom_addbutt(td,'Clear',function(){d.input_url.value='';if(d.input_name) d.input_name.value='';});
 // row 3
-if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c) {
+if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c||ft==FT_hi_c) {
 	tr=table.insertRow(-1);
 	td=tr.insertCell(0);
 	td.align='right';
@@ -24341,7 +24622,7 @@ if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c) {
 		];
 	if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_sam_c||ft==FT_bam_c) {
 		options.push({value:M_den,text:'density'});
-	} else if(ft==FT_lr_c) {
+	} else if(ft==FT_lr_c||ft==FT_hi_c) {
 		options.unshift({value:M_trihm,text:'heatmap'});
 		options.unshift({value:M_arc,text:'arc'});
 	}
@@ -24359,7 +24640,7 @@ if(ft==FT_anno_c) {
 	inp.cols=20;
 	d.input_json=inp;
 }
-if(ft==FT_lr_c) {
+if(ft==FT_lr_c||ft==FT_hi_c) {
 	tr=table.insertRow(-1);
 	td=tr.insertCell(0);
 	td.align='right';
@@ -24370,7 +24651,7 @@ if(ft==FT_lr_c) {
 	inp.type='text';
 	inp.size=3;
 	inp.value=2;
-	dom_addtext(td,'only applies to positively-scored items','#858585');
+	dom_addtext(td,' only applies to positively-scored items','#858585');
 	tr=table.insertRow(-1);
 	td=tr.insertCell(0);
 	td.align='right';
@@ -24381,7 +24662,35 @@ if(ft==FT_lr_c) {
 	inp.type='text';
 	inp.size=3;
 	inp.value=-2;
-	dom_addtext(td,'only applies to negatively-scored items','#858585');
+	dom_addtext(td,' only applies to negatively-scored items','#858585');
+}
+if(ft==FT_hi_c) {
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Matrix";
+        td=tr.insertCell(1);
+	d.matrix=dom_addselect(td,null,hicMatrixOptions);
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Normalization";
+        td=tr.insertCell(1);
+	d.norm=dom_addselect(td,null,hicNormOptions);
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Unit of Resolution";
+        td=tr.insertCell(1);
+	d.unit_res=dom_addselect(td,cust_hic_unit_change,hicUnitOptions);
+	dom_addtext(td,' BP is base-pair delimited resolution and FRAG is fragment delimited','#858585');
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Bin Size";
+        td=tr.insertCell(1);
+        d.resoptions = dom_addselect(td,null,hicUnitRes.options_bp);;
+        d.resoptionstd = td;
 }
 if(ft==FT_cat_c) {
 	tr=table.insertRow(-1);
@@ -24792,7 +25101,7 @@ function hubtagistrack(tag)
 {
 // this supports longrange to be backward compatible
 if(tag=='bedgraph' || tag=='bigwig' || tag=='bed' || 
-tag=='longrange' || tag=='interaction' ||
+tag=='longrange' || tag=='interaction' || tag=='hic' ||
 tag=='bam' || tag=='categorical' ||
 tag=='methylc'||tag=='ld'||
 tag=='annotation'||tag=='hammock'||
@@ -24838,6 +25147,12 @@ case 'bed':
 case 'longrange':
 case 'interaction':
 	obj.ft=FT_lr_c;
+	if(m==M_show) {
+		m=M_arc;
+	}
+	break;
+case 'hic':
+	obj.ft=FT_hi_c;
 	if(m==M_show) {
 		m=M_arc;
 	}
@@ -25897,6 +26212,7 @@ case FT_weaver_c:
 	return M_show;
 case FT_lr_c:
 case FT_lr_n:
+case FT_hi_c:
 	return M_arc;
 case FT_sam_c:
 case FT_sam_n:
@@ -28128,6 +28444,20 @@ if(S.rd_r && S.rd_r.qtc.smooth) {
 	smooth_tkdata(S.rd_r);
 }
 tk.canvas.height=cmtk_height(tk);
+//retina fix for methylC track
+///*
+if (window.devicePixelRatio){
+    var ctxWidth = tk.canvas.getAttribute('width');
+    var ctxHeight = tk.canvas.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    tk.canvas.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    tk.canvas.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    tk.canvas.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    //tk.canvas..parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+}
+//*/
 var svgdata=[];
 if(tk.cm.combine) {
 	/* combine two strands, mainly for rd and cg

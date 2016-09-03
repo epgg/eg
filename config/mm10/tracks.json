@@ -28,7 +28,7 @@ Genes : [
 			source:'UCSC Genome Browser',
 			'download date':'Feb. 19, 2014',
 			},
-		isgene:true,dbsearch:true },
+		isgene:true,dbsearch:false },
 ],
 
 RepeatMasker : [

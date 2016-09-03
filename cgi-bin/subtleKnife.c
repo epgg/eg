@@ -85,6 +85,8 @@
 #define FT_ld_n 26
 #define FT_anno_n 24
 #define FT_anno_c 25
+// juicebox hic format
+#define FT_hi_c 30
 
 #define RM_genome 0
 #define RM_jux_n 1
@@ -99,9 +101,10 @@
 #define trashDir "/usr/lib/trash"
 #define WWWT "/var/www/browser/t"
 #define BINdir "."
-#define Mysqlserver "10.200.0.11"
+#define Mysqlserver "localhost"
 #define Mysqluser "hguser"
 #define Mysqlpswd "hguser"
+#define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /home/dli/juicebox_support/Juicebox.jar"
 
 /* miscellaneous */
 #define SQUAWK 1 // set to 1 for squawking
@@ -251,6 +254,11 @@ struct track
     boolean flag;
     pid_t pid; // for forking on a track
     char *tmpfile; // session+track name, will hold data made by child process and later, need to be made before forking so that both parent/child can see it
+    char *matrix;
+    char *norm;
+    char *unit_res;
+    int bin_size;
+    int d_binsize; //display binsize
     };
 struct geneParam
 	{
@@ -381,6 +389,7 @@ struct heatmap
 	struct track *tk25;
 	struct track *tk26;
 	struct track *tk27;
+    struct track *decor30;
     };
 
 
@@ -432,6 +441,7 @@ case FT_cat_c:
 case FT_bigwighmtk_c:
 case FT_bed_c:
 case FT_lr_c:
+case FT_hi_c:
 case FT_sam_c:
 case FT_ld_c:
 case FT_anno_c:
@@ -620,6 +630,7 @@ switch(ft)
 	case FT_bed_c:
 	case FT_bedgraph_c:
 	case FT_lr_c:
+	case FT_hi_c:
 	case FT_sam_c:
 	case FT_bam_c:
 	case FT_cat_c:
@@ -1702,6 +1713,219 @@ for(bi=sl; bi!=NULL; bi=bi->next)
 if(prev!=NULL) free(prev);
 }
 
+struct beditem *juiceboxQuery(char *src, char *norm, char *urlpath, char *chrom1, char *chrom2, char *type, int bin, int qstart, int qend)
+{
+//Usage:   juicebox dump <observed/oe/norm/expected> <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1> <chr2> <BP/FRAG> <binsize> <outfile>
+//juicebox dump observed NONE http://epgg-test.wustl.edu/dli/long-range-test/test.hic 1 1 BP 500000 out|stdout
+// query start, query end might in different chrom
+fprintf(stderr, "urlpath = (%s)\n", urlpath);
+char *urlbase = basename(strdup(urlpath));
+fprintf(stderr, "urlbase = (%s)\n", urlbase);
+char dummyname[201];
+if (strlen(urlbase) > 200){
+    strncpy(dummyname, urlbase, 200);
+    dummyname[200] = '\0';
+}else{
+    strcpy(dummyname, urlbase);
+}
+fprintf(stderr, "dummyname = (%s)\n", dummyname);
+srand(time(0));
+int rr=rand();
+char *outfile;
+assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
+char *chrom1_nochr = strdup(chrom1);
+char *chrom2_nochr = strdup(chrom2);
+rmSubstr(chrom1_nochr,"chr");
+rmSubstr(chrom2_nochr,"chr");
+char *command;
+assert(asprintf(&command, "%s dump %s %s %s %s %s %s %d %s", juicebox, src, norm, urlpath, chrom1_nochr, chrom2_nochr, type, bin, outfile)>0);
+fprintf(stderr, "juicebox query [%s]\n", command);
+if(system(command)==-1){
+        fprintf(stderr, "cannot run command [%s]\n", command);
+        return FALSE;
+    }
+free(command);
+FILE *fin=fopen(outfile,"r");
+if(fin==NULL)
+	{
+        fprintf(stderr, "file not exists [%s]\n", outfile);
+	return NULL;
+	}
+struct beditem *sl=NULL, *bi;
+char *line=malloc(1);
+size_t s=0;
+char delim[]="\t\n";
+char *tok;
+int cid = 0;
+fprintf(stderr, "parsing file [%s]\n", outfile);
+while(getline(&line, &s, fin)!=-1)
+	{
+	assert((tok=strtok(line, delim))!=NULL);
+        int start1 = strMayPositiveInt(tok);
+        //if ( start1 < qstart ) {continue;}
+        assert((tok=strtok(NULL, delim))!=NULL);
+        int start2 = strMayPositiveInt(tok);
+        //if ( start2 > qend ) {continue;}
+        assert((tok=strtok(NULL, delim))!=NULL);
+	//float v=strtod(tok,NULL);
+	bi=malloc(sizeof(struct beditem));
+        bi->start = start1;
+        bi->stop = start1+bin;
+        cid++;
+        char *tmpstr;
+        assert(asprintf(&tmpstr,"%s:%d-%d,%s\t%d\t+",chrom2,start2, start2+bin, tok, cid)>0);
+        //if (cid <= 5){
+        //    fprintf(stderr, "bi start %d, stop %d, tmpstr, [%s]\n", bi->start, bi->stop, tmpstr); //debug
+        //}
+        bi->rest = tmpstr;
+        bi->next=sl;
+        sl = bi;
+	}
+fprintf(stderr, "[%d] lines fetched\n", cid);
+fclose(fin);
+//unlink(outfile);
+free(outfile);
+return sl;
+}
+
+void *juiceboxQuery_dsp(struct displayedRegion *dsp, struct track *t)
+{
+//if (dsp==NULL){fprintf(stderr, "dsp is null\n");}
+//if (t==NULL){fprintf(stderr, "t is null\n");}
+//if (chrInfo==NULL){fprintf(stderr, "chrInfo is null\n");}
+fprintf(stderr, "dsp-test query1 [%s]\n",t->urlpath);
+//fprintf(stderr, "dsp-test query2 [%s]\n",chrInfo[dsp->head->chromIdx]->name);
+//fprintf(stderr, "dsp-test query3 [%s]\n",chrInfo[dsp->tail->chromIdx]->name);
+//fprintf(stderr, "dsp-test query4 [%d]\n",dsp->head->dstart);
+//fprintf(stderr, "dsp-test query5 [%d]\n",dsp->tail->dstop);
+return (void *) juiceboxQuery("observed", "NONE", t->urlpath, chrInfo[dsp->head->chromIdx]->name, chrInfo[dsp->tail->chromIdx]->name, "BP", 500000, dsp->head->dstart, dsp->tail->dstop);
+}
+
+struct beditem *juiceboxQuery2(char *src, char *norm, char *urlpath, char *chrom1, int start1, int end1, char *chrom2, int start2, int end2, char *type, int bin)
+{
+//Usage:   juicebox dump <observed/oe/norm/expected> <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1:s1:e1> <chr2:s2:e2> <BP/FRAG> <binsize> <outfile>
+//juicebox dump observed NONE http://epgg-test.wustl.edu/dli/long-range-test/test.hic 1:x:x 1:y:y BP 500000 out|stdout
+// query start, query end might in different chrom
+fprintf(stderr, "urlpath = (%s)\n", urlpath);
+char *urlbase = basename(strdup(urlpath));
+fprintf(stderr, "urlbase = (%s)\n", urlbase);
+char dummyname[201];
+if (strlen(urlbase) > 200){
+    strncpy(dummyname, urlbase, 200);
+    dummyname[200] = '\0';
+}else{
+    strcpy(dummyname, urlbase);
+}
+fprintf(stderr, "dummyname = (%s)\n", dummyname);
+srand(time(0));
+int rr=rand();
+char *outfile;
+assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
+char *chrom1_nochr = strdup(chrom1);
+char *chrom2_nochr = strdup(chrom2);
+rmSubstr(chrom1_nochr,"chr");
+rmSubstr(chrom2_nochr,"chr");
+char *command;
+assert(asprintf(&command, "%s dump %s %s %s %s:%d:%d %s:%d:%d %s %d %s", juicebox, src, norm, urlpath, chrom1_nochr, start1, end1, chrom2_nochr, start2, end2, type, bin, outfile)>0);
+fprintf(stderr, "juicebox query [%s]\n", command);
+if(system(command)==-1){
+        fprintf(stderr, "cannot run command [%s]\n", command);
+        return FALSE;
+    }
+free(command);
+FILE *fin=fopen(outfile,"r");
+if(fin==NULL)
+	{
+        fprintf(stderr, "file not exists [%s]\n", outfile);
+	return NULL;
+	}
+struct beditem *sl=NULL, *bi;
+char *line=malloc(1);
+size_t s=0;
+char delim[]="\t\n";
+char *tok;
+int cid = 0;
+fprintf(stderr, "parsing file [%s]\n", outfile);
+while(getline(&line, &s, fin)!=-1)
+	{
+	assert((tok=strtok(line, delim))!=NULL);
+        int start1 = strMayPositiveInt(tok);
+        assert((tok=strtok(NULL, delim))!=NULL);
+        int start2 = strMayPositiveInt(tok);
+        assert((tok=strtok(NULL, delim))!=NULL);
+	//float v=strtod(tok,NULL);
+	bi=malloc(sizeof(struct beditem));
+        bi->start = start1;
+        bi->stop = start1+bin;
+        cid++;
+        char *tmpstr;
+        assert(asprintf(&tmpstr,"%s:%d-%d,%s\t%d\t+",chrom2,start2, start2+bin, tok, cid)>0);
+        //if (cid <= 5){
+        //    fprintf(stderr, "bi start %d, stop %d, tmpstr, [%s]\n", bi->start, bi->stop, tmpstr); //debug
+        //}
+        bi->rest = tmpstr;
+        bi->next=sl;
+        sl = bi;
+	}
+fprintf(stderr, "[%d] lines fetched\n", cid);
+fclose(fin);
+//unlink(outfile);
+free(outfile);
+return sl;
+}
+
+int juiceboxChooseBinsize(struct region *r){
+//Unknown resolution: BP_0
+//This data set has the following bin sizes (in bp): 
+//2500000 1000000 500000 250000 100000 50000 25000 10000 5000 
+int reglen = r->dstop - r->dstart;
+fprintf(stderr,"********dstart, %d; dstop, %d\n",r->dstart, r->dstop);
+int scale=10, binsize;
+    if (reglen >= scale*2500000){
+        binsize = 2500000;
+    }else if(reglen >= scale*1000000 && reglen < scale*2500000){
+        binsize = 1000000;
+    }else if(reglen >= scale*500000 && reglen < scale*1000000){
+        binsize = 500000;
+    }else if (reglen >= scale*250000 && reglen < scale*500000){
+        binsize = 250000;
+    }else if (reglen >= scale*100000 && reglen < scale*250000){
+        binsize = 100000;
+    }else if (reglen >= scale*50000 && reglen < scale*100000){
+        binsize = 50000;
+    }else if (reglen >= scale*25000 && reglen < scale*50000){
+        binsize = 10000;
+    }else if(reglen >= scale*10000 && reglen < scale*25000){
+        binsize = 25000;
+    }else if(reglen >= scale*5000 && reglen < scale*10000){
+        binsize = 5000;
+    }else{
+        binsize = 5000;
+    }
+    return binsize;
+}
+
+void *juiceboxQuery_dsp2(struct displayedRegion *dsp, struct track *t)
+{
+struct region *r;
+int regioncount=0, dataidx=0;
+for(r=dsp->head; r!=NULL; r=r->next)
+	regioncount++;
+void **data;
+data=malloc(sizeof(struct beditem *)*regioncount);
+assert(data!=NULL);
+
+for(r=dsp->head; r!=NULL; r=r->next){
+    if (t->bin_size == 0){
+        t->d_binsize = juiceboxChooseBinsize(r);
+    }else{
+        t->d_binsize = t->bin_size;
+    }
+    data[dataidx] =  (void*)juiceboxQuery2(t->matrix, t->norm, t->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, t->unit_res, t->d_binsize);
+    dataidx++;
+}
+return data;
+}
 
 boolean bigwigQuery(char *urlpath, char *chrom, unsigned int start, unsigned int stop, unsigned int spnum, double *data, int summeth)
 {
@@ -3630,6 +3854,28 @@ while(tok != NULL)
 			assert((tok=strtok(NULL,delim)) != NULL);
 			tt->nscore = strtod(tok, NULL);
 			break;
+		case FT_hi_c:
+			tt->name = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->label = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->urlpath = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->mode = strMayPositiveInt(tok))!=-1);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->pscore = strtod(tok, NULL);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->nscore = strtod(tok, NULL);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->matrix = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->norm = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->unit_res = strdup(tok);
+                        //fprintf(stderr, "test parse [%s]",tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->bin_size = strtod(tok,NULL);
+			break;
 		case FT_cat_n:
 			tt->name=strdup(tok);
 			assert((tok=strtok(NULL,delim)) != NULL);
@@ -4315,6 +4561,109 @@ if(tt->ft==FT_lr_n||tt->ft==FT_lr_c)
 	free(data);
    	return;
 	}
+//dli start
+if(tt->ft==FT_hi_c)
+    {
+	//struct beditem **data=(struct beditem **)juiceboxQuery("observed","KR",tt->urlpath,chrInfo[r->chromIdx]->name,chrInfo[r->chromIdx]->name, "BP", 100000);
+	//struct beditem **data=(struct beditem **)juiceboxQuery_dsp(dsp, tt);
+	struct beditem **data=(struct beditem **)juiceboxQuery_dsp2(dsp, tt);
+	if(data==NULL)
+		{
+		brokenbeads_add(tt->name, tt->urlpath, tt->ft);
+		return;
+		}
+	char delim[] = "\t";
+	char delim2[] = ",";
+	struct beditem *item;
+	int dataidx=0; // array idx of data corresponding to region
+
+	printf("{name:\"%s\", ft:%d, mode:%d,", tt->name, tt->ft, tt->mode);
+    	printf("label:\"%s\", url:\"%s\",",tt->label,tt->urlpath);
+        printf("pfilterscore:%f, nfilterscore:%f,", tt->pscore, tt->nscore);
+    	printf("matrix:\"%s\", norm:\"%s\", unit_res:\"%s\",",tt->matrix,tt->norm,tt->unit_res);
+        printf("bin_size:%d,d_binsize:%d,", tt->bin_size,tt->d_binsize);
+	printf("data:[");
+
+	struct region *r;
+	struct nnode *fi;
+	boolean outsidedspfilter;
+
+	boolean applyDspFilter=dsp->dspFilter!=NULL;
+
+	char *name, *id, *strand; // to be used at each bed item
+	for(r=dsp->head; r!=NULL; r=r->next)
+		{
+                        fprintf(stderr, "after dsp done 1\n");
+		printf("[");
+		for(item=data[dataidx]; item!=NULL; item=item->next)
+			{
+			if((name=strtok(item->rest,delim))==NULL) continue;
+			if(strcmp(name, ".")==0) continue;
+			if((id=strtok(NULL,delim))==NULL) continue;
+			strand=strtok(NULL,delim);
+
+			// apply score cutoff
+			char *namec = strdup(name);
+			char *matecoordstr = strtok(namec, delim2);
+			if(matecoordstr==NULL) continue;
+			char *tmp = strtok(NULL, delim2);
+			if(tmp==NULL) continue; // supposed to be the score
+			float thisscore = strtod(tmp, NULL);
+
+			if(thisscore >= 0)
+				{
+				if(thisscore<tt->pscore) continue;
+				}
+			else
+				{
+				if(thisscore>tt->nscore) continue;
+				}
+
+
+
+			if(applyDspFilter)
+				{
+				int *matecoord = dissectCoordString(matecoordstr);
+				/* 2013/2/16 forgot to check if this function returns NULL ended up errors, blast it...
+				TODO should use chrom name, not idx
+				*/
+				if(matecoord==NULL || matecoord[0]==-1 || matecoord[1]==-1 || matecoord[2]==-1) continue;
+				outsidedspfilter=TRUE;
+				for(fi=dsp->dspFilter; fi!=NULL; fi=fi->next)
+					{
+					if(matecoord[0]==fi->chrIdx && (max(matecoord[1],fi->start)<=min(matecoord[2],fi->stop)))
+						{
+						outsidedspfilter=FALSE;
+						break;
+						}
+					}
+				free(matecoord);
+				if(outsidedspfilter)
+					{
+					//__skipped_num++;
+					continue;
+					}
+				}
+
+			printf("{id:%s,", id);
+			if(name != NULL)
+				{
+				printf("name:'%s',", name);
+				}
+			if(strand != NULL)
+				{
+				printf("strand:'%c',", strand[0]=='+'?'>':(strand[0]=='-'?'<':strand[0]));
+				}
+			printf("start:%d,stop:%d},",item->start,item->stop);
+			}
+		dataidx++;
+		printf("],");
+		}
+	printf("]},");
+	free(data);
+   	return;
+    }
+// dli end
 
 if(tt->ft==FT_bed_n||tt->ft==FT_bed_c||tt->ft==FT_bam_n||tt->ft==FT_bam_c||tt->ft==FT_anno_n||tt->ft==FT_anno_c||tt->ft==FT_ld_n||tt->ft==FT_ld_c||tt->ft==FT_weaver_c||tt->ft==FT_catmat||tt->ft==FT_qcats)
 	{
@@ -5263,7 +5612,34 @@ return path2;
 }
 
 
+//dli
+int line_count(FILE *fp) {
+    int lines=0;
+    char ch; 
+    while(!feof(fp))
+    {
+        ch = fgetc(fp);
+        if(ch == '\n'|| ch == '\r')
+        {
+            lines++;
+        }
+    }
+        return lines;
+}
+
+void rmSubstr(char *str, const char *toRemove)
+{
+    size_t length = strlen(toRemove);
+    while((str = strstr(str, toRemove)))
+    {
+        memmove(str, str + length, 1 + strlen(str + length));
+    }
+}
+
+
 // INIT
+
+
 
 int main()
 {
@@ -8473,6 +8849,7 @@ hm.tk24=NULL;
 hm.tk25=NULL;
 hm.tk26=NULL;
 hm.tk27=NULL;
+hm.decor30=NULL;
 hm.genetrack_sl = genetrack_sl;
 
 hmSpan = cgiInt("hmspan");
@@ -9371,6 +9748,7 @@ if(cgiVarExists("track23")) parseTrackParam(cgiString("track23"),FT_ld_c, &(hm.t
 if(cgiVarExists("track24")) parseTrackParam(cgiString("track24"),FT_anno_n, &(hm.tk24));
 if(cgiVarExists("track25")) parseTrackParam(cgiString("track25"),FT_anno_c, &(hm.tk25));
 if(cgiVarExists("track26")) parseTrackParam(cgiString("track26"),FT_ld_n, &(hm.tk26));
+if(cgiVarExists("decor30")) parseTrackParam(cgiString("decor30"),FT_hi_c, &(hm.decor30));
 
 /**
 might apply dsp filter for longrange track
@@ -9378,7 +9756,7 @@ only for browser display, but not for hengeview
 **/
 struct track *tt;
 dsp.dspFilter=NULL;
-if((hm.decor9!=NULL || hm.decor10!=NULL) && (!cgiVarExists("lrtk_nodspfilter")))
+if((hm.decor9!=NULL || hm.decor10!=NULL || hm.decor30!=NULL) && (!cgiVarExists("lrtk_nodspfilter")))
 	{
 	boolean fullitemquery=FALSE;
 	for(tt=hm.decor9;tt!=NULL;tt=tt->next)
@@ -9386,6 +9764,10 @@ if((hm.decor9!=NULL || hm.decor10!=NULL) && (!cgiVarExists("lrtk_nodspfilter")))
 		if(tt->mode==M_arc||tt->mode==M_trihm) fullitemquery=TRUE;
 		}
 	for(tt=hm.decor10;tt!=NULL;tt=tt->next)
+		{
+		if(tt->mode==M_arc||tt->mode==M_trihm) fullitemquery=TRUE;
+		}
+	for(tt=hm.decor30;tt!=NULL;tt=tt->next)
 		{
 		if(tt->mode==M_arc||tt->mode==M_trihm) fullitemquery=TRUE;
 		}
@@ -9422,13 +9804,12 @@ if((hm.decor9!=NULL || hm.decor10!=NULL) && (!cgiVarExists("lrtk_nodspfilter")))
 				}
 			}
 		}
-		/*
+                //comment out afte debug
 		struct nnode *fi;
 		for(fi=dsp.dspFilter; fi!=NULL; fi=fi->next)
 			{
-			printf("dsp filter: %s %d %d\n", chrInfo[fi->chrIdx]->name, fi->start, fi->stop);
+			fprintf(stderr,"dsp filter: %s %d %d\n", chrInfo[fi->chrIdx]->name, fi->start, fi->stop);
 			}
-			*/
 	}
 	
 
@@ -9488,6 +9869,10 @@ for(tt=hm.tk25; tt!=NULL; tt=tt->next)
 	printJsonDecor(hm.dsp,tt);
 	}
 for(tt=hm.tk27; tt!=NULL; tt=tt->next)
+	{
+	printJsonDecor(hm.dsp,tt);
+	}
+for(tt=hm.decor30; tt!=NULL; tt=tt->next)
 	{
 	printJsonDecor(hm.dsp,tt);
 	}

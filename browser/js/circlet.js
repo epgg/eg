@@ -76,7 +76,7 @@ else in case of gsv, region corresponds to genes
 */
 var callingtkobj=this.findTrack(callingtkname);
 if(!callingtkobj) {return;}
-if(callingtkobj.ft!=FT_lr_c && callingtkobj.ft!=FT_lr_n) {
+if(callingtkobj.ft!=FT_lr_c && callingtkobj.ft!=FT_lr_n && callingtkobj.ft!=FT_hi_c) {
 	print2console('making circlet plot: wrong track ft',2);
 	return;
 }
@@ -1110,7 +1110,7 @@ function tkentryclick_hengeview(event)
 {
 if(event.target.className=='tkentry_inactive') {return;}
 var tk=event.target.tkobj;
-if(tk.ft==FT_lr_n||tk.ft==FT_lr_c||tk.ft==FT_sam_n||tk.ft==FT_sam_c||tk.ft==FT_bam_c||tk.ft==FT_bam_n) {
+if(tk.ft==FT_lr_n||tk.ft==FT_lr_c||tk.ft==FT_hi_c||tk.ft==FT_sam_n||tk.ft==FT_sam_c||tk.ft==FT_bam_c||tk.ft==FT_bam_n) {
 	print2console('Unsupported track type',2);
 	return;
 }
