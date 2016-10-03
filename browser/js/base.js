@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='40.0.4';
+var washUver='40.0.5';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -2674,7 +2674,7 @@ function tk_height(tk)
 if(tkishidden(tk)) return 0;
 if(!tk.canvas) return 0;
 
-if (window.devicePixelRatio){
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
         return tk.canvas.height/window.devicePixelRatio;
     }else{
         return tk.canvas.height;
@@ -3026,7 +3026,7 @@ tkobj.header.height=tk_height(tkobj);
 var ctx = tkobj.header.getContext('2d'); // for header
 //retina fix for header
 ///*
-if (window.devicePixelRatio){
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
     var ctxWidth = tkobj.header.getAttribute('width');
     var ctxHeight = tkobj.header.getAttribute('height');
     var ctxCssWidth = ctxWidth;
@@ -3224,22 +3224,22 @@ if(tkobj.skipped>0) {
 }
 
 
-//add data lable to hic
+//add data label to hic
 if(tkobj.ft == FT_hi_c){
-    var b=densitydecorpaddingtop+1+tkobj.qtc.height-5;
-    var m = 'matrix:'+tkobj.qtc.matrix;
+    var b=densitydecorpaddingtop+1+tkobj.qtc.height-25;
+    var m = 'matrix: '+tkobj.qtc.matrix;
     ctx.fillText(m, 1, b);
     if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b,text:m,color:'red'});
-    m = 'norm:'+tkobj.qtc.norm;
+    m = 'norm: '+tkobj.qtc.norm;
     ctx.fillText(m, 1, b+15);
     if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b+15,text:m,color:'red'});
-    m = 'unit:'+tkobj.qtc.unit_res;
+    m = 'unit: '+tkobj.qtc.unit_res;
     ctx.fillText(m, 1, b+30);
     if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b+30,text:m,color:'red'});
     if (tkobj.qtc.bin_size == 0){
-        m = 'bin:(auto)'+prettyBinSize(tkobj.qtc.d_binsize);
+        m = 'bin:(auto) '+prettyBinSize(tkobj.qtc.d_binsize);
     }else{
-        m = 'bin:'+prettyBinSize(tkobj.qtc.d_binsize);
+        m = 'bin: '+prettyBinSize(tkobj.qtc.d_binsize);
     }
     ctx.fillText(m, 1, b+45);
     if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:1,y:b+45,text:m,color:'red'});
@@ -3294,7 +3294,7 @@ if(tkobj.ft==FT_matplot || tkobj.ft==FT_qcats) {
 //retina fix for track
 //var oheight = tc.height;
 ///*
-if (window.devicePixelRatio){
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
     var ctxWidth = tc.getAttribute('width');
     var ctxHeight = tc.getAttribute('height');
     var ctxCssWidth = ctxWidth;
@@ -4422,10 +4422,57 @@ if(tkobj.ft==FT_matplot) {
 		}
 	}
 	if(viewrangeblank) {
-		ctx.fillStyle=colorCentral.foreground_faint_5;
-		var s=tkobj.label+' - NO DATA IN VIEW RANGE';
-		var w=ctx.measureText(s).width;
-		ctx.fillText(s,(this.hmSpan-w)/2-this.move.styleLeft,tc.height/2+5);
+                if (tkobj.ft==FT_hi_c){
+                    //tc.height = 80;
+                    print2console('NO DATA IN VIEW RANGE, please change configurations',2);
+                    var m = 'current configuration:';
+                    print2console(m,2);
+                    m = ' matrix: '+tkobj.qtc.matrix;
+                    print2console(m,2);
+                    m = ' norm: '+tkobj.qtc.norm;
+                    print2console(m,2);
+                    m = ' unit: '+tkobj.qtc.unit_res;
+                    print2console(m,2);
+                    if (tkobj.qtc.bin_size == 0){
+                        m = ' bin:(auto) '+prettyBinSize(tkobj.qtc.d_binsize);
+                    }else{
+                        m = ' bin: '+prettyBinSize(tkobj.qtc.d_binsize);
+                    }
+                    print2console(m,2);
+                }
+                //}else{
+	            ctx.fillStyle=colorCentral.foreground_faint_5;
+                    var s=tkobj.label+' - NO DATA IN VIEW RANGE';
+    	            var w=ctx.measureText(s).width;
+                    var x = (this.hmSpan-w)/2-this.move.styleLeft;
+                    var y = tc.height/2+5;
+        	    ctx.fillText(s,x,y);
+                //}
+                    /*
+                if (tkobj.ft==FT_hi_c){
+                    //tc.height = 80;
+                    //not working!!!
+                    var m = 'current configuration:';
+                    y+=12;
+		    ctx.fillText(m,x,y);
+                    m = ' matrix: '+tkobj.qtc.matrix;
+                    y+=12;
+		    ctx.fillText(m,x,y);
+                    m = ' norm: '+tkobj.qtc.norm;
+                    y+=12;
+		    ctx.fillText(m,x,y);
+                    m = ' unit: '+tkobj.qtc.unit_res;
+                    y+=12;
+		    ctx.fillText(m,x,y);
+                    if (tkobj.qtc.bin_size == 0){
+                        m = ' bin:(auto) '+prettyBinSize(tkobj.qtc.d_binsize);
+                    }else{
+                        m = ' bin: '+prettyBinSize(tkobj.qtc.d_binsize);
+                    }
+                    y+=12;
+		    ctx.fillText(m,x,y);
+                }
+                    */
 	} else if(tkobj.ft==FT_ld_c || tkobj.ft==FT_ld_n) {
 		// plot snps from the LD track
 		yoffset=old_yoffset;
@@ -5389,7 +5436,7 @@ var ctx = this.rulercanvas.getContext('2d');
 var h=this.rulercanvas.height;
 //retina fix for ruler
 /*
-if (window.devicePixelRatio){
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
     var ctxWidth = this.rulercanvas.getAttribute('width');
     var ctxHeight = this.rulercanvas.getAttribute('height');
     var ctxCssWidth = ctxWidth;
@@ -6406,7 +6453,7 @@ case 2:
 				U=true;
 			}
 			break;
-                case 41: //hic configure change
+                case 44: //hic configure change
                         tk.qtc.matrix = menu.lr.matrix.value;
                         tk.qtc.norm = menu.lr.norm.value;
                         tk.qtc.unit_res = menu.lr.unit.value;
@@ -6483,6 +6530,16 @@ case 15:
 	case 22:
 		hvobj.callingtk.nscore=parseFloat(menu.lr.ncscore.value);
 		break;
+        case 44: //hic configure change for circlet view
+                hvobj.callingtk.qtc.matrix = menu.lr.matrix.value;
+                hvobj.callingtk.qtc.norm = menu.lr.norm.value;
+                hvobj.callingtk.qtc.unit_res = menu.lr.unit.value;
+                hvobj.callingtk.qtc.bin_size = menu.lr.binsize.value;
+                //trying to issue another ajax query, this is window currently
+                console.log(hvobj.callingtk);
+                //hvobj.callingtk.ft=FT_hi_c;
+                this.browser.ajax('lrtk_nodspfilter=on&dbName='+this.browser.genome.name+this.browser.displayedRegionParam_narrow()+trackParam([hvobj.callingtk]),function(data){bbj.hengeview_lrtk_cb(data,hvobj);});
+	        break;
 	default: fatalError('circlet callingtk: unknown update context');
 	}
 	hengeview_draw(gflag.menu.viewkey);
@@ -8320,7 +8377,8 @@ var c=dom_create('canvas',td);
 c.height=12;
 //retina fix for lower sep line
 /*
-if (window.devicePixelRatio){
+var ctx = c.getContext('2d');
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
     var ctxWidth = c.getAttribute('width');
     var ctxHeight = c.getAttribute('height');
     var ctxCssWidth = ctxWidth;
@@ -8328,7 +8386,7 @@ if (window.devicePixelRatio){
     c.setAttribute('width',ctxWidth*window.devicePixelRatio);
     c.setAttribute('height',ctxHeight*window.devicePixelRatio);
     c.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-    //ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     c.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
 }
 */
@@ -8346,6 +8404,21 @@ d2.style.position='absolute';
 var d3=dom_create('div',d2);
 d3.style.position='relative';
 c=dom_create('canvas',d3);
+//retina fix for lower sep line
+///*
+var ctx = c.getContext('2d');
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
+    var ctxWidth = c.getAttribute('width');
+    var ctxHeight = c.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    c.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    c.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    c.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    //c.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+}
+//*/
 c.style.marginBottom=3;
 c.width=this.hmSpan;
 c.height=20;
@@ -9269,6 +9342,21 @@ if(this.basepairlegendcanvas) {
 	this.basepairlegendcanvas.style.display = "none";
 }
 var ctx = this.ideogram.canvas.getContext('2d');
+
+//retina fix for ideogram
+/*
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
+    var ctxWidth = this.ideogram.canvas.getAttribute('width');
+    var ctxHeight = this.ideogram.canvas.getAttribute('height');
+    var ctxCssWidth = ctxWidth;
+    var ctxCssHeight = ctxHeight;
+    this.ideogram.canvas.setAttribute('width',ctxWidth*window.devicePixelRatio);
+    this.ideogram.canvas.setAttribute('height',ctxHeight*window.devicePixelRatio);
+    this.ideogram.canvas.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+}
+*/
+
 var svgdata=[];
 
 if(this.genome.temporal_ymd) {
@@ -10760,25 +10848,31 @@ menu.lr.nfscore=dom_inputnumber(d3,{call:stc_longrange_nfilterscore_KU});
 dom_addbutt(d3,'set',stc_longrange_nfilterscore);
 dom_create('div',d,'background-color:white;').innerHTML='Negative score';
 
+//hic data srouce
+var d7=dom_create('div',menu.lr);
+d7.className='titlebox';
+menu.lr.hicControl = d7;
+var d8=dom_create('div',d7,'margin:10px 0px 20px 0px;color:'+colorCentral.foreground_faint_3);
 //matrix
-menu.lr.matrixdiv=dom_create('div',menu.lr,'margin-top:5px;');
-dom_addtext(menu.lr.matrixdiv,'Matrix&nbsp;');
+menu.lr.matrixdiv=dom_create('div',d8,'margin-top:5px;');
+dom_addtext(menu.lr.matrixdiv,'Matrix&nbsp;','#858585');
 menu.lr.matrix=dom_addselect(menu.lr.matrixdiv,null,hicMatrixOptions);
 //norm
-menu.lr.normdiv=dom_create('div',menu.lr,'margin-top:5px;');
-dom_addtext(menu.lr.normdiv,'Normalization&nbsp;');
+menu.lr.normdiv=dom_create('div',d8,'margin-top:5px;');
+dom_addtext(menu.lr.normdiv,'Normalization&nbsp;','#858585');
 menu.lr.norm=dom_addselect(menu.lr.normdiv,null,hicNormOptions);
 //unit
-menu.lr.unitdiv=dom_create('div',menu.lr,'margin-top:5px;');
-dom_addtext(menu.lr.unitdiv,'Unit of Resolution&nbsp;');
+menu.lr.unitdiv=dom_create('div',d8,'margin-top:5px;');
+dom_addtext(menu.lr.unitdiv,'Unit of Resolution&nbsp;','#858585');
 menu.lr.unit=dom_addselect(menu.lr.unitdiv,changeUnitMenu,hicUnitOptions);
 //binsize
-menu.lr.binsizediv=dom_create('div',menu.lr,'margin-top:5px;');
-dom_addtext(menu.lr.binsizediv,'Bin Size&nbsp;');
+menu.lr.binsizediv=dom_create('div',d8,'margin-top:5px;');
+dom_addtext(menu.lr.binsizediv,'Bin Size&nbsp;','#858585');
 menu.lr.binsize=dom_addselect(menu.lr.binsizediv,null,hicUnitRes.options_bp);
-
-var d6=dom_create('div',menu.lr,'margin-top:5px;');
+//the update button
+var d6=dom_create('div',d8,'margin-top:5px;');
 dom_addbutt(d6,'Update',update_hic_data);
+dom_create('div',d7,'background-color:white;').innerHTML='Data control';
 
 
 
@@ -13717,7 +13811,7 @@ menu_update_track(24);
 }
 
 function update_hic_data(){
-    menu_update_track(41);
+    menu_update_track(44);
 }
 
 /*** __palette__ ends ***/
@@ -14243,10 +14337,13 @@ for(var i=this.dspBoundary.vstartr;i<=this.dspBoundary.vstopr;i++) {
 	lst.push(r[4]);
 	lst.push(10); // fictional spnum
 }
+//console.log(lst);
 var t=this.getDspStat();
 return '&runmode='+this.genome.defaultStuff.runmode+'&regionLst='+lst.join(',')+
-	'&startCoord='+t[1]+
-	'&stopCoord='+t[3];
+	'&startCoord='+lst[1]+
+	'&stopCoord='+lst[2];
+	//'&startCoord='+t[1]+
+	//'&stopCoord='+t[3];
 }
 
 
@@ -22825,6 +22922,17 @@ if(tk.mode==M_full) {
 	menu.c14.style.display='block';
 	menu.c14.unify.style.display='none';
 }
+    //console.log(tk.ft);
+    //console.log(tk.qtc.matrix);
+if(tk.ft == FT_hi_c){
+    menu.lr.hicControl.style.display='block';
+    changeSelectByValue(menu.lr.matrix,tk.qtc.matrix);
+    changeSelectByValue(menu.lr.norm,tk.qtc.norm);
+    changeSelectByValue(menu.lr.unit,tk.qtc.unit_res);
+    changeSelectByValue(menu.lr.binsize,tk.qtc.bin_size);
+}else{
+    menu.lr.hicControl.style.display='none';
+}
 menu.lr.style.display='block';
 longrange_showplotcolor('rgb('+tk.qtc.pr+','+tk.qtc.pg+','+tk.qtc.pb+')','rgb('+tk.qtc.nr+','+tk.qtc.ng+','+tk.qtc.nb+')');
 menu.lr.autoscale.parentNode.style.display='block';
@@ -23916,7 +24024,7 @@ if (value == 'FRAG'){
     options = hicUnitRes.options_bp;
 }
 menu.lr.binsizediv.innerHTML='';
-dom_addtext(menu.lr.binsizediv,'Bin Size&nbsp;');
+dom_addtext(menu.lr.binsizediv,'Bin Size&nbsp;','#858585');
 menu.lr.binsize=dom_addselect(menu.lr.binsizediv,null,options);
 }
 
@@ -28446,7 +28554,7 @@ if(S.rd_r && S.rd_r.qtc.smooth) {
 tk.canvas.height=cmtk_height(tk);
 //retina fix for methylC track
 ///*
-if (window.devicePixelRatio){
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
     var ctxWidth = tk.canvas.getAttribute('width');
     var ctxHeight = tk.canvas.getAttribute('height');
     var ctxCssWidth = ctxWidth;

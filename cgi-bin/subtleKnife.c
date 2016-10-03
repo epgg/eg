@@ -1839,7 +1839,7 @@ if(fin==NULL)
         fprintf(stderr, "file not exists [%s]\n", outfile);
 	return NULL;
 	}
-struct beditem *sl=NULL, *bi;
+struct beditem *sl=NULL, *bi, *bi2;
 char *line=malloc(1);
 size_t s=0;
 char delim[]="\t\n";
@@ -1860,12 +1860,21 @@ while(getline(&line, &s, fin)!=-1)
         cid++;
         char *tmpstr;
         assert(asprintf(&tmpstr,"%s:%d-%d,%s\t%d\t+",chrom2,start2, start2+bin, tok, cid)>0);
+        bi->rest = tmpstr;
         //if (cid <= 5){
         //    fprintf(stderr, "bi start %d, stop %d, tmpstr, [%s]\n", bi->start, bi->stop, tmpstr); //debug
         //}
-        bi->rest = tmpstr;
+        //add 2 entries like tabix output
+        cid++;
+	bi2=malloc(sizeof(struct beditem));
+        char *tmpstr2;
+        assert(asprintf(&tmpstr2,"%s:%d-%d,%s\t%d\t-",chrom1,start1, start1+bin, tok, cid)>0);
+        bi2->start = start2;
+        bi2->stop = start2+bin;
+        bi2->rest = tmpstr2;
+        bi2->next = bi;
         bi->next=sl;
-        sl = bi;
+        sl = bi2;
 	}
 fprintf(stderr, "[%d] lines fetched\n", cid);
 fclose(fin);
@@ -1880,7 +1889,7 @@ int juiceboxChooseBinsize(struct region *r){
 //2500000 1000000 500000 250000 100000 50000 25000 10000 5000 
 int reglen = r->dstop - r->dstart;
 fprintf(stderr,"********dstart, %d; dstop, %d\n",r->dstart, r->dstop);
-int scale=10, binsize;
+int scale=50, binsize;
     if (reglen >= scale*2500000){
         binsize = 2500000;
     }else if(reglen >= scale*1000000 && reglen < scale*2500000){
@@ -1900,9 +1909,31 @@ int scale=10, binsize;
     }else if(reglen >= scale*5000 && reglen < scale*10000){
         binsize = 5000;
     }else{
-        binsize = 5000;
+        binsize = 50000;
     }
     return binsize;
+}
+
+int tryOtherBinSize(int bin){
+fprintf(stderr, "****trying other binsize %d\n", bin);
+    if(bin==5000){
+        return 10000;
+    }else if(bin==10000){
+        return 25000;
+    }else if(bin==25000){
+        return 50000;
+    }else if(bin==50000){
+        return 100000;
+    }else if(bin==100000){
+        return 250000;
+    }else if(bin==250000){
+        return 500000;
+    }else if(bin==500000){
+        return 1000000;
+    }else if(bin==1000000){
+        return 2500000;
+    }
+    return 50000;
 }
 
 void *juiceboxQuery_dsp2(struct displayedRegion *dsp, struct track *t)
@@ -1924,6 +1955,29 @@ for(r=dsp->head; r!=NULL; r=r->next){
     data[dataidx] =  (void*)juiceboxQuery2(t->matrix, t->norm, t->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, t->unit_res, t->d_binsize);
     dataidx++;
 }
+/*
+//check if data have no data....
+int check = 0;
+struct beditem *item;
+dataidx=0;
+for(r=dsp->head; r!=NULL; r=r->next){
+    for(item=data[dataidx]; item!=NULL; item=item->next){
+        check++;
+        dataidx++;
+    }
+}
+//int times = 0;
+dataidx=0;
+if (check==0){
+    //if (times > 2) break;
+    for(r=dsp->head; r!=NULL; r=r->next){
+        t->d_binsize = tryOtherBinSize(t->d_binsize);
+        data[dataidx] =  (void*)juiceboxQuery2(t->matrix, t->norm, t->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, t->unit_res, t->d_binsize);
+        dataidx++;
+    }
+//    times++;
+}
+*/
 return data;
 }
 

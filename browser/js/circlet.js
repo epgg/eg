@@ -91,8 +91,17 @@ var viewobj = {
 		name:callingtkname,
 		pcolor:q.pr+','+q.pg+','+q.pb,
 		ncolor:q.nr+','+q.ng+','+q.nb,
-		pscore:callingtkobj.qtc.pcolorscore,
-		nscore:callingtkobj.qtc.ncolorscore,
+		pscore:q.pcolorscore,
+		nscore:q.ncolorscore,
+		qtc:q,
+		//matrix:q.matrix,
+		//norm:q.norm,
+		//unit_res:q.unit_res,
+	        //bin_size:q.bin_size,
+                ft:callingtkobj.ft,
+                label:callingtkobj.label,
+                url:callingtkobj.url,
+                mode:callingtkobj.mode
 	},
 	ideogramwidth:14,
 	showcytoband:true,
@@ -144,7 +153,9 @@ td.vAlign='middle';
 td.style.fontSize='12px';
 viewobj.says_arcnum=dom_addtext(td);
 dom_addtext(td,'&nbsp;arcs from&nbsp;');
-var d9=dom_addtkentry(2,td,false,callingtkobj,callingtkobj.label,hengeview_lrtkdetail,20);
+//no meta for custom long range track, caused empty div
+//var d9=dom_addtkentry(2,td,false,callingtkobj,callingtkobj.label,hengeview_lrtkdetail,20);
+var d9=dom_addtkentry(2,td,false,callingtkobj,callingtkobj.label,null,20);
 d9.viewkey=viewkey;
 d9.style.display='inline';
 td=tr.insertCell(1);
@@ -204,6 +215,10 @@ for(var i=this.dspBoundary.vstartr;i<=this.dspBoundary.vstopr;i++) {
 	var thisstart=is_gsv?this.regionLst[i][3]:0;
 	var cL=this.genome.scaffold.len[thischr];
 	var thisstop=is_gsv?this.regionLst[i][4]:cL;
+        if(viewobj.callingtk.qtc.matrix !== undefined){ //hic track circlet region default the view region
+	    thisstart=this.regionLst[i][3];
+	    thisstop=this.regionLst[i][4];
+        }
 	var r1id=hengeview_init_mayaddregion(viewobj,
 		{chrom:thischr,
 		name:is_gsv?this.regionLst[i][6]:thischr,
@@ -509,6 +524,10 @@ var pcolor = hvobj.callingtk.pcolor;
 var ncolor = hvobj.callingtk.ncolor;
 var pscore = hvobj.callingtk.pscore;
 var nscore = hvobj.callingtk.nscore;
+//var matrix = hvobj.callingtk.qtc.matrix;
+//var norm = hvobj.callingtk.qtc.norm;
+//var unit_res = hvobj.callingtk.qtc.unit_res;
+//var bin_size = hvobj.callingtk.qtc.bin_size;
 // draw main canvas
 var canvas = hvobj.canvas;
 ctx = canvas.getContext('2d');
@@ -1050,8 +1069,18 @@ menu.lr.pfscore.parentNode.style.display=menu.lr.nfscore.parentNode.style.displa
 menu.lr.autoscale.parentNode.style.display='none';
 menu.lr.pcscore.value=hvobj.callingtk.pscore;
 menu.lr.ncscore.value=hvobj.callingtk.nscore;
+changeSelectByValue(menu.lr.matrix,hvobj.callingtk.qtc.matrix);
+changeSelectByValue(menu.lr.norm,hvobj.callingtk.qtc.norm);
+changeSelectByValue(menu.lr.unit,hvobj.callingtk.qtc.unit_res);
+changeSelectByValue(menu.lr.binsize,hvobj.callingtk.qtc.bin_size);
 longrange_showplotcolor('rgb('+hvobj.callingtk.pcolor+')', 'rgb('+hvobj.callingtk.ncolor+')');
 menu.c26.style.display=menu.c27.style.display='block';
+if(hvobj.callingtk.qtc.matrix == undefined){
+    menu.lr.hicControl.style.display='none';
+}else{
+    menu.lr.hicControl.style.display='block';
+}
+//console.log(hvobj.callingtk);
 document.getElementById('hengeview_z_1').checked=hvobj.showscalebar;
 document.getElementById('hengeview_z_2').checked=hvobj.showcytoband;
 }
