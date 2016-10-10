@@ -104,7 +104,7 @@
 #define Mysqlserver "localhost"
 #define Mysqluser "hguser"
 #define Mysqlpswd "hguser"
-#define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /home/dli/juicebox_support/Juicebox.jar"
+#define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /usr/lib/cgi-bin/Juicebox.jar"
 
 /* miscellaneous */
 #define SQUAWK 1 // set to 1 for squawking
