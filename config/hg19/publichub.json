@@ -177,9 +177,9 @@
 
 {
 "id":"longrange",
-"trackcount":73,
+"trackcount":156,
 "name":"Long-range chromatin interaction experiments",
-"url":"http://vizhub.wustl.edu/public/hg19/longrange.md",
+"url":"http://vizhub.wustl.edu/public/hg19/longrange4",
 "desc":"A collection of published long-range chromatin interaction data sets on human cell types."
 },
 
