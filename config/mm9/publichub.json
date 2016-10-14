@@ -24,4 +24,11 @@ name:'Long-range chromatin interaction experiments',
 url:'http://vizhub.wustl.edu/public/mm9/longrange.md',
 desc:'A collection of published long-range chromatin interaction data sets on mouse samples.'
 },
+{
+"id":"juicebox",
+"trackcount":56,
+"name":"HiC interaction from Juicebox",
+"url":"http://epgg-test.wustl.edu/dli/long-range-test/mm9-juiceboxhub",
+"desc":"HiC interaction data sets from Juicebox."
+}
 ]

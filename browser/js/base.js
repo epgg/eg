@@ -380,6 +380,7 @@ var defaultQtcStyle = {
                 norm:'KR', //KR
                 unit_res:'BP',
                 bin_size:0,
+                hasChr:0,
 	},
 	// categorical
 	ft12:{height:15},
@@ -7713,7 +7714,7 @@ for(var i=0; i<_tklst.length; i++) {
 		lst[FT_lr_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore);
 		break;
 	case FT_hi_c:
-		lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size);
+		lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size+','+t.qtc.hasChr);
 		break;
 	case FT_ld_c:
 		lst[FT_ld_c].push(name+','+label+','+url);
@@ -17181,6 +17182,7 @@ for(var i=0; i<lst.length; i++) {
 			if('unit_res' in lst[i]) obj.qtc.unit_res=lst[i].unit_res;
 			if('bin_size' in lst[i]) obj.qtc.bin_size=lst[i].bin_size;
 			if('d_binsize' in lst[i]) obj.qtc.d_binsize=lst[i].d_binsize;
+			if('hasChr' in lst[i]) obj.qtc.hasChr=lst[i].hasChr;
 		}
 	}
 	// work out the data
@@ -24505,7 +24507,7 @@ case FT_hi_c:
 		print2console('Negative threshold value must be <=0',2);
 		return;
 	}
-	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};
+	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value,hasChr:c.hasChr.checked?1:0};
 	break;
 case FT_bam_c:
 	c=bbj.genome.custtk.ui_bam;
@@ -24773,6 +24775,11 @@ if(ft==FT_lr_c||ft==FT_hi_c) {
 	dom_addtext(td,' only applies to negatively-scored items','#858585');
 }
 if(ft==FT_hi_c) {
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td=tr.insertCell(1);
+        d.hasChr=dom_addcheckbox(td,"Chromosome has 'chr'",null);
         tr=table.insertRow(-1);
         td=tr.insertCell(0);
         td.align='right';

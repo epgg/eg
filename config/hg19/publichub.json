@@ -185,9 +185,9 @@
 
 {
 "id":"juicebox",
-"trackcount":96,
+"trackcount":193,
 "name":"HiC interaction from Juicebox",
-"url":"http://epgg-test.wustl.edu/dli/long-range-test/juiceboxhub",
+"url":"http://epgg-test.wustl.edu/dli/long-range-test/hg19-juiceboxhub",
 "desc":"HiC interaction data sets from Juicebox."
 },
 
