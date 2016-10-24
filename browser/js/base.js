@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='40.0.5';
+var washUver='40.5';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -3272,15 +3272,6 @@ if(tkobj.mastertk) {
 }
 var svgdata=[];
 var unitwidth = this.entire.atbplevel ? this.entire.bpwidth : 1;
-if(tkobj.qtc.bg) {
-	tc.style.backgroundColor=tkobj.qtc.bg;
-	/* error if c is not initialized
-	but no trouble as no svg would be made in beginning
-	*/
-	if(tosvg) svgdata.push({type:svgt_rect,x:0,y:0,w:tc.width,h:tc.height+parseInt(tc.style.paddingBottom),fill:tkobj.qtc.bg});
-} else {
-	tc.style.backgroundColor='';
-}
 // set canvas dimension
 tc.width=this.entire.spnum;
 // height needs to be set for a few cases, otherwise already set when stacking
@@ -3310,6 +3301,16 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
 }
 //*/
 ctx.clearRect(0,0,tc.width,tc.height);
+
+if(tkobj.qtc.bg) {
+	tc.style.backgroundColor=tkobj.qtc.bg;
+	/* error if c is not initialized
+	but no trouble as no svg would be made in beginning
+	*/
+	if(tosvg) svgdata.push({type:svgt_rect,x:0,y:0,w:tc.width,h:tc.height+parseInt(tc.style.paddingBottom),fill:tkobj.qtc.bg});
+} else {
+	tc.style.backgroundColor='';
+}
 
 if(this.weaver) {
 	if(this.weaver.iscotton && this.regionLst.length==0) {
