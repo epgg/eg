@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='40.5';
+var washUver='40.6';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -3041,6 +3041,14 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
     }
 }
 //*/
+//y-axis fixing
+var yaxis_xoffset;
+if (window.devicePixelRatio && window.devicePixelRatio != 1){
+    yaxis_xoffset = tkobj.header.width/window.devicePixelRatio;
+}else{
+    yaxis_xoffset = tkobj.header.width;
+}
+//end
 ctx.fillStyle=colorCentral.foreground_faint_1;
 ctx.fillRect(0,0,tkobj.header.width,1);
 if(tosvg) svgdata.push({type:svgt_line_notscrollable,x1:0,y1:0,x2:tkobj.header.width,y2:0,color:ctx.fillStyle});
@@ -3056,7 +3064,7 @@ if(tkobj.ft==FT_cm_c) {
 		var d=plot_ruler({ctx:ctx,
 			stop:densitydecorpaddingtop,
 			start:densitydecorpaddingtop+tkobj.qtc.height-1,
-			xoffset:tkobj.header.width-1,
+			xoffset:yaxis_xoffset-1,
 			horizontal:false,
 			color:color,
 			min:0, max:max,
@@ -3075,7 +3083,7 @@ if(tkobj.ft==FT_cm_c) {
 	} else {
 		ctx.fillStyle=color;
 		var ss=drawscale_compoundtk({ctx:ctx,
-			x:tkobj.header.width-1,
+			x:yaxis_xoffset-1,
 			y:densitydecorpaddingtop,
 			h:tkobj.qtc.height,
 			v1:tkobj.cm.scale?parseInt(tkobj.cm.rdmax):1,
@@ -3095,7 +3103,7 @@ if(tkobj.ft==FT_cm_c) {
 		}
 		// f,r
 		if(tkobj.qtc.height>=40) {
-			a=tkobj.header.width-50;
+			a=yaxis_xoffset-50;
 			b=densitydecorpaddingtop+tkobj.qtc.height-10;
 			ctx.fillText('Forward',a,b);
 			if(tosvg) svgdata.push({type:svgt_text_notscrollable,x:a,y:b,text:'Forward',color:ctx.fillStyle});
@@ -3146,7 +3154,7 @@ if(tkobj.mode==M_bar || (isNumerical(tkobj) && tkobj.qtc.height>=20) || tkobj.ft
 	var d=plot_ruler({ctx:ctx,
 		stop:densitydecorpaddingtop,
 		start:densitydecorpaddingtop+tkobj.qtc.height-1,
-		xoffset:tkobj.header.width-1,
+		xoffset:yaxis_xoffset-1,
 		horizontal:false,
 		color:color,
 		min:minv,
