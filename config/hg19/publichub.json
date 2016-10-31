@@ -128,46 +128,28 @@
 "desc":"The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active",
 "hublist":[
     {
-    "id":"encode-pssur",
-    "trackcount":3864,
-    "name":"ENCODE plus strand signal of unique reads",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_pssur.json",
+    "id":"encode-mpssur",
+    "trackcount":7729,
+    "name":"ENCODE signal of unique reads",
+    "url":"http://vizhub.wustl.edu/public/hg19/hg19_mpssur.json",
     "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
     "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
-    "desc":"plus strand signal of unique reads"
+    "desc":"signal of unique reads"
     },
     {
-    "id":"encode-pssar",
-    "trackcount":3921,
-    "name":"ENCODE plus strand signal of all reads",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_pssar.json",
+    "id":"encode-mpssar",
+    "trackcount":7842,
+    "name":"ENCODE signal of all reads",
+    "url":"http://vizhub.wustl.edu/public/hg19/hg19_mpssar.json",
     "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
     "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
-    "desc":"plus strand signal of all reads"
-    },
-    {
-    "id":"encode-mssur",
-    "trackcount":3865,
-    "name":"ENCODE minus strand signal of unique reads",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_mssur.json",
-    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
-    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
-    "desc":"minus strand signal of unique reads"
-    },
-    {
-    "id":"encode-mssar",
-    "trackcount":3921,
-    "name":"ENCODE minus strand signal of all reads",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_mssar.json",
-    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
-    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
-    "desc":"minus strand signal of all reads"
+    "desc":"signal of all reads"
     },
     {
     "id":"encode-other",
-    "trackcount":5948,
+    "trackcount":5937,
     "name":"ENCODE all other types",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_other.json",
+    "url":"http://vizhub.wustl.edu/public/hg19/hg19_other_rmdup.json",
     "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
     "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
     "desc":"base overlap signal,fold change over control,genome compartments,percentage normalized signal etc."

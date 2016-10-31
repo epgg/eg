@@ -1,0 +1,28 @@
+[
+{
+"name":"Encyclopedia of DNA Elements",
+"url":"http://vizhub.wustl.edu/public/hg38",
+"institution":["<a href=https://www.encodeproject.org/ target=_blank>ENCODE consortium</a>"],
+"desc":"The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active",
+"hublist":[
+    {
+    "id":"encode-mpssur",
+    "trackcount":5230,
+    "name":"ENCODE signal of unique reads",
+    "url":"http://vizhub.wustl.edu/public/hg38/mpssur_GRCh38.json",
+    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
+    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
+    "desc":"signal of unique reads"
+    },
+    {
+    "id":"encode-mpssar",
+    "trackcount":5230,
+    "name":"ENCODE signal of all reads",
+    "url":"http://vizhub.wustl.edu/public/hg38/mpssar_GRCh38.json",
+    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
+    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
+    "desc":"signal of all reads"
+    }
+]
+}
+]
