@@ -173,6 +173,14 @@
 "desc":"HiC interaction data sets from Juicebox."
 },
 
+{
+"id":"tcga",
+"trackcount":951,
+"name":"Human 450K array data from TCGA",
+"url":"http://vizhub.wustl.edu/public/hg19/TCGA-450k-hub",
+"desc":"Human 450K array data from TCGA collected for COAD, LUSC, UCEC cancer/normal sample pairs."
+},
+
 {"name":"Trial datasets",
 "desc":"Hubs under construction",
 "hublist":[
