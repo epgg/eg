@@ -210,6 +210,15 @@
     "desc":"The methylMnM software is used to identify DMRs by integrating MeDIP-Seq and MRE-Seq assay results."
 },
 {
+    "id":"UCS",
+    "trackcount":52,
+    "name":"Uterine Carcinosarcoma methylome from Wang Lab",
+    "logo":"http://wang.wustl.edu/img/WangLabHomeLogo.png",
+    "url":"http://wangftp.wustl.edu/~dli/hub/jli_UCS/hub",
+    "institution":["<a href=http://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
+    "desc":"The methylMnM software is used to identify DMRs by integrating MeDIP-Seq and MRE-Seq assay results."
+},
+{
     "id":"fimo",
     "trackcount":2,
     "name":"Motif Scan by Fimo",
