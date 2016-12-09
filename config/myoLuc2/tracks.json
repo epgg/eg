@@ -1,0 +1,58 @@
+{
+
+Genes : [
+	{name:'ensGene',label:'Ensembl genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/myoLuc2/ensGene.gz',
+		queryUrl:'http://useast.ensembl.org/Multi/Search/Results?q=',
+		boxcolor:'#002EB8',
+		details:{
+			source:'UCSC Genome Browser',
+			'download date':'Dec. 5, 2016',
+			},
+		isgene:true,dbsearch:true },
+	{name:'xenoRefGene',label:'non-fly RefSeq genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/myoLuc2/xenoRefGene.gz',
+		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		details:{
+			source:'UCSC Genome Browser',
+			'download date':'Dec. 5, 2016',
+			},
+		isgene:true,dbsearch:true },
+],
+
+RepeatMasker : [
+	{name:'rmsk_all',label:'RepeatMasker',
+		filetype:'hammock',
+		categories:{
+                    1:['SINE - short interspersed nuclear elements', '#cc0000'],
+                    2:['LINE - long interspersed nuclear element', '#FF6600'],
+                    3:['LTR - long terminal repeat element', '#006600'],
+                    4:['DNA transposon', '#4A72E8'],
+                    5:['Simple repeat, micro-satellite', '#AB833B'],
+                    6:['Satellite repeat', '#660000'],
+                    7:['Low complexity repeat', '#663333'],
+                    8:['RNA repeat', '#cc33ff'],
+                    10:['Unknown', '#5C5C5C'],
+                },
+		scorenamelst:["Smith-Waterman score","SW score normalized by length","1-divergence%"],
+		showscoreidx:2,
+		url:'http://egg.wustl.edu/d/myoLuc2/rmsk_all.gz',
+		defaultmode:'barplot',
+		height:35,
+	},
+],
+
+
+'G/C related' : [
+	{name:'gc5Base',label:'GC percent',
+		filetype:'bigwig',
+		url:'http://egg.wustl.edu/d/myoLuc2/gc5Base.bigWig',
+		height:50,
+		colorpositive:'#4785C2/#4747C2',
+		fixedscale:{min:0,max:100},
+	},
+],
+
+}

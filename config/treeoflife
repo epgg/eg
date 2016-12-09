@@ -17,7 +17,8 @@
 	"Vertebrate" : [
 		{"assembly":"galGal4","commonname":"Chicken","scientificname":"Gallus gallus","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"danRer7","commonname":"Zebrafish","scientificname":"Danio rerio","ismajor":true,"logofontcolor":"white"},
-		{"assembly":"danRer10","commonname":"Zebrafish","scientificname":"Danio rerio","major":"danRer7"}
+		{"assembly":"danRer10","commonname":"Zebrafish","scientificname":"Danio rerio","major":"danRer7"},
+		{"assembly":"myoLuc2","commonname":"Microbat","scientificname":"Myotis lucifugus","ismajor":true,"logofontcolor":"white"}
 		],
 	"Other" : [
 		{"assembly":"dm3","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","ismajor":true,"logofontcolor":"white"},
