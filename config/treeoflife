@@ -23,7 +23,10 @@
 	"Other" : [
 		{"assembly":"dm3","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"dm6","commonname":"Fruit fly","scientificname":"Drosophila melanogaster","major":"dm3"},
-		{"assembly":"ce10","commonname":"C.elegans","scientificname":"Caenorhabditis elegans","ismajor":true,"logofontcolor":"black"}
+		{"assembly":"ce10","commonname":"C.elegans","scientificname":"Caenorhabditis elegans","ismajor":true,"logofontcolor":"black"},
+		{"assembly":"TetrahymenaMicro2014","commonname":"TetrahymenaMicro2014","scientificname":"Tetrahymena thermophila","ismajor":true,"logofontcolor":"white"},
+		{"assembly":"TetrahymenaMicro2016","commonname":"TetrahymenaMicro2016","scientificname":"Tetrahymena thermophila","major":"TetrahymenaMicro2014","logofontcolor":"white"},
+		{"assembly":"TetrahymenaMacro2014","commonname":"TetrahymenaMacro2014","scientificname":"Tetrahymena thermophila","ismajor":true,"logofontcolor":"white"}
 		]
 	},
 "Plantae" : [
