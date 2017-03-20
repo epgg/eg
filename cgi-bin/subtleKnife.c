@@ -87,6 +87,9 @@
 #define FT_anno_c 25
 // juicebox hic format
 #define FT_hi_c 30
+//bigBed support
+#define FT_bigbed_n 40
+#define FT_bigbed_c 41
 
 #define RM_genome 0
 #define RM_jux_n 1
@@ -376,6 +379,8 @@ struct heatmap
     // decor tracks grouped by file type (indicated by file type number)
     struct track *decor0;
     struct track *decor1;
+    struct track *decor40;
+    struct track *decor41;
     struct track *decor8;
     struct track *decor4;
     struct track *decor5;
@@ -441,6 +446,7 @@ case FT_bedgraph_c:
 case FT_cat_c:
 case FT_bigwighmtk_c:
 case FT_bed_c:
+case FT_bigbed_c:
 case FT_lr_c:
 case FT_hi_c:
 case FT_sam_c:
@@ -629,6 +635,7 @@ char *p;
 switch(ft)
 	{
 	case FT_bed_c:
+	case FT_bigbed_c:
 	case FT_bedgraph_c:
 	case FT_lr_c:
 	case FT_hi_c:
@@ -1714,6 +1721,111 @@ for(bi=sl; bi!=NULL; bi=bi->next)
 if(prev!=NULL) free(prev);
 }
 
+
+struct beditem *bigbedQuery(struct track *t, char *chrom, int start, int end)
+{
+fprintf(stderr, "urlpath = (%s)\n", t->urlpath);
+char *urlbase = basename(strdup(t->urlpath));
+fprintf(stderr, "urlbase = (%s)\n", urlbase);
+char dummyname[201];
+if (strlen(urlbase) > 200){
+    strncpy(dummyname, urlbase, 200);
+    dummyname[200] = '\0';
+}else{
+    strcpy(dummyname, urlbase);
+}
+fprintf(stderr, "dummyname = (%s)\n", dummyname);
+srand(time(0));
+int rr=rand();
+char *outfile;
+assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
+char *chrom_nochr = strdup(chrom);
+if (t->hasChr == 0){
+    rmSubstr(chrom_nochr,"chr");
+}
+char *command;
+assert(asprintf(&command, "%s/querybb %s %s %d %d %s",BINdir,t->urlpath, chrom_nochr, start, end, outfile)>0);
+fprintf(stderr, "querybb [%s]\n", command);
+if(system(command)==-1){
+        fprintf(stderr, "cannot run command [%s]\n", command);
+        return FALSE;
+    }
+free(command);
+FILE *fin=fopen(outfile,"r");
+if(fin==NULL)
+	{
+        fprintf(stderr, "file not exists [%s]\n", outfile);
+	return NULL;
+	}
+struct beditem *sl=NULL, *bi;
+char *line=malloc(1);
+size_t s=0;
+//char delim[]="\t\n";
+char delim[]="\t";
+char *tmpstr, *tok, *rest;
+//char *tok;
+int cid = 0;
+boolean haveInvalid=FALSE;
+fprintf(stderr, "parsing file [%s]\n", outfile);
+while(getline(&line, &s, fin)!=-1)
+	{
+
+	tmpstr=strdup(line);
+	if(tmpstr==NULL)
+		{
+		fprintf(stderr, "%s: mem\n", __FUNCTION__);
+		exit(0);
+		}
+	bi=malloc(sizeof(struct beditem));
+	// chr, discard
+	if((rest=strchr(tmpstr, '\t'))==NULL)
+		{ haveInvalid=TRUE; continue; }
+	strtok(tmpstr, delim);
+	tmpstr=++rest;
+	// start
+	if((rest=strchr(tmpstr, '\t'))==NULL)
+		{ haveInvalid=TRUE; continue; }
+	tok=strtok(tmpstr, delim);
+	if((bi->start=strMayPositiveInt(tok))==-1)
+		{ haveInvalid=TRUE; continue; }
+	tmpstr=++rest;
+	// stop
+	if((rest=strchr(tmpstr, '\t'))==NULL)
+		{ haveInvalid=TRUE; continue; }
+	tok=strtok(tmpstr, delim);
+	if((bi->stop=strMayPositiveInt(tok))==-1)
+		{ haveInvalid=TRUE; continue; }
+	// rest
+	bi->rest=++rest;
+	bi->next=sl;
+	sl=bi;
+	}
+fprintf(stderr, "[%d] lines fetched\n", cid);
+fclose(fin);
+//unlink(outfile);
+free(outfile);
+if(haveInvalid)
+	fprintf(stderr, "%s: failed to parse certain lines in %s\n", __FUNCTION__, outfile);
+return sl;
+}
+
+void *bigbedQuery_dsp(struct displayedRegion *dsp, struct track *t)
+{
+struct region *r;
+int regioncount=0, dataidx=0;
+for(r=dsp->head; r!=NULL; r=r->next)
+	regioncount++;
+void **data;
+data=malloc(sizeof(struct beditem *)*regioncount);
+assert(data!=NULL);
+
+for(r=dsp->head; r!=NULL; r=r->next){
+    data[dataidx] =  (void*)bigbedQuery(t, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
+    dataidx++;
+}
+return data;
+}
+
 struct beditem *juiceboxQuery(char *src, char *norm, char *urlpath, char *chrom1, char *chrom2, char *type, int bin, int qstart, int qend)
 {
 //Usage:   juicebox dump <observed/oe/norm/expected> <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1> <chr2> <BP/FRAG> <binsize> <outfile>
@@ -2062,7 +2174,7 @@ while(getline(&line, &s, fin)!=-1)
 	}
 fprintf(stderr, "[%d] lines fetched\n", cid);
 fclose(fin);
-//unlink(outfile);
+unlink(outfile);
 free(outfile);
 return sl;
 }
@@ -2121,7 +2233,8 @@ assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
 //free(dummyname);
 
 char *command;
-assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+//assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
 fprintf(stderr, "querying bigwig (%s)\n", command);
 if(system(command)==-1)
 	{
@@ -3937,7 +4050,23 @@ while(tok != NULL)
 			assert((tok=strtok(NULL,delim)) != NULL);
 			assert((tt->mode=strMayPositiveInt(tok))!=-1);
 			break;
+		case FT_bigbed_n:
+			tt->name=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->urlpath=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->mode=strMayPositiveInt(tok))!=-1);
+			break;
 		case FT_bed_c:
+			tt->name=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->label = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->urlpath=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->mode=strMayPositiveInt(tok))!=-1);
+			break;
+		case FT_bigbed_c:
 			tt->name=strdup(tok);
 			assert((tok=strtok(NULL,delim)) != NULL);
 			tt->label = strdup(tok);
@@ -4830,6 +4959,94 @@ if(tt->ft==FT_hi_c)
    	return;
     }
 // dli end
+
+//dli bigbed start
+if(tt->ft==FT_bigbed_c){
+	struct genericItem **data=(struct genericItem **)bigbedQuery_dsp(dsp, tt);
+	if(data==NULL)
+		{
+		brokenbeads_add(tt->name, tt->urlpath, tt->ft);
+		return;
+		}
+	struct genericItem *item;
+	/* no max stack limit for LD, or simply give it a large number
+	*/
+	int stackNumber= MaxStack * ((tt->ft==FT_ld_n||tt->ft==FT_ld_c)?100:1);
+		
+	int stackIdx;
+	int stack[stackNumber];
+	char delim[] = "\t";
+	int skipCount=0;
+
+	printf("{name:\"%s\", ft:%d, mode:%d,", tt->name, tt->ft, tt->mode);
+	printf("label:\"%s\", url:\"%s\",",tt->label,tt->urlpath);
+	printf("data:[");
+
+	int dataidx=0;
+
+	char *name=NULL, *id=NULL, *strand=NULL; // fields from old bed
+	struct region *r;
+	for(r=dsp->head; r!=NULL; r=r->next)
+		{
+		// stacking using item coordinate, so do separately for each region
+		for(stackIdx=0; stackIdx<stackNumber; stackIdx++)
+			{
+			stack[stackIdx] = 0; // will be item coordinate
+			}
+		printf("[");
+		struct genericItem *itemsl=beditemsort_startAsc(data[dataidx]);
+		for(item=itemsl; item!=NULL; item=item->next)
+			{
+				/** is bed item, 
+				TODO old bed format, make it obsolete
+				**/
+				// chop up item->rest
+				struct beditem *item2=(struct beditem *)item;
+				if((name=strtok(item2->rest,delim))==NULL) continue;
+				if((id=strtok(NULL,delim))==NULL) continue;
+				strand=strtok(NULL,delim);
+				// done chopping
+			// stacking
+			boolean notStacked = TRUE;
+			for(stackIdx=0; stackIdx<stackNumber; stackIdx++)
+				{
+				if(stack[stackIdx] <= item->start)
+					{
+					// slot found
+					stack[stackIdx] = item->stop;
+					notStacked = FALSE;
+					break;
+					}
+				}
+			if(notStacked) 
+				{
+				skipCount++;
+				continue;
+				}
+			// output
+				printf("{id:%s,", id); // integer id
+				if(name != NULL)
+					{
+					printf("name:'%s',", name);
+					}
+				if(strand != NULL)
+					{
+					printf("strand:'%c',", strand[0]=='+'?'>':(strand[0]=='-'?'<':strand[0]));
+					}
+				printf("start:%d,stop:%d,",item->start,item->stop);
+				printf("},");
+				continue;
+			}
+		dataidx++; // never forget this...
+		printf("],");
+		}
+	printf("]");
+	if(skipCount>0) printf(",skipped:%d",skipCount);
+	printf("},");
+	free(data);
+	return;
+}
+//dli bigbed stop
 
 if(tt->ft==FT_bed_n||tt->ft==FT_bed_c||tt->ft==FT_bam_n||tt->ft==FT_bam_c||tt->ft==FT_anno_n||tt->ft==FT_anno_c||tt->ft==FT_ld_n||tt->ft==FT_ld_c||tt->ft==FT_weaver_c||tt->ft==FT_catmat||tt->ft==FT_qcats)
 	{
@@ -9001,6 +9218,8 @@ hm.dsp = &dsp;
 hm.trackSl = NULL;
 hm.decor0 = NULL;
 hm.decor1 = NULL;
+hm.decor40 = NULL;
+hm.decor41 = NULL;
 hm.decor8 = NULL;
 hm.decor4 = NULL;
 hm.decor5 = NULL;
@@ -9900,6 +10119,8 @@ if(trigger_changeGF || trigger_zoom || trigger_move || trigger_imgAreaSelect || 
 
 if(cgiVarExists("decor0")) parseTrackParam(cgiString("decor0"), FT_bed_n, &(hm.decor0));
 if(cgiVarExists("decor1")) parseTrackParam(cgiString("decor1"), FT_bed_c, &(hm.decor1));
+if(cgiVarExists("decor40")) parseTrackParam(cgiString("decor40"), FT_bigbed_n, &(hm.decor40));
+if(cgiVarExists("decor41")) parseTrackParam(cgiString("decor41"), FT_bigbed_c, &(hm.decor41));
 if(cgiVarExists("decor8")) parseTrackParam(cgiString("decor8"), FT_qdecor_n, &(hm.decor8));
 if(cgiVarExists("decor4")) parseTrackParam(cgiString("decor4"), FT_sam_n, &(hm.decor4));
 if(cgiVarExists("decor5")) parseTrackParam(cgiString("decor5"), FT_sam_c, &(hm.decor5));
@@ -9987,6 +10208,14 @@ for(tt=hm.decor0; tt!=NULL; tt=tt->next)
 	printJsonDecor(hm.dsp, tt);
 	}
 for(tt=hm.decor1; tt!=NULL; tt=tt->next)
+	{
+	printJsonDecor(hm.dsp, tt);
+	}
+for(tt=hm.decor40; tt!=NULL; tt=tt->next)
+	{
+	printJsonDecor(hm.dsp, tt);
+	}
+for(tt=hm.decor41; tt!=NULL; tt=tt->next)
 	{
 	printJsonDecor(hm.dsp, tt);
 	}

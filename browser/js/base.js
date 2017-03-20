@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='40.6';
+var washUver='41';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -115,6 +115,8 @@ var max_viewable_chrcount=200;
 var FT_nottk=-1,
 FT_bed_n=0,
 FT_bed_c=1,
+FT_bigbed_n=40,
+FT_bigbed_c=41,
 FT_bedgraph_n=2,
 FT_bedgraph_c=3,
 FT_sam_n=4,
@@ -1012,6 +1014,11 @@ if(param.custom_track) {
 
 	d3=dom_create('div',d2);
 	d3.className='largebutt';
+	d3.addEventListener('click',function(){custtkpanel_show(FT_bigbed_c);},false);
+	d3.innerHTML='bigBed';
+
+	d3=dom_create('div',d2);
+	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_bam_c);},false);
 	d3.innerHTML='BAM';
 	dom_create('br',d2);
@@ -1035,6 +1042,7 @@ if(param.custom_track) {
 	this.custtk.ui_hammock=this.custtk_makeui(FT_anno_c,d2);
 	this.custtk.ui_weaver=this.custtk_makeui(FT_weaver_c,d2);
 	this.custtk.ui_bed=this.custtk_makeui(FT_bed_c,d2);
+	this.custtk.ui_bigbed=this.custtk_makeui(FT_bigbed_c,d2);
 	this.custtk.ui_lr=this.custtk_makeui(FT_lr_c,d2);
 	this.custtk.ui_hi=this.custtk_makeui(FT_hi_c,d2);
 	this.custtk.ui_bigwig=this.custtk_makeui(FT_bigwighmtk_c,d2);
@@ -1124,6 +1132,7 @@ if(this.custtk) {
 		this.defaultStuff.custtk=v;
 		if(!(FT_bam_c in v)) this.custtk.ui_bam.examplebutt.style.display='none';
 		if(!(FT_bed_c in v)) this.custtk.ui_bed.examplebutt.style.display='none';
+		if(!(FT_bigbed_c in v)) this.custtk.ui_bigbed.examplebutt.style.display='none';
 		if(!(FT_bedgraph_c in v)) this.custtk.ui_bedgraph.examplebutt.style.display='none';
 		if(!(FT_bigwighmtk_c in v)) this.custtk.ui_bigwig.examplebutt.style.display='none';
 		if(!(FT_cat_c in v)) this.custtk.ui_cat.examplebutt.style.display='none';
@@ -1531,6 +1540,7 @@ case FT_cat_c:
 case FT_bedgraph_c:
 case FT_bigwighmtk_c:
 case FT_bed_c:
+case FT_bigbed_c:
 case FT_sam_c:
 case FT_bam_c:
 case FT_lr_c:
@@ -4377,7 +4387,7 @@ if(tkobj.ft==FT_matplot) {
 						bedcolor= 'rgba('+bedcolorlst+','+Math.min(1,(thisscore-tkobj.minv)/_rv)+')';
 					}
 //leepc12_hotfix for bed color strand
-                                        if(tkobj.ft==FT_bed_c) {
+                                        if(tkobj.ft==FT_bed_c||tkobj.ft==FT_bigbed_c) {
                                                 ctx.font='0pt Sans-serif';
                                                 if ( item.strand=='+'||item.strand=='>')
                                                         bedcolor='#FF0000';//'#800000'; // maroon
@@ -7662,6 +7672,7 @@ lst[FT_sam_n]=[];
 lst[FT_sam_c]=[];
 lst[FT_bed_n]=[];
 lst[FT_bed_c]=[];
+lst[FT_bigbed_c]=[];
 lst[FT_cat_c]=[];
 lst[FT_cat_n]=[];
 lst[FT_lr_n]=[];
@@ -7709,6 +7720,9 @@ for(var i=0; i<_tklst.length; i++) {
 		break;
 	case FT_bed_c:
 		lst[FT_bed_c].push(name+','+label+','+url+','+mode);
+		break;
+	case FT_bigbed_c:
+		lst[FT_bigbed_c].push(name+','+label+','+url+','+mode);
 		break;
 	case FT_bam_n:
 		lst[FT_bam_n].push(name+','+url+','+mode);
@@ -7762,6 +7776,7 @@ return ''+
 	(lst[FT_cat_c].length>0 ? '&hmtk13='+lst[FT_cat_c].join(",") : '')+
 	(lst[FT_bed_n].length>0 ? '&decor0='+lst[FT_bed_n].join(',') : '') +
 	(lst[FT_bed_c].length>0 ? '&decor1='+lst[FT_bed_c].join(',') : '') +
+	(lst[FT_bigbed_c].length>0 ? '&decor41='+lst[FT_bigbed_c].join(',') : '') +
 	(lst[FT_lr_n].length>0 ? '&decor9='+lst[FT_lr_n].join(',') : '') +
 	(lst[FT_lr_c].length>0 ? '&decor10='+lst[FT_lr_c].join(',') : '') +
 	(lst[FT_hi_c].length>0 ? '&decor30='+lst[FT_hi_c].join(',') : '') +
@@ -10366,6 +10381,7 @@ gflag.__pageMakeDom_called=true;
 if(getmdidx_internal()==-1) {
 	var ft=[
 		FT2verbal[FT_bed_c],
+		FT2verbal[FT_bigbed_c],
 		FT2verbal[FT_bedgraph_c],
 		FT2verbal[FT_bigwighmtk_c],
 		FT2verbal[FT_anno_c],
@@ -10415,7 +10431,7 @@ if(param.highlight_color) {
 }
 
 var f={};
-f[FT_bed_n]=f[FT_bed_c]=f[FT_bedgraph_c]=f[FT_bedgraph_n]=f[FT_qdecor_n]=f[FT_cat_n]=f[FT_cat_c]=f[FT_bigwighmtk_c]=f[FT_bigwighmtk_n]=f[FT_anno_n]=f[FT_anno_c]=1;
+f[FT_bed_n]=f[FT_bed_c]=f[FT_bigbed_c]=f[FT_bedgraph_c]=f[FT_bedgraph_n]=f[FT_qdecor_n]=f[FT_cat_n]=f[FT_cat_c]=f[FT_bigwighmtk_c]=f[FT_bigwighmtk_n]=f[FT_anno_n]=f[FT_anno_c]=1;
 ftfilter_ordinary=f;
 f={};
 f[FT_bedgraph_c]=f[FT_bedgraph_n]=f[FT_qdecor_n]=f[FT_bigwighmtk_c]=f[FT_bigwighmtk_n]=1;
@@ -11199,6 +11215,9 @@ if(param.cp_custtk) {
 	fn=function(){custtk_shortcut(FT_bed_c);};
 	apps.custtk.shortcut[FT_bed_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'bed',clc:fn});
 	gflag.applst.push({name:'Bed track',toggle:fn});
+	fn=function(){custtk_shortcut(FT_bigbed_c);};
+	apps.custtk.shortcut[FT_bigbed_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'bigbed',clc:fn});
+	gflag.applst.push({name:'bigBed track',toggle:fn});
 	fn=function(){custtk_shortcut(FT_bam_c);};
 	apps.custtk.shortcut[FT_bam_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'BAM',clc:fn});
 	gflag.applst.push({name:'BAM track',toggle:fn});
@@ -14635,7 +14654,7 @@ function menuJuxtapose()
 {
 var bbj=gflag.menu.bbj;
 var tk=gflag.menu.tklst[0];
-if(tk.ft!=FT_bed_n&&tk.ft!=FT_bed_c&&tk.ft!=FT_anno_n&&tk.ft!=FT_anno_c) {
+if(tk.ft!=FT_bed_n&&tk.ft!=FT_bed_c&&tk.ft!=FT_bigbed_n&&tk.ft!=FT_bigbed_c&&tk.ft!=FT_anno_n&&tk.ft!=FT_anno_c) {
 	print2console('tk ft not supported',2);
 	return;
 }
@@ -15382,6 +15401,8 @@ case FT_bam_n:
 case FT_bam_c:
 case FT_bed_n:
 case FT_bed_c:
+case FT_bigbed_n:
+case FT_bigbed_c:
 case FT_lr_n:
 case FT_lr_c:
 case FT_hi_c:
@@ -15972,12 +15993,14 @@ if(!tk.qtc) {
 }
 switch(tk.ft) {
 case FT_bed_n:
+case FT_bigbed_n:
 case FT_anno_n:
 case FT_sam_n:
 case FT_bam_n:
 case FT_lr_n:
 case FT_ld_n:
 case FT_bed_c:
+case FT_bigbed_c:
 case FT_anno_c:
 	qtc_paramCopy(defaultQtcStyle.density, tk.qtc);
 	qtc_paramCopy(defaultQtcStyle.anno,tk.qtc);
@@ -16091,7 +16114,7 @@ if(ft==FT_matplot) {
 	obj.where=1;
 } else if(ft==FT_ld_c || ft==FT_ld_n) {
 	obj.where=2;
-} else if((ft==FT_bed_n||ft==FT_bed_c||ft==FT_lr_n||ft==FT_lr_c||ft==FT_qdecor_n) || (name in this.genome.decorInfo)){
+} else if((ft==FT_bed_n||ft==FT_bed_c||ft==FT_bigbed_n||ft==FT_bigbed_c||ft==FT_lr_n||ft==FT_lr_c||ft==FT_qdecor_n) || (name in this.genome.decorInfo)){
 	obj.where=2;
 } else {
 	obj.where=1;
@@ -16550,7 +16573,7 @@ if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c) {
 	}
 	return;
 }
-if(tk.ft==FT_bed_n||tk.ft==FT_bed_c||tk.ft==FT_anno_n||tk.ft==FT_anno_c) {
+if(tk.ft==FT_bed_n||tk.ft==FT_bed_c||tk.ft==FT_bigbed_n||tk.ft==FT_bigbed_c||tk.ft==FT_anno_n||tk.ft==FT_anno_c) {
 	var item=Array.isArray(result)?result[0]:result;
 	if(gflag.allow_packhide_tkdata) {
 		dom_addbutt(bubble.says,'HIDE THIS ITEM',function(){sbj.trackitem_delete(tk,item,hitpoint.rid);}).style.margin=10;
@@ -18969,6 +18992,8 @@ case FT_anno_n:
 case FT_anno_c:
 case FT_bed_n:
 case FT_bed_c:
+case FT_bigbed_n:
+case FT_bigbed_c:
 case FT_bam_n:
 case FT_bam_c:
 	tk2=duplicateTkobj(tk);
@@ -22986,6 +23011,8 @@ case FT_qcats:
 	break;
 case FT_bed_c:
 case FT_bed_n:
+case FT_bigbed_c:
+case FT_bigbed_n:
 case FT_anno_n:
 case FT_anno_c:
 	config_hammock(tk);
@@ -23297,6 +23324,8 @@ case FT_bigwighmtk_n:
 	break;
 case FT_bed_n:
 case FT_bed_c:
+case FT_bigbed_n:
+case FT_bigbed_c:
 case FT_anno_n:
 case FT_anno_c:
 	/*
@@ -24133,6 +24162,10 @@ case FT_bed_c:
 	c.ui_bed.input_url.value=info[ft].url;
 	c.ui_bed.input_name.value=info[ft].name;
 	return;
+case FT_bigbed_c:
+	c.ui_bigbed.input_url.value=info[ft].url;
+	c.ui_bigbed.input_name.value=info[ft].name;
+	return;
 case FT_bedgraph_c:
 	c.ui_bedgraph.input_url.value=info[ft].url;
 	c.ui_bedgraph.input_name.value=info[ft].name;
@@ -24180,6 +24213,7 @@ function custtkpanel_show(ft)
 var c=apps.custtk.bbj.genome.custtk;
 apps.custtk.main.__hbutt2.style.display='block';
 c.ui_bed.style.display=ft==FT_bed_c?'block':'none';
+c.ui_bigbed.style.display=ft==FT_bigbed_c?'block':'none';
 c.ui_bedgraph.style.display=ft==FT_bedgraph_c?'block':'none';
 c.ui_cat.style.display=ft==FT_cat_c?'block':'none';
 c.ui_bam.style.display=ft==FT_bam_c?'block':'none';
@@ -24468,6 +24502,12 @@ case FT_bed_c:
 	_tmp.label=c.input_name.value;
 	_tmp.mode=parseInt(c.mode.options[c.mode.selectedIndex].value);
 	break;
+case FT_bigbed_c:
+	c=bbj.genome.custtk.ui_bigbed;
+	_tmp.url=c.input_url.value.trim();
+	_tmp.label=c.input_name.value;
+	_tmp.mode=parseInt(c.mode.options[c.mode.selectedIndex].value);
+	break;
 case FT_lr_c:
 	c=bbj.genome.custtk.ui_lr;
 	_tmp.url=c.input_url.value.trim();
@@ -24659,6 +24699,10 @@ case FT_bed_c:
 	d._h.innerHTML='Bed track | <a href=http://wiki.wubrowse.org/Simple_bed target=_blank>help</a>';
 	ftname='BED';
 	break;
+case FT_bigbed_c:
+	d._h.innerHTML='bigBed track | <a href=http://wiki.wubrowse.org/BigBed target=_blank>help</a>';
+	ftname='bigBed';
+	break;
 case FT_anno_c:
 	d._h.innerHTML='Hammock track | <a href='+FT2noteurl[FT_anno_n]+' target=_blank>help</a>';
 	ftname='hammock';
@@ -24729,7 +24773,7 @@ if(ft==FT_huburl) {
 }
 dom_addbutt(td,'Clear',function(){d.input_url.value='';if(d.input_name) d.input_name.value='';});
 // row 3
-if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c||ft==FT_hi_c) {
+if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_bigbed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c||ft==FT_hi_c) {
 	tr=table.insertRow(-1);
 	td=tr.insertCell(0);
 	td.align='right';
@@ -24739,7 +24783,7 @@ if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c||ft==FT_
 		{value:M_full,text:'full'},
 		{value:M_thin,text:'thin'},
 		];
-	if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_sam_c||ft==FT_bam_c) {
+	if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_bigbed_c||ft==FT_sam_c||ft==FT_bam_c) {
 		options.push({value:M_den,text:'density'});
 	} else if(ft==FT_lr_c||ft==FT_hi_c) {
 		options.unshift({value:M_trihm,text:'heatmap'});
@@ -25264,6 +25308,12 @@ case 'bigwig':
 	break;
 case 'bed':
 	obj.ft=FT_bed_c;
+	if(m==M_show||m==M_arc||m==M_trihm) {
+		m=M_full;
+	}
+	break;
+case 'bigbed':
+	obj.ft=FT_bigbed_c;
 	if(m==M_show||m==M_arc||m==M_trihm) {
 		m=M_full;
 	}
@@ -26264,7 +26314,7 @@ for(var i=0; i<ibp.tklst.length; i++) {
 		if(ibp.juxtaposecustom) {
 			delete ibp.juxtaposecustom;
 		}
-	} else if(t.ft==FT_bed_c||t.ft==FT_anno_c) {
+	} else if(t.ft==FT_bed_c||ft==FT_bigbed_c||t.ft==FT_anno_c) {
 		ibp.juxtapose_rawstring=t.url;
 		ibp.juxtaposecustom=true;
 	} else {
@@ -26319,6 +26369,8 @@ if(o.defaultmode!=undefined) {
 switch(o.ft) {
 case FT_bed_c:
 case FT_bed_n:
+case FT_bigbed_c:
+case FT_bigbed_n:
 case FT_anno_n:
 case FT_anno_c:
 	return M_full;
