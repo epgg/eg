@@ -215,7 +215,6 @@ struct userData
 	struct readitem *sl;
 	};
 
-
 struct nnode
     { 
     // for genestruct
@@ -398,8 +397,6 @@ struct heatmap
     struct track *decor30;
     };
 
-
-
 /**********************************
        global variables
  *********************************/
@@ -461,7 +458,6 @@ default:
 }
 }
 
-
 long strMayPositiveInt(char *what)
 {
 // return -1 to indicate error
@@ -471,7 +467,6 @@ if(tail[0] == '\0')
     return value;
 return -1;
 }
-
 
 char *getSeq(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop)
 {
@@ -682,8 +677,6 @@ switch(ft)
 return NULL;
 }
 
-
-
 float standardDeviation(double *data, int len)
 {
 if(len <= 1) return 0;
@@ -893,7 +886,6 @@ newstr[newlen]='\0';
 return newstr;
 }
 
-
 /*** mysql ***/
 boolean mysqlConnect(const char *dbname)
 {
@@ -1019,8 +1011,6 @@ free(query);
 return re;
 }
 
-
-
 void showRegionSl(struct displayedRegion *dsp)
 {
 fprintf(stderr, "showRegionSl:\nusedSummaryNumber: %d\nentireLength: %ld\n", dsp->usedSummaryNumber, dsp->entireLength);
@@ -1037,8 +1027,6 @@ int i=0;
 for(; sl!=NULL; sl=sl->next)
     fprintf(stderr, "track\t%d\t%s\n", ++i, sl->name);
 }
-
-
 
 /**********************************
          small functions 
@@ -1127,8 +1115,6 @@ else
 return arr;
 }
 
-
-
 boolean slLookup(void *sl, char *what, boolean caseSensitive)
 {
 /* caseSensitive: if true will use strcmp, else use strcasecmp
@@ -1161,7 +1147,6 @@ for(; this!=NULL; this=this->next)
 return NULL;
 }
 
-
 char *getDepositePath4url(char *url)
 {
 char *urlcopy=strdup(url);
@@ -1187,7 +1172,6 @@ while(1)
 	}
 return deposit_dir;
 }
-
 
 tabix_t *tabixOpen(char *urlpath, boolean isremote)
 {
@@ -1292,7 +1276,6 @@ ti_iter_destroy(iter);
 
 return sl;
 }
-
 
 static int bam_fetch_func(const bam1_t *b,void *data)
 {
@@ -1721,7 +1704,6 @@ for(bi=sl; bi!=NULL; bi=bi->next)
 if(prev!=NULL) free(prev);
 }
 
-
 struct beditem *bigbedQuery(struct track *t, char *chrom, int start, int end)
 {
 fprintf(stderr, "urlpath = (%s)\n", t->urlpath);
@@ -1826,176 +1808,6 @@ for(r=dsp->head; r!=NULL; r=r->next){
 return data;
 }
 
-struct beditem *juiceboxQuery(char *src, char *norm, char *urlpath, char *chrom1, char *chrom2, char *type, int bin, int qstart, int qend)
-{
-//Usage:   juicebox dump <observed/oe/norm/expected> <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1> <chr2> <BP/FRAG> <binsize> <outfile>
-//juicebox dump observed NONE http://epgg-test.wustl.edu/dli/long-range-test/test.hic 1 1 BP 500000 out|stdout
-// query start, query end might in different chrom
-fprintf(stderr, "urlpath = (%s)\n", urlpath);
-char *urlbase = basename(strdup(urlpath));
-fprintf(stderr, "urlbase = (%s)\n", urlbase);
-char dummyname[201];
-if (strlen(urlbase) > 200){
-    strncpy(dummyname, urlbase, 200);
-    dummyname[200] = '\0';
-}else{
-    strcpy(dummyname, urlbase);
-}
-fprintf(stderr, "dummyname = (%s)\n", dummyname);
-srand(time(0));
-int rr=rand();
-char *outfile;
-assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
-char *chrom1_nochr = strdup(chrom1);
-char *chrom2_nochr = strdup(chrom2);
-rmSubstr(chrom1_nochr,"chr");
-rmSubstr(chrom2_nochr,"chr");
-char *command;
-assert(asprintf(&command, "%s dump %s %s %s %s %s %s %d %s", juicebox, src, norm, urlpath, chrom1_nochr, chrom2_nochr, type, bin, outfile)>0);
-fprintf(stderr, "juicebox query [%s]\n", command);
-if(system(command)==-1){
-        fprintf(stderr, "cannot run command [%s]\n", command);
-        return FALSE;
-    }
-free(command);
-FILE *fin=fopen(outfile,"r");
-if(fin==NULL)
-	{
-        fprintf(stderr, "file not exists [%s]\n", outfile);
-	return NULL;
-	}
-struct beditem *sl=NULL, *bi;
-char *line=malloc(1);
-size_t s=0;
-char delim[]="\t\n";
-char *tok;
-int cid = 0;
-fprintf(stderr, "parsing file [%s]\n", outfile);
-while(getline(&line, &s, fin)!=-1)
-	{
-	assert((tok=strtok(line, delim))!=NULL);
-        int start1 = strMayPositiveInt(tok);
-        //if ( start1 < qstart ) {continue;}
-        assert((tok=strtok(NULL, delim))!=NULL);
-        int start2 = strMayPositiveInt(tok);
-        //if ( start2 > qend ) {continue;}
-        assert((tok=strtok(NULL, delim))!=NULL);
-	//float v=strtod(tok,NULL);
-	bi=malloc(sizeof(struct beditem));
-        bi->start = start1;
-        bi->stop = start1+bin;
-        cid++;
-        char *tmpstr;
-        assert(asprintf(&tmpstr,"%s:%d-%d,%s\t%d\t+",chrom2,start2, start2+bin, tok, cid)>0);
-        //if (cid <= 5){
-        //    fprintf(stderr, "bi start %d, stop %d, tmpstr, [%s]\n", bi->start, bi->stop, tmpstr); //debug
-        //}
-        bi->rest = tmpstr;
-        bi->next=sl;
-        sl = bi;
-	}
-fprintf(stderr, "[%d] lines fetched\n", cid);
-fclose(fin);
-//unlink(outfile);
-free(outfile);
-return sl;
-}
-
-void *juiceboxQuery_dsp(struct displayedRegion *dsp, struct track *t)
-{
-//if (dsp==NULL){fprintf(stderr, "dsp is null\n");}
-//if (t==NULL){fprintf(stderr, "t is null\n");}
-//if (chrInfo==NULL){fprintf(stderr, "chrInfo is null\n");}
-fprintf(stderr, "dsp-test query1 [%s]\n",t->urlpath);
-//fprintf(stderr, "dsp-test query2 [%s]\n",chrInfo[dsp->head->chromIdx]->name);
-//fprintf(stderr, "dsp-test query3 [%s]\n",chrInfo[dsp->tail->chromIdx]->name);
-//fprintf(stderr, "dsp-test query4 [%d]\n",dsp->head->dstart);
-//fprintf(stderr, "dsp-test query5 [%d]\n",dsp->tail->dstop);
-return (void *) juiceboxQuery("observed", "NONE", t->urlpath, chrInfo[dsp->head->chromIdx]->name, chrInfo[dsp->tail->chromIdx]->name, "BP", 500000, dsp->head->dstart, dsp->tail->dstop);
-}
-
-struct beditem *juiceboxQuery2(char *src, char *norm, char *urlpath, char *chrom1, int start1, int end1, char *chrom2, int start2, int end2, char *type, int bin)
-{
-//Usage:   juicebox dump <observed/oe/norm/expected> <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1:s1:e1> <chr2:s2:e2> <BP/FRAG> <binsize> <outfile>
-//juicebox dump observed NONE http://epgg-test.wustl.edu/dli/long-range-test/test.hic 1:x:x 1:y:y BP 500000 out|stdout
-// query start, query end might in different chrom
-fprintf(stderr, "urlpath = (%s)\n", urlpath);
-char *urlbase = basename(strdup(urlpath));
-fprintf(stderr, "urlbase = (%s)\n", urlbase);
-char dummyname[201];
-if (strlen(urlbase) > 200){
-    strncpy(dummyname, urlbase, 200);
-    dummyname[200] = '\0';
-}else{
-    strcpy(dummyname, urlbase);
-}
-fprintf(stderr, "dummyname = (%s)\n", dummyname);
-srand(time(0));
-int rr=rand();
-char *outfile;
-assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
-char *chrom1_nochr = strdup(chrom1);
-char *chrom2_nochr = strdup(chrom2);
-rmSubstr(chrom1_nochr,"chr");
-rmSubstr(chrom2_nochr,"chr");
-char *command;
-assert(asprintf(&command, "%s dump %s %s %s %s:%d:%d %s:%d:%d %s %d %s", juicebox, src, norm, urlpath, chrom1_nochr, start1, end1, chrom2_nochr, start2, end2, type, bin, outfile)>0);
-fprintf(stderr, "juicebox query [%s]\n", command);
-if(system(command)==-1){
-        fprintf(stderr, "cannot run command [%s]\n", command);
-        return FALSE;
-    }
-free(command);
-FILE *fin=fopen(outfile,"r");
-if(fin==NULL)
-	{
-        fprintf(stderr, "file not exists [%s]\n", outfile);
-	return NULL;
-	}
-struct beditem *sl=NULL, *bi, *bi2;
-char *line=malloc(1);
-size_t s=0;
-char delim[]="\t\n";
-char *tok;
-int cid = 0;
-fprintf(stderr, "parsing file [%s]\n", outfile);
-while(getline(&line, &s, fin)!=-1)
-	{
-	assert((tok=strtok(line, delim))!=NULL);
-        int start1 = strMayPositiveInt(tok);
-        assert((tok=strtok(NULL, delim))!=NULL);
-        int start2 = strMayPositiveInt(tok);
-        assert((tok=strtok(NULL, delim))!=NULL);
-	//float v=strtod(tok,NULL);
-	bi=malloc(sizeof(struct beditem));
-        bi->start = start1;
-        bi->stop = start1+bin;
-        cid++;
-        char *tmpstr;
-        assert(asprintf(&tmpstr,"%s:%d-%d,%s\t%d\t+",chrom2,start2, start2+bin, tok, cid)>0);
-        bi->rest = tmpstr;
-        //if (cid <= 5){
-        //    fprintf(stderr, "bi start %d, stop %d, tmpstr, [%s]\n", bi->start, bi->stop, tmpstr); //debug
-        //}
-        //add 2 entries like tabix output
-        cid++;
-	bi2=malloc(sizeof(struct beditem));
-        char *tmpstr2;
-        assert(asprintf(&tmpstr2,"%s:%d-%d,%s\t%d\t-",chrom1,start1, start1+bin, tok, cid)>0);
-        bi2->start = start2;
-        bi2->stop = start2+bin;
-        bi2->rest = tmpstr2;
-        bi2->next = bi;
-        bi->next=sl;
-        sl = bi2;
-	}
-fprintf(stderr, "[%d] lines fetched\n", cid);
-fclose(fin);
-//unlink(outfile);
-free(outfile);
-return sl;
-}
-
 int juiceboxChooseBinsize(struct region *r){
 //Unknown resolution: BP_0
 //This data set has the following bin sizes (in bp): 
@@ -2048,52 +1860,6 @@ fprintf(stderr, "****trying other binsize %d\n", bin);
     }
     return 50000;
 }
-
-void *juiceboxQuery_dsp2(struct displayedRegion *dsp, struct track *t)
-{
-struct region *r;
-int regioncount=0, dataidx=0;
-for(r=dsp->head; r!=NULL; r=r->next)
-	regioncount++;
-void **data;
-data=malloc(sizeof(struct beditem *)*regioncount);
-assert(data!=NULL);
-
-for(r=dsp->head; r!=NULL; r=r->next){
-    if (t->bin_size == 0){
-        t->d_binsize = juiceboxChooseBinsize(r);
-    }else{
-        t->d_binsize = t->bin_size;
-    }
-    data[dataidx] =  (void*)juiceboxQuery2(t->matrix, t->norm, t->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, t->unit_res, t->d_binsize);
-    dataidx++;
-}
-/*
-//check if data have no data....
-int check = 0;
-struct beditem *item;
-dataidx=0;
-for(r=dsp->head; r!=NULL; r=r->next){
-    for(item=data[dataidx]; item!=NULL; item=item->next){
-        check++;
-        dataidx++;
-    }
-}
-//int times = 0;
-dataidx=0;
-if (check==0){
-    //if (times > 2) break;
-    for(r=dsp->head; r!=NULL; r=r->next){
-        t->d_binsize = tryOtherBinSize(t->d_binsize);
-        data[dataidx] =  (void*)juiceboxQuery2(t->matrix, t->norm, t->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, t->unit_res, t->d_binsize);
-        dataidx++;
-    }
-//    times++;
-}
-*/
-return data;
-}
-
 
 struct beditem *juiceboxQuery3(struct track *t, char *chrom1, int start1, int end1, char *chrom2, int start2, int end2)
 {
@@ -2265,7 +2031,6 @@ free(outfile);
 return TRUE;
 }
 
-
 double *tabixQuery_bedgraph_dsp(struct displayedRegion *dsp, struct track *tk)
 {
 /* fetch average data at summary points from bedgraph file, return pointer of array,
@@ -2325,7 +2090,6 @@ for(r=dsp->head; r!=NULL; r=r->next)
 ti_close(fin);
 return data;
 }
-
 
 void tabixQuery_categorical(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop, int spnum, int *data)
 {
@@ -2430,10 +2194,6 @@ ti_close(fin);
 //if(SQUAWK) fprintf(stderr, "%s (%s)\n", __FUNCTION__, urlpath);
 return data;
 }
-
-
-
-
 
 /**************************************
             making of dsp
@@ -2578,8 +2338,6 @@ dsp->stop->chromIdx = stopChr;
 dsp->stop->coord = stopCoord;
 if(SQUAWK) fprintf(Squawk, "%s: %s %d %s %d\n", __FUNCTION__, chrInfo[startChr]->name, startCoord, chrInfo[stopChr]->name, stopCoord);
 }
-
-
 
 void computeEntireLength(struct displayedRegion *dsp)
 {
@@ -2768,10 +2526,6 @@ for(r=dsp->head; ; r=r->next)
 if(SQUAWK) fprintf(Squawk, "\tsummary size computed, %d used in total...\n", dsp->usedSummaryNumber);
 }
 
-
-
-
-
 void makeRegionSl_genome(struct displayedRegion *dsp)
 {
 /* setDspBoundary() must be run prior to this
@@ -2799,7 +2553,6 @@ for(i=start->chromIdx; i<=stop->chromIdx; i++)
 	}
 if(SQUAWK) fprintf(Squawk, "chromSl made...\n");
 }
-
 
 int requestRegionAddTail(struct displayedRegion *dsp, struct beditem *itemsl, int chrIdx, unsigned int lookstopcoord, int regionNumLimit)
 {
@@ -3055,8 +2808,6 @@ if(SQUAWK)
     fprintf(Squawk, "\tregionLst made, %d in total...\n", i);
     }
 }
-
-
 
 void extendRegionDstart(struct region *r, double spsize, int *spnum, boolean atbplevel)
 {
@@ -4857,9 +4608,6 @@ if(tt->ft==FT_lr_n||tt->ft==FT_lr_c)
 //dli start
 if(tt->ft==FT_hi_c)
     {
-	//struct beditem **data=(struct beditem **)juiceboxQuery("observed","KR",tt->urlpath,chrInfo[r->chromIdx]->name,chrInfo[r->chromIdx]->name, "BP", 100000);
-	//struct beditem **data=(struct beditem **)juiceboxQuery_dsp(dsp, tt);
-	//struct beditem **data=(struct beditem **)juiceboxQuery_dsp2(dsp, tt);
 	struct beditem **data=(struct beditem **)juiceboxQuery_dsp3(dsp, tt);
 	if(data==NULL)
 		{
@@ -5828,7 +5576,6 @@ if(sl==NULL)
 	}
 return sl;
 }
-
 
 struct beditem2 *getRepeats4subfam()
 {

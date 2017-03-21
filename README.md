@@ -1,10 +1,13 @@
 ## EpiGenome Gateway - WashU EpiGenome Browser
 
+## Version History
+http://wiki.wubrowse.org/Version_History
+
 ### public server
-http://epigenomegateway.wustl.edu/browser/
+http://epigenomegateway.wustl.edu/browser
 
 ### wiki
-http://wiki.wubrowse.org/
+http://wiki.wubrowse.org
 
 ### community @ google+
 http://egg.wustl.edu/+
