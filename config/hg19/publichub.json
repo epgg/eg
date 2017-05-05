@@ -175,10 +175,10 @@
 
 {
 "id":"tcga",
-"trackcount":951,
+"trackcount":1458,
 "name":"Human 450K array data from TCGA",
-"url":"http://vizhub.wustl.edu/public/hg19/TCGA-450k-hub",
-"desc":"Human 450K array data from TCGA collected for COAD, LUSC, UCEC cancer/normal sample pairs."
+"url":"http://vizhub.wustl.edu/public/hg19/TCGA-450k-hub2",
+"desc":"Human 450K array data from TCGA collected for COAD, LUSC, UCEC, LUAD cancer/normal sample pairs."
 },
 
 {"name":"Trial datasets",
