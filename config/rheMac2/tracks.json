@@ -1,0 +1,64 @@
+{
+
+Genes : [
+	{name:'refGene',label:'RefSeq genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/rheMac2/refGene.gz',
+		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		boxcolor:'#002EB8',
+		details:{
+			source:'UCSC Genome Browser',
+			'download date':'May 3, 2017',
+			},
+		isgene:true,dbsearch:true },
+	{name:'xenoRefGene',label:'non-monkey RefSeq genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/rheMac2/xenoRefGene.gz',
+		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		details:{
+			source:'UCSC Genome Browser',
+			'download date':'May 3, 2017',
+			},
+		isgene:true,dbsearch:true },
+],
+
+RepeatMasker : [
+	{name:'rmsk_all',label:'RepeatMasker',
+		filetype:'hammock',
+		categories:{1:['SINE - short interspersed nuclear elements','#cc0000'],
+			2:['LINE - long interspersed nuclear element','#FF6600'],
+			3:['LTR - long terminal repeat element','#006600'],
+			4:['DNA transposon','#4A72E8'],
+			5:['Simple repeat, micro-satellite','#AB833B'],
+			7:['Low complexity repeat','#663333'],
+			6:['Satellite repeat','#660000'],
+			9:['Other repeats','#488E8E'],
+			8:['RNA repeat','#cc33ff'],
+			10:['Unknown','#5C5C5C']},
+		scorenamelst:["Smith-Waterman score","SW score normalized by length","1-divergence%"],
+		showscoreidx:2,
+		url:'http://egg.wustl.edu/d/rheMac2/rmsk_all.gz',
+		defaultmode:'barplot',
+		height:35,
+	},
+],
+
+
+'G/C related' : [
+	{name:'cpgisland',label:'CpG island',
+		filetype:'bed',
+		url:'http://egg.wustl.edu/d/rheMac2/cpgisland.gz',
+	},
+	{name:'gc5Base',label:'GC percent',
+		filetype:'bigwig',
+		url:'http://egg.wustl.edu/d/rheMac2/gc5Base.bigWig',
+		height:50,
+		colorpositive:'#4785C2/#4747C2',
+		fixedscale:{min:0,max:100},
+	},
+],
+
+
+
+
+}

@@ -5,6 +5,7 @@
 		{"assembly":"hg38","commonname":"Human","scientificname":"Homo sapiens","major":"hg19"},
 		{"assembly":"hg18","commonname":"Human","scientificname":"Homo sapiens","major":"hg19"},
 		{"assembly":"rheMac3","commonname":"Rhesus macaque","scientificname":"Rhesus macaque","ismajor":true,"logofontcolor":"white"},
+		{"assembly":"rheMac2","commonname":"Rhesus macaque","scientificname":"Rhesus macaque","major":"rheMac3","logofontcolor":"white"},
 		{"assembly":"macFas_BGI","commonname":"Crab-eating macaque","scientificname":"Macaca fascicularis","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"mm9","commonname":"Mouse","scientificname":"Mus musculus","ismajor":true,"logofontcolor":"white"},
 		{"assembly":"mm10","commonname":"Mouse","scientificname":"Mus musculus","major":"mm9"},
