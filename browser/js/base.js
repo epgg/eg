@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='42.1';
+var washUver='42.2';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -18181,9 +18181,9 @@ for(var i=0; i<b.tklst.length; i++) {
 	for(var j=0; j<b2.tklst.length; j++) {
 		var t3=b2.tklst[j];
 		if(isCustom(t3.ft)) {
-			wtk.tracks.push(b.genome.replicatetk(t3));
+			wtk.tracks.push(b2.genome.replicatetk(t3)); //dli change b to b2
 		} else {
-			nativelst.push(b.genome.replicatetk(t3));
+			nativelst.push(b2.genome.replicatetk(t3)); //dli change b to b2
 		}
 	}
 	if(nativelst.length>0) {
@@ -21445,7 +21445,8 @@ function facet_tklst_addSelected()
 {
 // called by clicking big green butt from the menu
 if(menu.facettklstdiv.submit.count==0) return;
-var bbj=gflag.menu.bbj;
+//var bbj=gflag.menu.bbj; // dli comment
+var bbj=apps.hmtk.bbj; //dli add
 var lst=menu.facettklsttable.firstChild.childNodes;
 var addlst=[];
 for(var i=0; i<lst.length; i++) {
@@ -26322,6 +26323,7 @@ for(var i=0; i<ibp.tklst.length; i++) {
 	}
 	delete t.juxtapose;
 }
+
 
 if(this.__golden_loadhubcb) {
 	// to prevent default processing of tracks

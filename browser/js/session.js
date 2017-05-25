@@ -165,9 +165,15 @@ for(var i=0; i<this.tklst.length; i++) {
 		var bbj=this.weaver.q[t.cotton];
 		for(var j=0; j<bbj.tklst.length; j++) {
 			var t2=bbj.tklst[j];
-			var t3=this.genome.replicatetk(t2);
-			if(isCustom(t2.ft)) clst.push(t2);
-			else nlst.push(t3);
+			if(isCustom(t2.ft)) {
+			    var t4=this.genome.replicatetk(t2);
+                            clst.push(t4);
+                        }
+			else { 
+			    var t3=this.genome.replicatetk(t2);
+                            nlst.push(t3);
+                        }
+	                tkcount++;
 		}
 		if(clst.length+nlst.length>0) {
 			_o.tracks=clst;
