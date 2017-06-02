@@ -88,8 +88,8 @@
 // juicebox hic format
 #define FT_hi_c 30
 //bigBed support
-#define FT_bigbed_n 40
-#define FT_bigbed_c 41
+#define FT_bigbed_n 31
+#define FT_bigbed_c 32
 
 #define RM_genome 0
 #define RM_jux_n 1
@@ -104,7 +104,7 @@
 #define trashDir "/usr/lib/trash"
 #define WWWT "/var/www/browser/t"
 #define BINdir "."
-#define Mysqlserver "localhost"
+#define Mysqlserver "10.20.127.12"
 #define Mysqluser "hguser"
 #define Mysqlpswd "hguser"
 #define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /usr/lib/cgi-bin/Juicebox.jar"
@@ -378,8 +378,8 @@ struct heatmap
     // decor tracks grouped by file type (indicated by file type number)
     struct track *decor0;
     struct track *decor1;
-    struct track *decor40;
-    struct track *decor41;
+    struct track *decor31;
+    struct track *decor32;
     struct track *decor8;
     struct track *decor4;
     struct track *decor5;
@@ -1999,8 +1999,8 @@ assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
 //free(dummyname);
 
 char *command;
-//assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
-assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+//assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
 fprintf(stderr, "querying bigwig (%s)\n", command);
 if(system(command)==-1)
 	{
@@ -5945,6 +5945,10 @@ if(cgiVarExists("loaddatahub"))
 	// simply read a datahub file
 	//
 	printf("Content-Type:text/plain\n\n");
+        //char *tmp;
+        //asprintf(&tmp, cgiString("url"));
+        //fprintf(stderr, "%s\n", tmp);
+        //char *js = json_fetch(tmp);
         char *js = json_fetch(cgiString("url"));
         printf("%s\n",js);
 	done();
@@ -8965,8 +8969,8 @@ hm.dsp = &dsp;
 hm.trackSl = NULL;
 hm.decor0 = NULL;
 hm.decor1 = NULL;
-hm.decor40 = NULL;
-hm.decor41 = NULL;
+hm.decor31 = NULL;
+hm.decor32 = NULL;
 hm.decor8 = NULL;
 hm.decor4 = NULL;
 hm.decor5 = NULL;
@@ -9866,8 +9870,8 @@ if(trigger_changeGF || trigger_zoom || trigger_move || trigger_imgAreaSelect || 
 
 if(cgiVarExists("decor0")) parseTrackParam(cgiString("decor0"), FT_bed_n, &(hm.decor0));
 if(cgiVarExists("decor1")) parseTrackParam(cgiString("decor1"), FT_bed_c, &(hm.decor1));
-if(cgiVarExists("decor40")) parseTrackParam(cgiString("decor40"), FT_bigbed_n, &(hm.decor40));
-if(cgiVarExists("decor41")) parseTrackParam(cgiString("decor41"), FT_bigbed_c, &(hm.decor41));
+if(cgiVarExists("decor31")) parseTrackParam(cgiString("decor31"), FT_bigbed_n, &(hm.decor31));
+if(cgiVarExists("decor32")) parseTrackParam(cgiString("decor32"), FT_bigbed_c, &(hm.decor32));
 if(cgiVarExists("decor8")) parseTrackParam(cgiString("decor8"), FT_qdecor_n, &(hm.decor8));
 if(cgiVarExists("decor4")) parseTrackParam(cgiString("decor4"), FT_sam_n, &(hm.decor4));
 if(cgiVarExists("decor5")) parseTrackParam(cgiString("decor5"), FT_sam_c, &(hm.decor5));
@@ -9958,11 +9962,11 @@ for(tt=hm.decor1; tt!=NULL; tt=tt->next)
 	{
 	printJsonDecor(hm.dsp, tt);
 	}
-for(tt=hm.decor40; tt!=NULL; tt=tt->next)
+for(tt=hm.decor31; tt!=NULL; tt=tt->next)
 	{
 	printJsonDecor(hm.dsp, tt);
 	}
-for(tt=hm.decor41; tt!=NULL; tt=tt->next)
+for(tt=hm.decor32; tt!=NULL; tt=tt->next)
 	{
 	printJsonDecor(hm.dsp, tt);
 	}

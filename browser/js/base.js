@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='42.2';
+var washUver='42.3';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -115,8 +115,8 @@ var max_viewable_chrcount=200;
 var FT_nottk=-1,
 FT_bed_n=0,
 FT_bed_c=1,
-FT_bigbed_n=40,
-FT_bigbed_c=41,
+FT_bigbed_n=31,
+FT_bigbed_c=32,
 FT_bedgraph_n=2,
 FT_bedgraph_c=3,
 FT_sam_n=4,
@@ -147,6 +147,7 @@ FT_qcats=27,
 FT_huburl=100;
 var FT2native=[];
 FT2native[FT_bed_n]='bed';
+FT2native[FT_bigbed_n]='bigbed';
 FT2native[FT_bedgraph_n]='bedgraph';
 FT2native[FT_bigwighmtk_n]='bigwig';
 FT2native[FT_bam_n]='bam';
@@ -179,7 +180,8 @@ var FT2verbal = ['bed', 'bed', 'bedgraph', 'bedgraph', 'sam', 'sam', 'pwc', 'hte
 'ld',
 'quantitativecategoryseries', //27
 'unknown', //28
-'hic','hic'    //29,30
+'hic','hic',    //29,30
+'bigbed','bigbed' //31, 32
 ];
 
 var M_hide=0,
@@ -6855,6 +6857,7 @@ req.send(data2post);
 Browser.prototype.ajaxText=function(url, callback)
 {
 // don't use with long url
+console.log(url);
 var req= new XMLHttpRequest();
 req.onreadystatechange= function() { 
 	if(req.readyState==4 && req.status==200) {
@@ -7517,7 +7520,7 @@ if(param.track_order) {
 			var t=this.findTrack(o.name,
 				(this.weaver && this.weaver.iscotton)?this.genome.name:null);
 			if(!t) {
-				print2console(this.genome.name+'Missing track for reordering: '+o.name,2);
+				print2console(this.genome.name+' Missing track for reordering: '+o.name,2);
 			} else {
 				t.where=o.where;
 				newlst.push(t);
@@ -7776,7 +7779,7 @@ return ''+
 	(lst[FT_cat_c].length>0 ? '&hmtk13='+lst[FT_cat_c].join(",") : '')+
 	(lst[FT_bed_n].length>0 ? '&decor0='+lst[FT_bed_n].join(',') : '') +
 	(lst[FT_bed_c].length>0 ? '&decor1='+lst[FT_bed_c].join(',') : '') +
-	(lst[FT_bigbed_c].length>0 ? '&decor41='+lst[FT_bigbed_c].join(',') : '') +
+	(lst[FT_bigbed_c].length>0 ? '&decor32='+lst[FT_bigbed_c].join(',') : '') +
 	(lst[FT_lr_n].length>0 ? '&decor9='+lst[FT_lr_n].join(',') : '') +
 	(lst[FT_lr_c].length>0 ? '&decor10='+lst[FT_lr_c].join(',') : '') +
 	(lst[FT_hi_c].length>0 ? '&decor30='+lst[FT_hi_c].join(',') : '') +
@@ -16071,6 +16074,8 @@ make doms for display
 
 TODO pwc, htest, bev?
 */
+console.log(name);
+console.log(ft);
 var oobj=this.genome.getTkregistryobj(name,ft);
 if(!oobj) {
 	print2console('Cannot make track, no registry object found for '+name,2);
@@ -25269,7 +25274,7 @@ return j;
 function hubtagistrack(tag)
 {
 // this supports longrange to be backward compatible
-if(tag=='bedgraph' || tag=='bigwig' || tag=='bed' || 
+if(tag=='bedgraph' || tag=='bigwig' || tag=='bed' || tag=='bigbed' || 
 tag=='longrange' || tag=='interaction' || tag=='hic' ||
 tag=='bam' || tag=='categorical' ||
 tag=='methylc'||tag=='ld'||
