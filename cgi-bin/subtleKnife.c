@@ -1721,12 +1721,13 @@ srand(time(0));
 int rr=rand();
 char *outfile;
 assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
-char *chrom_nochr = strdup(chrom);
-if (t->hasChr == 0){
-    rmSubstr(chrom_nochr,"chr");
-}
+//char *chrom_nochr = strdup(chrom);
+//if (t->hasChr == 0){
+//    rmSubstr(chrom_nochr,"chr");
+//}
 char *command;
-assert(asprintf(&command, "%s/querybb %s %s %d %d %s",BINdir,t->urlpath, chrom_nochr, start, end, outfile)>0);
+assert(asprintf(&command, "%s/querybb %s %s %d %d %s",BINdir,t->urlpath, chrom, start, end, outfile)>0);
+//assert(asprintf(&command, "%s/querybb %s %s %d %d %s",BINdir,t->urlpath, chrom_nochr, start, end, outfile)>0);
 fprintf(stderr, "querybb [%s]\n", command);
 if(system(command)==-1){
         fprintf(stderr, "cannot run command [%s]\n", command);
