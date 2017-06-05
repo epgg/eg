@@ -144,6 +144,8 @@ FT_ld_n=26,
 FT_anno_n=24,
 FT_anno_c=25,
 FT_qcats=27,
+FT_callingcard_n=33, // for mapping transposon insertions
+FT_callingcard_c=34, // for mapping transposon insertions
 FT_huburl=100;
 var FT2native=[];
 FT2native[FT_bed_n]='bed';
@@ -153,6 +155,7 @@ FT2native[FT_bigwighmtk_n]='bigwig';
 FT2native[FT_bam_n]='bam';
 FT2native[FT_anno_n]='annotation';
 FT2native[FT_ld_n]='ld';
+FT2native[FT_callingcard_n]='callingcard';
 var FT2noteurl={md:'http://wiki.wubrowse.org/Metadata'};
 FT2noteurl[FT_weaver_c]='http://wiki.wubrowse.org/Genome_alignment';
 FT2noteurl[FT_cm_c]='http://wiki.wubrowse.org/MethylC_track';
@@ -181,7 +184,8 @@ var FT2verbal = ['bed', 'bed', 'bedgraph', 'bedgraph', 'sam', 'sam', 'pwc', 'hte
 'quantitativecategoryseries', //27
 'unknown', //28
 'hic','hic',    //29,30
-'bigbed','bigbed' //31, 32
+'bigbed','bigbed', //31, 32
+'callingcard', 'callingcard' //33, 34
 ];
 
 var M_hide=0,
@@ -973,6 +977,7 @@ if(param.custom_track) {
 	var d2=dom_create('div',d,'display:block;position:absolute;left:0px;top:0px;width:800px;');
 	dom_create('div',d2,'margin:15px 0px;color:white;').innerHTML='Tracks need to be hosted on a web server that is accessible by this browser server.';
 	this.custtk.buttdiv=d2;
+	
 	var d3=dom_create('div',d2);
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_bedgraph_c);},false);
@@ -994,6 +999,7 @@ if(param.custom_track) {
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_anno_c);},false);
 	d3.innerHTML='Hammock<div style="color:inherit;font-weight:normal;font-size:70%;">annotation data</div>';
+	
 	d3=dom_create('div',d2);
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_weaver_c);},false);
@@ -1004,7 +1010,7 @@ if(param.custom_track) {
 	d3.addEventListener('click',function(){custtkpanel_show(FT_lr_c);},false);
 	d3.innerHTML='Interaction<div style="color:inherit;font-weight:normal;font-size:70%;">pairwise interaction</div>';
 	
-        d3=dom_create('div',d2);
+    d3=dom_create('div',d2);
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_hi_c);},false);
 	d3.innerHTML='Hi-C<div style="color:inherit;font-weight:normal;font-size:70%;">Hi-C format interaction</div>';
@@ -1023,17 +1029,26 @@ if(param.custom_track) {
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_bam_c);},false);
 	d3.innerHTML='BAM';
+
+	// d3=dom_create('div',d2);
+	// d3.className='largebutt';
+	// d3.addEventListener('click',function(){custtkpanel_show(FT_callingcard_c);},false);
+	// d3.innerHTML='GNASHY<div style="color:inherit;font-weight:normal;font-size:70%;">transposon insertions (experimental)</div>';
+	
 	dom_create('br',d2);
 	d3=dom_create('div',d2,'color:rgb(81,118,96);');
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_huburl);},false);
+	
 	var butt=dom_create('input',d2,'display:none');
 	butt.type='file';
 	butt.addEventListener('change',jsonhub_choosefile,false);
+	
 	d3.innerHTML='Datahub<div style="color:inherit;font-weight:normal;">by URL link</div>';
 	d3=dom_create('div',d2,'color:rgb(81,118,96);');
 	d3.className='largebutt';
 	d3.addEventListener('click',jsonhub_upload,false);
+	
 	d3.innerHTML='Datahub<div style="color:inherit;font-weight:normal;">by upload</div>';
 	dom_create('div',d2,'margin:15px 0px;color:white;').innerHTML='Got text files instead? <span class=clb3 onclick="toggle7_2();toggle27()">Upload them from your computer.</span>'+
 	'<br><br>To submit <a href='+FT2noteurl[FT_cm_c]+' target=_blank>methylC</a> or <a href='+FT2noteurl[FT_matplot]+' target=_blank>matplot</a> track, use Datahub.';
@@ -1052,6 +1067,7 @@ if(param.custom_track) {
 	this.custcate_idnum_change(5);
 	this.custtk.ui_bam=this.custtk_makeui(FT_bam_c,d2);
 	this.custtk.ui_hub=this.custtk_makeui(FT_huburl,d2);
+	this.custtk.ui_callingcard=this.custtk_makeui(FT_callingcard_c,d2);
 }
 
 this.scaffold={};
@@ -1142,6 +1158,7 @@ if(this.custtk) {
 		if(!(FT_huburl in v)) this.custtk.ui_hub.examplebutt.style.display='none';
 		if(!(FT_lr_c in v)) this.custtk.ui_lr.examplebutt.style.display='none';
 		if(!(FT_hi_c in v)) this.custtk.ui_hi.examplebutt.style.display='none';
+		if(!(FT_callingcard_c in v)) this.custtk.ui_bed.examplebutt.style.display='none';
 		if(FT_weaver_c in v) {
 			var g=this;
 			for(var qn in v[FT_weaver_c]) {
@@ -1554,6 +1571,7 @@ case FT_weaver_c:
 case FT_matplot:
 case FT_catmat:
 case FT_qcats:
+case FT_callingcard_c:
 	return true;
 default: return false;
 }
@@ -2035,6 +2053,12 @@ case 3:
 	c[1]=parseInt(t[1]);
 	c[3]=parseInt(t[3]);
 	break;
+// Modified version of case 1 for GNASHY files
+case 4:
+	if(input.length!=2) return null;
+	c[0]=c[2]=input[0];
+	c[1]=c[3]=input[1];
+	break;
 default:
 	fatalError('parseCoordinate: unknown type');
 }
@@ -2043,11 +2067,9 @@ if(isNaN(c[3])) return null;
 if(c[1]<0 || c[3]<=0) return null;
 if(type==1 || type==2) {
 	if(c[1]>=c[3]) return null;
-	var len=this.scaffold.len[c[0]];
-	if(!len) return null;
-	if(c[1]>len) return null;
-	if(c[3]>len) return null;
-	return c;
+}
+if(type==4) {
+	if(c[1]!=c[3]) return null;
 }
 var len=this.scaffold.len[c[0]];
 if(!len) return null;
@@ -6835,23 +6857,22 @@ req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(queryUrl)+'&sessi
 req.send();
 }
 
-function ajaxPost(data2post, callback)
-{
-var req= new XMLHttpRequest();
-req.onreadystatechange= function() { 
-	if(req.readyState==4 && req.status==200) {
-		var t=req.responseText;
-		if(t.substr(0,5)=='ERROR') {
-			print2console('Failed to post data to server',3);
-			callback(null);
-		} else {
-			callback(t);
+function ajaxPost(data2post, callback) {
+	var req= new XMLHttpRequest();
+	req.onreadystatechange= function() { 
+		if(req.readyState==4 && req.status==200) {
+			var t=req.responseText;
+			if(t.substr(0,5)=='ERROR') {
+				print2console('Failed to post data to server',3);
+				callback(null);
+			} else {
+				callback(t);
+			}
 		}
-	}
-};
-req.open('POST', gflag.cors_host+'/cgi-bin/postdeposit', true);
-req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
-req.send(data2post);
+	};
+	req.open('POST', gflag.cors_host+'/cgi-bin/postdeposit', true);
+	req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+	req.send(data2post);
 }
 
 Browser.prototype.ajaxText=function(url, callback)
@@ -7689,6 +7710,7 @@ lst[FT_anno_n]=[];
 lst[FT_anno_c]=[];
 lst[FT_catmat]=[];
 lst[FT_qcats]=[];
+lst[FT_callingcard_c]=[];
 for(var i=0; i<_tklst.length; i++) {
 	var t=_tklst[i];
 	if(nocotton && t.cotton && t.ft!=FT_weaver_c) {
@@ -7767,6 +7789,12 @@ for(var i=0; i<_tklst.length; i++) {
 	case FT_weaver_c:
 		lst[FT_weaver_c].push(name+','+label+','+url+','+t.weaver.mode);
 		break;
+	case FT_callingcard_n:
+		lst[FT_callingcard_n].push(name+','+url+','+mode);
+		break;
+	case FT_callingcard_c:
+		lst[FT_callingcard_c].push(name+','+label+','+url+','+mode);
+		break;
 	default: fatalError('trackParam: unknown ft '+t.ft);
 	}
 }
@@ -7794,7 +7822,10 @@ return ''+
 	(lst[FT_anno_n].length>0 ? '&track24='+lst[FT_anno_n].join(',') : '') +
 	(lst[FT_anno_c].length>0 ? '&track25='+lst[FT_anno_c].join(',') : '')+
 	(lst[FT_catmat].length>0 ? '&track20='+lst[FT_catmat].join(',') : '')+
-	(lst[FT_qcats].length>0 ? '&track27='+lst[FT_qcats].join(',') : '');
+	(lst[FT_qcats].length>0 ? '&track27='+lst[FT_qcats].join(',') : '') // +
+// 	(lst[FT_callingcard_n].length>0 ? '&decor33='+lst[FT_bed_n].join(',') : '') +
+// 	(lst[FT_callingcard_c].length>0 ? '&decor34='+lst[FT_bed_c].join(',') : '')
+	;
 }
 
 
@@ -10395,7 +10426,8 @@ if(getmdidx_internal()==-1) {
 		FT2verbal[FT_matplot],
 		FT2verbal[FT_weaver_c],
 		FT2verbal[FT_cm_c],
-		FT2verbal[FT_ld_c]
+		FT2verbal[FT_ld_c],
+		FT2verbal[FT_callingcard_c]
 		];
 	var gn=[];
 	for(var n in genome) gn.push(n);
@@ -16875,279 +16907,296 @@ for(var n in this.scaffold.len) {
 return '&iscustomgenome=on&scaffoldlen='+lst.join(',');
 }
 
-
-
-Browser.prototype.ajax_addtracks=function(lst)
-{
-/* must provide tkobj, works for mixture of native/custom tracks
-custom track might be un-registered
-but if adding compound tracks, member tracks must be registered!
-*/
-if(lst.length==0) {return;}
-var olst=[];
-for(var i=0; i<lst.length; i++) {
-	var o=lst[i];
-	if(o.ft==undefined || !FT2verbal[o.ft]) {
-		print2console('missing or wrong ft',2);
-		continue;
-	}
-	if(o.ft==FT_cm_c) {
-		if(!o.cm || !o.cm.set) {
-			o=this.genome.hmtk[o.name];
-			if(!o) {
-				print2console('registry object missing for a cmtk',2);
-				continue;
-			}
-		}
-		for(var k in o.cm.set) {
-			var n=o.cm.set[k];
-			var t=this.genome.hmtk[n];
-			if(!t) {
-				print2console('registry object missing for cmtk member: '+k,2);
-			} else {
-				olst.push({name:n, url:t.url, ft:t.ft, label:t.label, mode:M_show, qtc:{}});
-			}
-		}
-		/* this cmtk won't go into olst
-		but upon ajax return it should be rebuilt
-		push it to init param
-		TODO should be like matplot
-		*/
-		if(!this.init_bbj_param) {this.init_bbj_param={cmtk:[]};}
-		if(!this.init_bbj_param.cmtk) {this.init_bbj_param.cmtk=[];}
-		this.init_bbj_param.cmtk.push(o);
-		continue;
-	} else if(o.ft==FT_matplot) {
-		if(!o.tracks) {
-			o=this.genome.hmtk[o.name];
-			if(!o) {
-				print2console('registry obj missing for matplot',2);
-				continue;
-			}
-		}
-		for(var j=0; j<o.tracks.length; j++) {
-			var n=o.tracks[j];
-			var t=this.genome.getTkregistryobj(n);
-			if(!t) {
-				print2console('matplot member missing: '+n,2);
-			} else {
-				var m=tkdefaultMode(t);
-				if(m!=M_show) {m=M_den;}
-				olst.push({name:n,url:t.url,ft:t.ft,label:t.label,mode:m,qtc:{}});
-			}
-		}
-		this.tklst.push(this.makeTrackDisplayobj(o.name,o.ft));
-		continue;
-	}
-	if(!o.mode) {
-		o.mode=tkdefaultMode(o);
-	}
-	olst.push(o);
-}
-this.cloak();
-this.shieldOn();
-var bbj=this;
-// allow custom genome
-this.ajax(this.displayedRegionParamPrecise()+'&addtracks=on&'+
-	'dbName='+this.genome.name+
-	this.genome.customgenomeparam()+
-	trackParam(olst),function(data){bbj.ajax_addtracks_cb(data);});
-}
-
-Browser.prototype.ajax_addtracks_cb=function(data)
-{
-if(!data) {
-	print2console('server crashed, please refresh and start over',2);
-	return;
-}
-var count=this.tklst.length;
-this.jsonAddtracks(data);
-if(count<this.tklst.length) {
-	print2console('Tracks added',1);
-}
-this.unveil();
-this.shieldOff();
-this.ajax_loadbbjdata(this.init_bbj_param);
-}
-
-Browser.prototype.jsonAddtracks=function(data)
-{
-/* first, need to register those that are new customs */
-if(data.brokenbeads) {
-	print2console('Failed to load following tracks:',0);
-	var lst=data.brokenbeads;
+Browser.prototype.ajax_addtracks=function(lst) {
+	print2console('ajax_addtracks',2);
+	/* must provide tkobj, works for mixture of native/custom tracks
+	custom track might be un-registered
+	but if adding compound tracks, member tracks must be registered!
+	*/
+	if(lst.length==0) {return;}
+	print2console(lst.length,2);
+	var olst=[];
 	for(var i=0; i<lst.length; i++) {
-		var w='<span style="background-color:red;color:white;">&nbsp;'+FT2verbal[lst[i].ft]+'&nbsp;</span> '+
-			(isCustom(lst[i].ft)?lst[i].url:'');
-		print2console(w,2);
-		var d=document.createElement('div');
-		this.refreshcache_maketkhandle(d,lst[i]);
-		alertbox_addmsg({text:w,refreshcachehandle:d});
-	}
-}
-var lst=data.tkdatalst;
-/* pre-process json data
-*/
-for(var i=0; i<lst.length; i++) {
-	if(!lst[i].data) {
-		// no data, wrong track
-		print2console('Error adding '+FT2verbal[lst[i].ft]+' track "'+lst[i].label+'"',3);
-		continue;
-	}
-	if(!isCustom(lst[i].ft)) continue;
-	if(lst[i].name in this.genome.hmtk) continue;
-	/* unregistered custtk, register it here
-	what's the possibilities??
-	*/
-	this.genome.registerCustomtrack(lst[i]);
-}
-/* now all tracks should be registered, add them */
-var tknamelst=this.jsonTrackdata(data);
-for(var i=0; i<tknamelst.length; i++) {
-	if(!tknamelst[i][1]) continue;
-	// newly added tk
-	var t=this.findTrack(tknamelst[i][0]);
-	/*
-	if(this.weaver && this.weaver.iscotton) {
-		// cottonbbj adding a new track, must put to target
-		this.weaver.target.tklst.push(t);
-	}
-	*/
-	if(t.mastertk && t.mastertk.ft==FT_matplot) {
-		// new tk belongs to matplot, assemble matplot
-		var nlst=[];
-		for(var j=0; j<t.mastertk.tracks.length; j++) {
-			var o=t.mastertk.tracks[j];
-			if(typeof(o)=='string') {
-				nlst.push(this.findTrack(o));
-			} else {
-				nlst.push(o);
+		var o=lst[i];
+		// print2console(o.ft,2);
+		// print2console(o.label,2);
+		// print2console(o.mode,2);
+		// print2console(o.url,2);
+		// print2console(o.name,2);
+		if(o.ft==undefined || !FT2verbal[o.ft]) {
+			print2console('missing or wrong ft',2);
+			print2console('16929',2);
+			continue;
+		}
+		if(o.ft==FT_cm_c) {
+			print2console('16933',2);
+			if(!o.cm || !o.cm.set) {
+				o=this.genome.hmtk[o.name];
+				if(!o) {
+					print2console('registry object missing for a cmtk',2);
+					continue;
+				}
 			}
+			for(var k in o.cm.set) {
+				var n=o.cm.set[k];
+				var t=this.genome.hmtk[n];
+				if(!t) {
+					print2console('registry object missing for cmtk member: '+k,2);
+				} else {
+					olst.push({name:n, url:t.url, ft:t.ft, label:t.label, mode:M_show, qtc:{}});
+				}
+			}
+			/* this cmtk won't go into olst
+			but upon ajax return it should be rebuilt
+			push it to init param
+			TODO should be like matplot
+			*/
+			print2console('16955',2);
+			if(!this.init_bbj_param) {this.init_bbj_param={cmtk:[]};}
+			if(!this.init_bbj_param.cmtk) {this.init_bbj_param.cmtk=[];}
+			this.init_bbj_param.cmtk.push(o);
+			continue;
+		} else if(o.ft==FT_matplot) {
+			print2console('16961',2);
+			if(!o.tracks) {
+				o=this.genome.hmtk[o.name];
+				if(!o) {
+					print2console('registry obj missing for matplot',2);
+					continue;
+				}
+			}
+			for(var j=0; j<o.tracks.length; j++) {
+				var n=o.tracks[j];
+				var t=this.genome.getTkregistryobj(n);
+				if(!t) {
+					print2console('matplot member missing: '+n,2);
+				} else {
+					var m=tkdefaultMode(t);
+					if(m!=M_show) {m=M_den;}
+					olst.push({name:n,url:t.url,ft:t.ft,label:t.label,mode:m,qtc:{}});
+				}
+			}
+			this.tklst.push(this.makeTrackDisplayobj(o.name,o.ft));
+			continue;
 		}
-		t.mastertk.tracks=nlst;
+		if(!o.mode) {
+			o.mode=tkdefaultMode(o);
+		}
+		olst.push(o);
+		// print2console(olst.join('\n'),2);
 	}
+	this.cloak();
+	this.shieldOn();
+	var bbj=this;
+	// allow custom genome
+	this.ajax(this.displayedRegionParamPrecise()+'&addtracks=on&'+
+		'dbName='+this.genome.name+
+		this.genome.customgenomeparam()+
+		trackParam(olst),function(data){bbj.ajax_addtracks_cb(data);});
 }
 
-if(!this.init_bbj_param) {
-	var someingroup=false;
-	for(var i=0; i<tknamelst.length; i++) {
-		if(this.findTrack(tknamelst[i][0]).group!=undefined) {
-			someingroup=true;
-			break;
-		}
+Browser.prototype.ajax_addtracks_cb=function(data) {
+	print2console('ajax_addtracks_cb',2);
+	if(!data) {
+		print2console('server crashed, please refresh and start over',2);
+		return;
 	}
-	if(someingroup) {
-		this.drawTrack_browser_all();
-	} else {
-		// nobody in group, only draw involved ones
-		for(var i=0; i<tknamelst.length; i++) {
-			var o=this.findTrack(tknamelst[i][0]);
-			if(!o) continue;
-			if(o.mastertk) {
-				this.drawTrack_browser(o.mastertk);
-			} else {
-				this.stack_track(o,0);
-				this.drawTrack_browser(o);
-			}
-		}
+	var count=this.tklst.length;
+	print2console(count,2);
+	this.jsonAddtracks(data);
+	print2console('17008',2);
+	if(count<this.tklst.length) {
+		print2console('Tracks added',1);
 	}
+	
+	this.unveil();
+	this.shieldOff();
+	this.ajax_loadbbjdata(this.init_bbj_param);
+}
 
-	if(!this.weaver || !this.weaver.iscotton) {
-		this.prepareMcm();
-		this.drawMcm();
-		this.trackHeightChanged();
+Browser.prototype.jsonAddtracks=function(data) {
+	print2console('jsonAddtracks',2);
+	for (var name in data) {
+		print2console(name,2);
 	}
-
-	var newlst=[]; // names of newly added tracks
-	for(var i=0; i<tknamelst.length; i++) {
-		if(tknamelst[i][1]) {
-			newlst.push(tknamelst[i][0]);
+	/* first, need to register those that are new customs */
+	if(data.brokenbeads) {
+		print2console('Failed to load following tracks:',0);
+		var lst=data.brokenbeads;
+		for(var i=0; i<lst.length; i++) {
+			var w='<span style="background-color:red;color:white;">&nbsp;'+FT2verbal[lst[i].ft]+'&nbsp;</span> '+
+				(isCustom(lst[i].ft)?lst[i].url:'');
+			print2console(w,2);
+			var d=document.createElement('div');
+			this.refreshcache_maketkhandle(d,lst[i]);
+			alertbox_addmsg({text:w,refreshcachehandle:d});
 		}
 	}
-	this.aftertkaddremove(newlst);
-	if(this.trunk) {
-		/* !!! this is a splinter, sync track style and order, no facet
+	var lst=data.tkdatalst;
+	print2console(lst.length,2);
+	// pre-process json data
+	for(var i=0; i<lst.length; i++) {
+		if(!lst[i].data) {
+			// no data, wrong track
+			print2console('Error adding '+FT2verbal[lst[i].ft]+' track "'+lst[i].label+'"',3);
+			continue;
+		}
+		if(!isCustom(lst[i].ft)) continue;
+		if(lst[i].name in this.genome.hmtk) continue;
+		/* unregistered custtk, register it here
+		what's the possibilities??
 		*/
-		var nk=this.trunk;
-		for(var i=0; i<this.tklst.length; i++) {
-			var t0=this.tklst[i];
-			if(tkishidden(t0)) continue;
-			var t=nk.findTrack(t0.name);
-			if(!t) {
-				// might not be error because when deleting track from trunk
-				print2console('track missing from trunk '+t0.label,2);
-				continue;
-			}
-			qtc_paramCopy(t.qtc,t0.qtc);
+		this.genome.registerCustomtrack(lst[i]);
+		print2console('17033',2);
+	}
+	/* now all tracks should be registered, add them */
+	var tknamelst=this.jsonTrackdata(data);
+	print2console(tknamelst.length,2);
+	for(var i=0; i<tknamelst.length; i++) {
+		if(!tknamelst[i][1]) continue;
+		// newly added tk
+		var t=this.findTrack(tknamelst[i][0]);
+		/*
+		if(this.weaver && this.weaver.iscotton) {
+			// cottonbbj adding a new track, must put to target
+			this.weaver.target.tklst.push(t);
 		}
-		var newlst=[];
-		for(var i=0; i<nk.tklst.length; i++) {
-			var t=nk.tklst[i];
-			if(tkishidden(t)) continue;
-			for(var j=0; j<this.tklst.length; j++) {
-				var t2=this.tklst[j];
-				if(t2.name==t.name) {
-					t2.where=t.where;
-					newlst.push(t2);
-					this.tklst.splice(j,1);
-					break;
+		*/
+		if(t.mastertk && t.mastertk.ft==FT_matplot) {
+			// new tk belongs to matplot, assemble matplot
+			var nlst=[];
+			for(var j=0; j<t.mastertk.tracks.length; j++) {
+				var o=t.mastertk.tracks[j];
+				if(typeof(o)=='string') {
+					nlst.push(this.findTrack(o));
+				} else {
+					nlst.push(o);
+				}
+			}
+			t.mastertk.tracks=nlst;
+		}
+	}
+
+	if(!this.init_bbj_param) {
+		var someingroup=false;
+		for(var i=0; i<tknamelst.length; i++) {
+			if(this.findTrack(tknamelst[i][0]).group!=undefined) {
+				someingroup=true;
+				break;
+			}
+		}
+		if(someingroup) {
+			this.drawTrack_browser_all();
+		} else {
+			// nobody in group, only draw involved ones
+			for(var i=0; i<tknamelst.length; i++) {
+				var o=this.findTrack(tknamelst[i][0]);
+				if(!o) continue;
+				if(o.mastertk) {
+					this.drawTrack_browser(o.mastertk);
+				} else {
+					this.stack_track(o,0);
+					this.drawTrack_browser(o);
 				}
 			}
 		}
-		this.tklst=newlst.concat(this.tklst);
-		this.trackdom2holder();
-	}
-}
 
-// add new cottontk to target, do this after tracks are rendered
-if(this.weaver && this.weaver.iscotton) {
-	var target=this.weaver.target;
+		if(!this.weaver || !this.weaver.iscotton) {
+			this.prepareMcm();
+			this.drawMcm();
+			this.trackHeightChanged();
+		}
+
+		var newlst=[]; // names of newly added tracks
+		for(var i=0; i<tknamelst.length; i++) {
+			if(tknamelst[i][1]) {
+				newlst.push(tknamelst[i][0]);
+			}
+		}
+		this.aftertkaddremove(newlst);
+		if(this.trunk) {
+			/* !!! this is a splinter, sync track style and order, no facet
+			*/
+			var nk=this.trunk;
+			for(var i=0; i<this.tklst.length; i++) {
+				var t0=this.tklst[i];
+				if(tkishidden(t0)) continue;
+				var t=nk.findTrack(t0.name);
+				if(!t) {
+					// might not be error because when deleting track from trunk
+					print2console('track missing from trunk '+t0.label,2);
+					continue;
+				}
+				qtc_paramCopy(t.qtc,t0.qtc);
+			}
+			var newlst=[];
+			for(var i=0; i<nk.tklst.length; i++) {
+				var t=nk.tklst[i];
+				if(tkishidden(t)) continue;
+				for(var j=0; j<this.tklst.length; j++) {
+					var t2=this.tklst[j];
+					if(t2.name==t.name) {
+						t2.where=t.where;
+						newlst.push(t2);
+						this.tklst.splice(j,1);
+						break;
+					}
+				}
+			}
+			this.tklst=newlst.concat(this.tklst);
+			this.trackdom2holder();
+		}
+	}
+
+	// add new cottontk to target, do this after tracks are rendered
+	if(this.weaver && this.weaver.iscotton) {
+		var target=this.weaver.target;
+		for(var i=0; i<tknamelst.length; i++) {
+			if(!tknamelst[i][1]) continue;
+			var t=this.findTrack(tknamelst[i][0]);
+			target.tklst.push(t);
+		}
+		target.trackdom2holder();
+		target.prepareMcm();
+		target.drawMcm();
+	}
+
+	if(this.splinterTag) return;
+
+	var hassp=false;
+	for(var a in this.splinters) {hassp=true;break;}
+	if(!hassp) return;
+	// this is a trunk with splinters
+	var singtk=[], // singular tk
+		cmtk=[];
 	for(var i=0; i<tknamelst.length; i++) {
-		if(!tknamelst[i][1]) continue;
 		var t=this.findTrack(tknamelst[i][0]);
-		target.tklst.push(t);
-	}
-	target.trackdom2holder();
-	target.prepareMcm();
-	target.drawMcm();
-}
-
-if(this.splinterTag) return;
-
-var hassp=false;
-for(var a in this.splinters) {hassp=true;break;}
-if(!hassp) return;
-// this is a trunk with splinters
-var singtk=[], // singular tk
-	cmtk=[];
-for(var i=0; i<tknamelst.length; i++) {
-	var t=this.findTrack(tknamelst[i][0]);
-	if(t.ft==FT_cm_c) {
-		for(var a in t.cm.set) {
-			singtk.push(t.cm.set[a]);
-		}
-		cmtk.push(t);
-	} else {
-		singtk.push(t);
-	}
-}
-// by adding cmtk for trunk, cmtk won't show up in tknamelst, but in .init_bbj_param
-if(this.init_bbj_param && this.init_bbj_param.cmtk) {
-	for(var i=0; i<this.init_bbj_param.cmtk.length; i++) {
-		cmtk.push(this.init_bbj_param.cmtk[i]);
-	}
-}
-for(var k in this.splinters) {
-	var b=this.splinters[k];
-	if(cmtk.length>0) {
-		if(!b.init_bbj_param) b.init_bbj_param={};
-		if(!b.init_bbj_param.cmtk) b.init_bbj_param.cmtk=[];
-		for(var i=0; i<cmtk.length; i++) {
-			b.init_bbj_param.cmtk.push(cmtk[i]);
+		if(t.ft==FT_cm_c) {
+			for(var a in t.cm.set) {
+				singtk.push(t.cm.set[a]);
+			}
+			cmtk.push(t);
+		} else {
+			singtk.push(t);
 		}
 	}
-	b.ajax_addtracks(singtk);
-}
+	// by adding cmtk for trunk, cmtk won't show up in tknamelst, but in .init_bbj_param
+	if(this.init_bbj_param && this.init_bbj_param.cmtk) {
+		for(var i=0; i<this.init_bbj_param.cmtk.length; i++) {
+			cmtk.push(this.init_bbj_param.cmtk[i]);
+		}
+	}
+	for(var k in this.splinters) {
+		var b=this.splinters[k];
+		if(cmtk.length>0) {
+			if(!b.init_bbj_param) b.init_bbj_param={};
+			if(!b.init_bbj_param.cmtk) b.init_bbj_param.cmtk=[];
+			for(var i=0; i<cmtk.length; i++) {
+				b.init_bbj_param.cmtk.push(cmtk[i]);
+			}
+		}
+		b.ajax_addtracks(singtk);
+	}
 }
 
 
