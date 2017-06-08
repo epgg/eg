@@ -46,7 +46,7 @@ dom_create('p',d.__contentdiv,'color:white').innerHTML='<table style="color:whit
 	<a href=http://genome.ucsc.edu/goldenPath/help/wiggle.html target=_blank>Wiggle</a>  for numerical data.<br>\
 	<a href=http://wiki.wubrowse.org/Long-range target=_blank>Pairwise interaction format</a> for (but not limited to) 5C, Chia-Pet, Hi-C results.<br>\
 	<a href=http://wiki.wubrowse.org/Hammock target=_blank>Hammock</a> for annotation data.<br>\
-	<a href=http://www.google.com target=_blank>GNASHY</a> (experimental) for calling card data.\
+	<a href=http://www.google.com target=_blank>Calling card</a> (experimental).\
 	</td></tr></table>';
 
 /* TODO add controls for:
@@ -79,7 +79,7 @@ d3.formatradio.push(make_radiobutton(td0,{value:'bed',label:'BED <span style="fo
 d3.formatradio.push(make_radiobutton(td0,{value:'gff',label:'GFF <span style="font-size:70%;">ANNOTATION DATA | <a href=http://genome.ucsc.edu/FAQ/FAQformat.html#format3 target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'lr',label:'Pairwise interaction <span style="font-size:70%;"><a href=http://wiki.wubrowse.org/Long-range target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'custom',label:'Custom <span style="font-size:70%;">ANNOTATION DATA</span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
-d3.formatradio.push(make_radiobutton(td0,{value:'gnashy',label:'GNASHY (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://www.google.com" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
+d3.formatradio.push(make_radiobutton(td0,{value:'callingcard',label:'GNASHY (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://www.google.com" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 var t=dom_create('table',td0,'margin:10px 10px 10px 20px;border:1px solid white;display:none;');
 d3.customformatter=t;
 var tr=t.insertRow(0);
@@ -206,7 +206,7 @@ case 'hammock':
 	s.style.display='none';
 	h.style.display='block';
 	return;
-case 'gnashy':
+case 'callingcard':
 	b.style.display='none';
 	s.style.display='none';
 	h.style.display='none';
@@ -307,8 +307,8 @@ case 'lr':
 case 'hammock':
 	bbj.fud_load_hammock();
 	return;
-case 'gnashy':
-	bbj.fud_load_gnashy();
+case 'callingcard':
+	bbj.fud_load_callingcard();
 	return;
 }
 }
@@ -859,7 +859,7 @@ reader.onload=function(e) {
 reader.readAsText(apps.fud.editui.file);
 }
 
-Browser.prototype.fud_load_gnashy=function() {
+Browser.prototype.fud_load_callingcard=function() {
 	var reader=new FileReader();
 	reader.onerror=function(){print2console('Error reading file',2);}
 	reader.onabort=function(){print2console('Error reading file',2);}
@@ -948,7 +948,7 @@ Browser.prototype.fud_maketrack=function(key,tk) {
 		return;
 	}
 	print2console('Making track...',0);
-	print2console(key,2);
+	// print2console(key,2);
 	// no need to tell cgi the ft, all will be processed in the same way
 	var bbj=this;
 	this.ajax('maketrack=on&key='+key,function(data){bbj.fud_maketrack_cb(data,key,tk)});

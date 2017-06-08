@@ -1549,6 +1549,8 @@ case FT_cat_c: return true;
 case FT_cat_n: return true;
 case FT_bigwighmtk_c: return true;
 case FT_bigwighmtk_n: return true;
+case FT_callingcard_c: return true;
+case FT_callingcard_n: return true;
 default: return false;
 }
 }
@@ -1580,7 +1582,7 @@ function isNumerical(tkobj)
 {
 // including density mode
 var ft=tkobj.ft;
-if(ft==FT_bedgraph_c||ft==FT_bedgraph_n||ft==FT_bigwighmtk_c||ft==FT_bigwighmtk_n||ft==FT_qdecor_n) return true;
+if(ft==FT_bedgraph_c||ft==FT_bedgraph_n||ft==FT_bigwighmtk_c||ft==FT_bigwighmtk_n||ft==FT_qdecor_n||ft==FT_callingcard_c||ft==FT_callingcard_n) return true;
 if(tkobj.mode==M_den) return true;
 return false;
 }
@@ -3436,6 +3438,62 @@ if(tkobj.ft==FT_matplot) {
 } else if(tkobj.ft==FT_cm_c) {
 	var d=this.cmtk_prep_draw(tkobj,tosvg);
 	if(tosvg) svgdata=svgdata.concat(d);
+} else if(tkobj.ft==FT_callingcard_c) {
+	if(tkobj.qtc.smooth) {
+		// smoothing may have been done upon no-move update
+		if(!tkobj.data_raw) fatalError('data_raw missing');
+		smooth_tkdata(tkobj);
+	}
+	var _d=this.drawTrack_altregiondecor(ctx,tc.height,tosvg);
+	if(tosvg) svgdata=svgdata.concat(_d);
+
+	this.set_tkYscale(tkobj);
+	var data2= qtrack_logtransform(tkobj.data, tkobj.qtc);
+	for(var i=0; i<this.regionLst.length; i++) {
+		var r=this.regionLst[i];
+		var svd=this.callingcard_base({
+			data:data2[i],
+			ctx:ctx,
+			colors:{p:'rgb('+tkobj.qtc.pr+','+tkobj.qtc.pg+','+tkobj.qtc.pb+')',
+				n:'rgb('+tkobj.qtc.nr+','+tkobj.qtc.ng+','+tkobj.qtc.nb+')',
+				pth:tkobj.qtc.pth,
+				nth:tkobj.qtc.nth,
+				barbg:tkobj.qtc.barplotbg},
+			tk:tkobj,
+			rid:i,
+			x:this.cumoffset(i,r[3]),
+			y:tkobj.qtc.height>=20?densitydecorpaddingtop:0,
+			h:tkobj.qtc.height,
+			pointup:true,
+			tosvg:tosvg});
+		if(tosvg) svgdata=svgdata.concat(svd);
+		if(tosvg) {
+			var _th=tk_height(tkobj);
+			var x=this.cumoffset(i,r[4]);
+			svgdata.push({type:svgt_line,
+				x1:x, y1:0,
+				x2:x, y2:_th,
+				w:regionSpacing.width,
+				color:regionSpacing.color});
+		}
+	}
+	if((this.splinterTag || !this.hmheaderdiv) && tkobj.qtc.height>=20) {
+		// splinter tk, draw a in-track scale as its scale is usually different with trunk
+		var d=plot_ruler({ctx:ctx,
+			stop:densitydecorpaddingtop,
+			start:densitydecorpaddingtop+tkobj.qtc.height-1,
+			xoffset:this.hmSpan-this.move.styleLeft-10,
+			horizontal:false,
+			color:colorCentral.foreground,
+			min:tkobj.minv,
+			max:tkobj.maxv,
+			extremeonly:true,
+			max_offset:-4,
+			tosvg:tosvg,
+			scrollable:true, // because scale is on tk canvas, its position subject to adjustment
+			});
+		if(tosvg) svgdata=svgdata.concat(d);
+	}
 } else if(isNumerical(tkobj)) {
 	if(tkobj.qtc.smooth) {
 		// smoothing may have been done upon no-move update
@@ -7710,6 +7768,7 @@ lst[FT_anno_n]=[];
 lst[FT_anno_c]=[];
 lst[FT_catmat]=[];
 lst[FT_qcats]=[];
+lst[FT_callingcard_n]=[];
 lst[FT_callingcard_c]=[];
 for(var i=0; i<_tklst.length; i++) {
 	var t=_tklst[i];
@@ -7793,7 +7852,7 @@ for(var i=0; i<_tklst.length; i++) {
 		lst[FT_callingcard_n].push(name+','+url+','+mode);
 		break;
 	case FT_callingcard_c:
-		lst[FT_callingcard_c].push(name+','+label+','+url+','+mode);
+		lst[FT_callingcard_c].push(name+','+label+','+url+','+mode+','+summ);
 		break;
 	default: fatalError('trackParam: unknown ft '+t.ft);
 	}
@@ -7822,9 +7881,9 @@ return ''+
 	(lst[FT_anno_n].length>0 ? '&track24='+lst[FT_anno_n].join(',') : '') +
 	(lst[FT_anno_c].length>0 ? '&track25='+lst[FT_anno_c].join(',') : '')+
 	(lst[FT_catmat].length>0 ? '&track20='+lst[FT_catmat].join(',') : '')+
-	(lst[FT_qcats].length>0 ? '&track27='+lst[FT_qcats].join(',') : '') // +
-// 	(lst[FT_callingcard_n].length>0 ? '&decor33='+lst[FT_bed_n].join(',') : '') +
-// 	(lst[FT_callingcard_c].length>0 ? '&decor34='+lst[FT_bed_c].join(',') : '')
+	(lst[FT_qcats].length>0 ? '&track27='+lst[FT_qcats].join(',') : '') +
+	(lst[FT_callingcard_n].length>0 ? '&hmtk33='+lst[FT_callingcard_n].join(',') : '') +
+	(lst[FT_callingcard_c].length>0 ? '&hmtk34='+lst[FT_callingcard_c].join(',') : '')
 	;
 }
 
@@ -9227,7 +9286,250 @@ for(var i=0; i<data.length; i++) {
 if(tosvg) return svgdata;
 }
 
+// For plotting calling card data
+Browser.prototype.callingcard_base=function(arg)
+{
+/* if rid is undefined, won't apply weaving
+*/
+var data=arg.data,
+	ctx=arg.ctx,
+	colors=arg.colors,
+	tk=arg.tk,
+	ridx=arg.rid, // for weaver
+	initcoord=arg.initcoord, // for weaver, given for barplot
+	x=arg.x, // will be incremented by weaver insert
+	y=arg.y,
+	pheight=arg.h,
+	pointup=arg.pointup,
+	w=arg.w,
+	tosvg=arg.tosvg;
+var curveonly=false;
+if(tk.qtc && tk.qtc.curveonly) {
+	curveonly=true;
+}
 
+var insertlookup=null;
+var thisregion=null;
+if(this.weaver && ridx!=undefined) {
+	// if ridx==-1, weaver won't apply
+	thisregion=this.regionLst[ridx];
+	if(initcoord==undefined) {
+		initcoord=thisregion[3];
+	}
+	if(this.entire.atbplevel) {
+		insertlookup= this.weaver.insert[ridx];
+	} else {
+		insertlookup={};
+		for(var c in this.weaver.insert[ridx]) {
+			insertlookup[c]=this.weaver.insert[ridx][c];
+		}
+	}
+}
+if(!w) {
+	/* bar width for each data point, preset to 1 in bev
+	w set to negative to indicate reverse alignment from cotton track
+	*/
+	w=this.entire.atbplevel?this.entire.bpwidth:1;
+	if(thisregion && thisregion[8] && thisregion[8].item.hsp.strand=='-') {
+		w=-w;
+		// x already set to be position of r[3] on the right of region
+	}
+}
+var max=tk.maxv,
+	min=tk.minv;
+if(!colors.p) colors.p='rgb(184,0,92)';
+if(!colors.n) colors.n='rgb(0,79,158)';
+if(!colors.pth) colors.pth=colors.p;
+if(!colors.nth) colors.nth=colors.n;
+var pr,pg,pb,nr,ng,nb;
+var plothm=pheight<20;
+if(plothm) {
+	// heatmap instead of bars
+	var _tmp=colorstr2int(colors.p);
+	pr=_tmp[0];
+	pg=_tmp[1];
+	pb=_tmp[2];
+	_tmp=colorstr2int(colors.n);
+	nr=_tmp[0];
+	ng=_tmp[1];
+	nb=_tmp[2];
+}
+var svgdata=[];
+for(var i=0; i<data.length; i++) {
+	// for each data point
+	var score=data[i];
+	var bary=null, barh=null, barcolor=null,
+		tipy=null, tipcolor=null;
+	if(isNaN(score)) {
+		// do nothing
+	} else if(score==Infinity) {
+		barcolor=colors.inf?colors.inf:'#b5b5b5';
+		if(plothm) {
+			barh=pheight;
+			bary=y;
+		} else {
+			if(max>0 && min<0) {
+				barh=pheight*max/(max-min);
+				bary=pointup ? y : (y+pheight-barh);
+			} else {
+				bary=y;
+				barh=pheight;
+			}
+		}
+	} else if(score==-Infinity) {
+		barcolor=colors.inf?colors.inf:'#b5b5b5';
+		if(plothm) {
+			barh=pheight;
+			bary=y;
+		} else {
+			if(max>0 && min<0) {
+				barh=pheight*(0-min)/(max-min);
+				bary=pointup ? (y+pheight-barh) : y;
+			} else {
+				bary=y;
+				barh=pheight;
+			}
+		}
+	} else {
+		if(max>0 && min<0) {
+			if(score>=0) {
+				if(plothm) {
+					barh=pheight;
+					bary=y;
+					barcolor=score>max?colors.pth:('rgba('+pr+','+pg+','+pb+','+(score/max)+')');
+				} else {
+					barh=pheight*Math.min(score,max)/(max-min);
+					barcolor=colors.p;
+					bary = y+pheight*max/(max-min) - (pointup ? barh : 0);
+					if(score>=max) {
+						tipcolor=colors.pth;
+						tipy= pointup ? y : y+pheight-2;
+					}
+				}
+			} else {
+				if(plothm) {
+					barh=pheight;
+					bary=y;
+					barcolor=score<min?colors.nth:('rgba('+nr+','+ng+','+nb+','+(score/(min-max))+')');
+				} else {
+					barh=pheight*Math.max(score,min)/(min-max);
+					barcolor=colors.n;
+					bary = y+pheight*max/(max-min) - (pointup ? 0 : barh);
+					if(score<=min) {
+						tipcolor=colors.nth;
+						tipy= pointup ? y+pheight-2 : y;
+					}
+				}
+			}
+		} else if(max>0) {
+			// min max both >0
+			barcolor=colors.p;
+			if(score<min) {
+			} else if(min>0 && score==min) {
+				if(plothm) {
+				} else {
+					barh=1;
+					bary=pointup ? y+pheight-1 : y;
+				}
+			} else {
+				if(plothm) {
+					barh=pheight;
+					bary=y;
+					barcolor=score>=max?colors.pth:'rgba('+pr+','+pg+','+pb+','+((score-min)/(max-min))+')';
+				} else {
+					barh=pheight*(Math.min(score,max)-min)/(max-min);
+					bary= pointup ? (y+pheight-barh) : y;
+					if(score>=max) {
+						tipcolor=colors.pth;
+						tipy= pointup ? y : y+pheight-2;
+					}
+				}
+			}
+		} else {
+			// min max both <= 0
+			// including case when both minmax=0
+			barcolor=colors.n;
+			if(score>max) {
+			} else if(max<0 && score==max) {
+				if(plothm) {
+				} else {
+					barh=1;
+					bary=pointup ? y: y+pheight-1;
+				}
+			} else {
+				if(plothm) {
+					if(min==0 && max==0) {
+						// case that both min max=0, draw nothing!
+					} else {
+						barh=pheight;
+						bary=y;
+						barcolor=score<=min?colors.nth:'rgba('+nr+','+ng+','+nb+','+((max-score)/(max-min))+')';
+					}
+				} else {
+					barh=pheight*(max-Math.max(score,min))/(max-min);
+					bary= pointup ? y : (y+pheight-barh);
+					if(score<=min) {
+						tipcolor=colors.nth;
+						tipy= pointup ? y+pheight-2 : y;
+					}
+				}
+			}
+		}
+	}
+	// svg do not accept negative width
+	var svgw=w<0?-w:w;
+	var svgx=w<0?x+w:x;
+	if(barh==null) {
+		if(tosvg) {svgdata.push({type:svgt_no});}
+	} else {
+		if(colors.barbg) {
+			ctx.fillStyle=colors.barbg;
+			ctx.fillRect(x,y,w,pheight);
+			if(tosvg) {
+				svgdata.push({type:svgt_line,x1:svgx, y1:y, x2:svgx, y2:y+pheight, w:svgw, color:ctx.fillStyle});
+			}
+		}
+		// ctx.fillStyle = barcolor;
+		// ctx.fillRect(x, bary, w, curveonly? 2 : barh);
+		ctx.beginPath();
+		ctx.arc(x, bary, 4, 0, 2*Math.PI);
+		ctx.strokeStyle=barcolor;
+		ctx.stroke();
+		if(tosvg) {
+			svgdata.push({type:svgt_rect,x:svgx,y:bary,w:svgw,h:barh,fill:barcolor});
+		}
+	}
+	if(tipy) {
+		ctx.fillStyle = tipcolor;
+		ctx.fillRect(x, tipy, w, 2);
+		if(tosvg) {
+			svgdata.push({type:svgt_rect,x:svgx,y:tipy,w:svgw,h:2,fill:tipcolor});
+		}
+	}
+	x+=w;
+	if(insertlookup) {
+		// consider gap
+		if(this.entire.atbplevel) {
+			initcoord+=1;
+			if(initcoord in insertlookup) {
+				// negative w for reverse
+				x+= insertlookup[initcoord]*this.entire.bpwidth * (w>0?1:-1);
+			}
+		} else {
+			initcoord+=thisregion[7];
+			for(var j=0; j<=parseInt(thisregion[7]); j++) {
+				var thisbp=parseInt(initcoord+j);
+				if(thisbp in insertlookup) {
+					// negative w for reverse
+					x+= insertlookup[thisbp]/thisregion[7] * (w>0?1:-1);
+					delete insertlookup[thisbp];
+				}
+			}
+		}
+	}
+}
+if(tosvg) return svgdata;
+}
 
 
 Browser.prototype.tkplot_line=function(p)
@@ -16045,9 +16347,11 @@ case FT_weaver_c:
 	tk.qtc.height=60;
 	break;
 case FT_bedgraph_n:
+case FT_callingcard_n:
 	qtc_paramCopy(defaultQtcStyle.heatmap, tk.qtc);
 	break;
 case FT_bedgraph_c:
+case FT_callingcard_c:
 	qtc_paramCopy(defaultQtcStyle.ft3, tk.qtc);
 	break;
 case FT_sam_c:
@@ -16908,13 +17212,13 @@ return '&iscustomgenome=on&scaffoldlen='+lst.join(',');
 }
 
 Browser.prototype.ajax_addtracks=function(lst) {
-	print2console('ajax_addtracks',2);
+	// print2console('ajax_addtracks',2);
 	/* must provide tkobj, works for mixture of native/custom tracks
 	custom track might be un-registered
 	but if adding compound tracks, member tracks must be registered!
 	*/
 	if(lst.length==0) {return;}
-	print2console(lst.length,2);
+	// print2console(lst.length,2);
 	var olst=[];
 	for(var i=0; i<lst.length; i++) {
 		var o=lst[i];
@@ -16996,15 +17300,15 @@ Browser.prototype.ajax_addtracks=function(lst) {
 }
 
 Browser.prototype.ajax_addtracks_cb=function(data) {
-	print2console('ajax_addtracks_cb',2);
+	// print2console('ajax_addtracks_cb',2);
 	if(!data) {
 		print2console('server crashed, please refresh and start over',2);
 		return;
 	}
 	var count=this.tklst.length;
-	print2console(count,2);
+	// print2console(count,2);
 	this.jsonAddtracks(data);
-	print2console('17008',2);
+	// print2console('17008',2);
 	if(count<this.tklst.length) {
 		print2console('Tracks added',1);
 	}
@@ -17015,10 +17319,10 @@ Browser.prototype.ajax_addtracks_cb=function(data) {
 }
 
 Browser.prototype.jsonAddtracks=function(data) {
-	print2console('jsonAddtracks',2);
-	for (var name in data) {
-		print2console(name,2);
-	}
+	// print2console('jsonAddtracks',2);
+	// for (var name in data) {
+	// 	print2console(name,2);
+	// }
 	/* first, need to register those that are new customs */
 	if(data.brokenbeads) {
 		print2console('Failed to load following tracks:',0);
@@ -17033,7 +17337,7 @@ Browser.prototype.jsonAddtracks=function(data) {
 		}
 	}
 	var lst=data.tkdatalst;
-	print2console(lst.length,2);
+	// print2console(lst.length,2);
 	// pre-process json data
 	for(var i=0; i<lst.length; i++) {
 		if(!lst[i].data) {
@@ -17047,11 +17351,11 @@ Browser.prototype.jsonAddtracks=function(data) {
 		what's the possibilities??
 		*/
 		this.genome.registerCustomtrack(lst[i]);
-		print2console('17033',2);
+		// print2console('17033',2);
 	}
 	/* now all tracks should be registered, add them */
 	var tknamelst=this.jsonTrackdata(data);
-	print2console(tknamelst.length,2);
+	// print2console(tknamelst.length,2);
 	for(var i=0; i<tknamelst.length; i++) {
 		if(!tknamelst[i][1]) continue;
 		// newly added tk
@@ -23056,6 +23360,8 @@ case FT_bedgraph_n:
 case FT_bigwighmtk_c:
 case FT_bigwighmtk_n:
 case FT_qdecor_n:
+case FT_callingcard_c:
+case FT_callingcard_n:
 	config_numerical(tk);
 	break;
 case FT_cat_c:
@@ -23371,6 +23677,8 @@ case FT_qdecor_n:
 	break;
 case FT_bedgraph_c:
 case FT_bedgraph_n:
+case FT_callingcard_c:
+case FT_callingcard_n:
 	if(menu.c20) menu.c20.style.display= 'block'; // bev
 	break;
 case FT_bigwighmtk_c:
@@ -25331,7 +25639,8 @@ tag=='annotation'||tag=='hammock'||
 tag=='categorymatrix'||
 tag=='quantitativecategoryseries'||
 tag=='genomealign' ||
-tag=='matplot'
+tag=='matplot' ||
+tag=='callingcard'
 ) return true;
 return false;
 }
@@ -25457,6 +25766,12 @@ case 'categorymatrix':
 	break;
 case 'quantitativecategoryseries':
 	obj.ft=FT_qcats;
+	if(m!=M_hide) {
+		m=M_show;
+	}
+	break;
+case 'callingcard':
+	obj.ft=FT_callingcard_c;
 	if(m!=M_hide) {
 		m=M_show;
 	}

@@ -90,6 +90,9 @@
 //bigBed support
 #define FT_bigbed_n 31
 #define FT_bigbed_c 32
+// calling card format
+#define FT_callingcard_n 33
+#define FT_callingcard_c 34
 
 #define RM_genome 0
 #define RM_jux_n 1
@@ -452,6 +455,7 @@ case FT_anno_c:
 case FT_weaver_c:
 case FT_catmat:
 case FT_qcats:
+case FT_callingcard_c:
 	return TRUE;
 default:
 	return FALSE;
@@ -639,6 +643,7 @@ switch(ft)
 	case FT_cat_c:
 	case FT_bigwighmtk_c:
 	case FT_anno_c:
+	case FT_callingcard_c:
 		return trackname;
 	case FT_bed_n:
 		assert(asprintf(&p, "%s%s.gz", bbiDir, trackname)>0);
@@ -669,6 +674,9 @@ switch(ft)
 		return p;
 	case FT_bigwighmtk_n:
 		assert(asprintf(&p, "%s%s.bigWig", bbiDir, trackname)>0);
+		return p;
+	case FT_callingcard_n:
+		assert(asprintf(&p, "%s%s.gz", bbiDir, trackname)>0);
 		return p;
 	default:
 		fprintf(stderr, "%s: %s %d\n", __FUNCTION__, trackname, ft);
@@ -4004,6 +4012,26 @@ while(tok != NULL)
 			assert((tok=strtok(NULL,delim)) != NULL);
 			assert((tt->mode=strMayPositiveInt(tok))!=-1);
 			break;
+		case FT_callingcard_n:
+			tt->name=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->urlpath=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->mode=strMayPositiveInt(tok))!=-1);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->summeth=strMayPositiveInt(tok))!=-1);
+			break;
+		case FT_callingcard_c:
+			tt->name=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->label = strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			tt->urlpath=strdup(tok);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->mode=strMayPositiveInt(tok))!=-1);
+			assert((tok=strtok(NULL,delim)) != NULL);
+			assert((tt->summeth=strMayPositiveInt(tok))!=-1);
+			break;
 		default:
 			fprintf(stderr, "%s: unknown ft %d\n", __FUNCTION__, ft);
 			exit(0);
@@ -6311,6 +6339,15 @@ if(cgiVarExists("refreshcusttkcache"))
 			ti_close(fin);
 			}
 		}
+	else if(ft==FT_callingcard_c) {
+		tabix_t *fin=tabixOpen(url,TRUE);
+		if(fin==NULL) {
+			printf("'error':'failed to refresh cache',");
+		}
+		else {
+			ti_close(fin);
+		}
+	}
 	else 
 		{
 		tabix_t *fin=tabixOpen(url,TRUE);
@@ -8128,7 +8165,7 @@ if(cgiVarExists("makegeneplot"))
     char *urlpath=cgiString("datatk");
 	tabix_t *fin=NULL;
 	// different querying methods for bedgraph/tabix, categorical/tabix, and bigwig
-	boolean isTabix=(ft==FT_bedgraph_c||ft==FT_bedgraph_n||ft==FT_qdecor_n);
+	boolean isTabix=(ft==FT_bedgraph_c||ft==FT_bedgraph_n||ft==FT_qdecor_n||ft==FT_callingcard_c||ft==FT_callingcard_n);
 	if(isTabix) {
 		fin=tabixOpen(urlpath,TRUE);
 		}
@@ -10056,6 +10093,8 @@ if(cgiVarExists("hmtk12"))
 	parseTrackParam(cgiString("hmtk12"), FT_cat_n, &trackSl);
 if(cgiVarExists("hmtk13"))
 	parseTrackParam(cgiString("hmtk13"), FT_cat_c, &trackSl);
+if(cgiVarExists("hmtk34"))
+	parseTrackParam(cgiString("hmtk34"), FT_callingcard_c, &trackSl);
 
 
 hm.trackSl = trackSl;
@@ -10122,7 +10161,7 @@ if(hm.trackSl!=NULL)
 				if(p == 0)
 					{
 					/*** in a child process ***/
-					if(tk->ft==FT_bedgraph_c || tk->ft==FT_bedgraph_n || tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)
+					if(tk->ft==FT_bedgraph_c || tk->ft==FT_bedgraph_n || tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c || tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n)
 						{
 						double *data= tabixQuery_bedgraph_dsp(hm.dsp, tk);
 						if(data==NULL)
@@ -10204,7 +10243,7 @@ if(hm.trackSl!=NULL)
 						}
 					else
 						{
-						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c)
+						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c||tk->ft==FT_callingcard_c||tk->ft==FT_callingcard_n)
 							{
 							for(i=0; i<dsp.usedSummaryNumber; i++)
 								{
@@ -10229,7 +10268,7 @@ if(hm.trackSl!=NULL)
 								}
 							// print out json for tkLst array element
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
-							if(tk->ft==FT_bedgraph_c||tk->ft==FT_bigwighmtk_c)
+							if(tk->ft==FT_bedgraph_c||tk->ft==FT_bigwighmtk_c||tk->ft==FT_callingcard_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
 							printf("'data':[");
 							// track data of different regions are in separate arrays
