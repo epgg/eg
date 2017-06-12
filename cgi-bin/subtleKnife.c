@@ -232,6 +232,8 @@ struct nnode
     char strand;
     char *name;
     double *data;
+	unsigned int *xdata; // For calling card data
+	unsigned int *ydata; // For calling card data
 	int id;
     };
 
@@ -399,6 +401,23 @@ struct heatmap
 	struct track *tk27;
     struct track *decor30;
     };
+struct callingCard
+	{
+	struct callingCard *next;
+	char *chrom;
+	unsigned long start;
+	unsigned long stop;
+	unsigned long count;
+	char strand;
+	char *barcode; // may be used as ID
+	};
+struct callingCardData
+	{
+	struct callingCardData *next;
+	long *xdata;
+	long *ydata;
+	int length;
+	};
 
 /**********************************
        global variables
@@ -532,6 +551,7 @@ for(; sl!=NULL; sl=sl->next)
 	a++;
 return a;
 }
+
 void slFree(void *in)
 {
 // works for things similar as slNode
@@ -543,6 +563,35 @@ while(sl!=NULL)
 	free(sl);
 	sl=n;
 	}
+}
+
+// Patterned after slCount2
+int ccCount(void *in) {
+	int count = 0;
+	struct callingCard *current = (struct callingCard *)in;
+	while (current != NULL) {
+		count++;
+		current = current->next;
+	}
+	return count;
+}
+
+// Patterned after slFree
+void ccFree(void *in) {
+	struct callingCard *current = (struct callingCard *)in;
+	struct callingCard *n;
+	while (current!=NULL) {
+		n = current->next;
+		free(current);
+		current = n;
+	}
+}
+
+void ccDataFree(void *in) {
+	struct callingCardData *ccData = (struct callingCardData *)in;
+	free(ccData->xdata);
+	free(ccData->ydata);
+	free(ccData);
 }
 
 int nsort_compAsc(const void *a, const void *b)
@@ -595,6 +644,76 @@ return newsl;
 }
 
 struct genericItem *beditemsort_stopDsc(struct genericItem *sl)
+{
+/* apply numerical sort to stop of bed items
+yield new list in descending order
+original list is *altered*
+*/
+if(sl==NULL) return NULL;
+int count=0;
+struct genericItem *t;
+for(t=sl; t!=NULL; t=t->next) count++;
+struct nsortItem *array=malloc(sizeof(struct nsortItem)*count);
+if(array==NULL)
+	{
+	fprintf(stderr, "%s: out of mem\n", __FUNCTION__);
+	exit(0);
+	}
+int i=0;
+for(t=sl; t!=NULL; t=t->next)
+	{
+	array[i].value=t->stop;
+	array[i++].ptr=(void *)t;
+	}
+qsort(array, count, sizeof(struct nsortItem), nsort_compAsc);
+struct genericItem *newsl=NULL;
+for(i=0; i<count; i++)
+	{
+	t=(struct genericItem *)array[i].ptr;
+	t->next=newsl;
+	newsl=t;
+	}
+free(array);
+return newsl;
+}
+
+// Carbon copy of beditemsort_startAsc for calling card data
+struct callingCard *callingCardSort_startAsc(struct callingCard *sl)
+{
+/* apply numerical sort to start of generic items
+yield new list in ascending order
+original list is *altered*
+*/
+if(sl==NULL) return NULL;
+int count=0;
+struct genericItem *t;
+for(t=sl; t!=NULL; t=t->next) count++;
+struct nsortItem *array=malloc(sizeof(struct nsortItem)*count);
+if(array==NULL)
+	{
+	fprintf(stderr, "%s: out of mem\n", __FUNCTION__);
+	exit(0);
+	}
+int i=0;
+for(t=sl; t!=NULL; t=t->next)
+	{
+	array[i].value=t->start;
+	array[i++].ptr=(void *)t;
+	}
+qsort(array, count, sizeof(struct nsortItem), nsort_compDsc);
+struct genericItem *newsl=NULL;
+for(i=0; i<count; i++)
+	{
+	t=(struct genericItem *)array[i].ptr;
+	t->next=newsl;
+	newsl=t;
+	}
+free(array);
+return newsl;
+}
+
+// Carbon copy of beditemsort_stopDsc for calling card data
+struct callingCard *callingCardSort_stopDsc(struct callingCard *sl)
 {
 /* apply numerical sort to stop of bed items
 yield new list in descending order
@@ -1420,6 +1539,157 @@ if(haveInvalid)
 return sl;
 }
 
+// For calling card data
+// Modeled after tabixQuery_bed and tabixQuery_bedgraph, but enabling detection of optional barcode and strand fields.
+struct callingCard *tabixQuery_callingCard(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop)//, boolean getrestdata)
+{
+/* only for calling card files
+generic interval-based query over tabix file
+query coord must be in the format of chr1:234-567
+
+the returned list is not sorted, it will be sorted on demand
+as different sorting methods will be used,
+e.g. sort by start, or stop
+*/
+char *querycoord;
+assert(asprintf(&querycoord, "%s:%d-%d", chrom, start, stop)>0);
+int chridx, begin, end;
+if(ti_parse_region(fin->idx, querycoord, &chridx, &begin, &end)<0)
+	{
+	return NULL;
+	}
+struct callingCard *sl=NULL, *cc;
+ti_iter_t iter=ti_queryi(fin, chridx, begin, end);
+const char *row;
+char delim[]="\t";
+char *tmpstr, *tok, *rest;
+int len;
+int count = 0;
+long l;
+boolean haveInvalid=FALSE;
+while((row=ti_read(fin, iter, &len)) != 0)
+	{
+	tmpstr=strdup(row);
+	// fprintf(stderr, "%s\n", tmpstr);
+	if(tmpstr==NULL)
+		{
+		fprintf(stderr, "%s: mem\n", __FUNCTION__);
+		exit(0);
+		}
+	cc=malloc(sizeof(struct callingCard));
+	// We expect to encounter values of chr, start, stop, and count
+	// Not necessarily strand and barcode
+	cc->strand = NULL;
+	cc->barcode = NULL;
+	// chr
+	// fputs("chr\n", stderr);
+	tok = strtok(tmpstr, delim);
+	if (tok == NULL) {
+		haveInvalid = TRUE;
+		continue;
+	} else {
+		cc->chrom = strdup(tok);
+	}
+	// start
+	// fputs("start\n", stderr);
+	tok = strtok(NULL, delim);
+	if (tok == NULL) {
+		haveInvalid = TRUE;
+		continue;
+	} else {
+		l = atol(tok);
+		if (l == -1) {
+			haveInvalid = TRUE;
+			continue;
+		} else
+			cc->start = l;
+	}
+	// stop
+	// fputs("stop\n", stderr);
+	tok = strtok(NULL, delim);
+	if (tok == NULL) {
+		haveInvalid = TRUE;
+		continue;
+	} else {
+		l = atol(tok);
+		if (l == -1) {
+			haveInvalid = TRUE;
+			continue;
+		} else
+			cc->stop = l;
+	}
+	// read count
+	// fputs("count\n", stderr);
+	tok = strtok(NULL, delim);
+	if (tok == NULL) {
+		haveInvalid = TRUE;
+		continue;
+	} else {
+		l = atol(tok);
+		if (l == -1) {
+			haveInvalid = TRUE;
+			continue;
+		} else
+			cc->count = l;
+	}
+	// strand, if present
+	// fputs("strand\n", stderr);
+	tok = strtok(NULL, delim);
+	if (tok == NULL) {
+		// End of line, no barcode and strand information present
+		; // Do nothing, resume after this if statement
+	} else {
+		cc->strand = strdup(tok);
+		// barcode, if present
+		// fputs("barcode\n", stderr);
+		tok = strtok(NULL, delim);
+		if (tok == NULL) {
+			// End of line, strand present but not barcode
+			; // Do nothing
+		} else {
+			cc->barcode = strdup(tok);
+		}
+	}
+	// fputs("1623\n", stderr);
+	// fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
+	cc->next=sl;
+	sl=cc;
+	count++;
+	}
+ti_iter_destroy(iter);
+
+if(haveInvalid)
+	fprintf(stderr, "%s: failed to parse certain lines in %s\n", __FUNCTION__, fin->fn);
+
+fprintf(stderr, "Finished reading file\n");
+fprintf(stderr, "Processed %d records\n", count);
+return sl;
+}
+
+struct callingCardData *getCallingCardData(struct callingCard *cclist) {
+	int len = ccCount(cclist);
+	fprintf(stderr, "%d calling cards\n");
+	struct callingCardData *data = NULL;
+	int *xdata = malloc(sizeof(int) * len);
+	int *ydata = malloc(sizeof(int) * len);
+	struct callingCard *current = cclist;
+	fputs("1673\n", stderr);
+	for (int i = 0; i < len; i++) {
+		xdata[i] = (current->start + current->stop)/2;
+		ydata[i] = current->count;
+		current = current->next;
+	}
+	fputs("1679\n", stderr);
+	data->xdata = xdata;
+	data->ydata = ydata;
+	data->length = len;
+	fputs("1683\n", stderr);
+	free(xdata);
+	free(ydata);
+	fputs("1686\n", stderr);
+	return data;
+}
+
 double tabixQuery_bedgraph_singlepoint(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop)
 {
 /* only get one data point, extremely simplified
@@ -2097,6 +2367,77 @@ for(r=dsp->head; r!=NULL; r=r->next)
     }
 ti_close(fin);
 return data;
+}
+
+// For calling card data. Modeled after tabixQuery_bedgraph_dsp
+struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, struct track *tk)
+{
+/* Fetch all calling cards within displayed region.
+   Free after use.
+*/
+
+tabix_t *fin=tabixOpen(tk->urlpath, TRUE);
+if(fin==NULL)
+	{
+	return NULL;
+	}
+
+int i, tmpLength, newLength;
+struct region *r;
+struct callingCard *cclist=NULL, *tmp=NULL;
+struct callingCardData *tmpData1=NULL, *tmpData2=NULL, *returnData=NULL;
+// returnData->length = 0;
+for(r=dsp->head; r!=NULL; r=r->next) {
+    if(r->summarySize > 0) {
+		tmp = beditemsort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
+		fprintf(stderr, "%s\n", tmp->chrom);
+		tmpData1 = getCallingCardData(tmp);
+		fprintf(stderr, "%d data points\n", tmpData1->length);
+		if (returnData==NULL) { // This is the first region we are processing
+			returnData=tmpData1;
+			tmpData2=tmpData1;
+		}
+		else {
+			tmpData2->next=tmpData1;
+			tmpData2=tmpData1;
+		}
+	}
+    else {
+		if(SQUAWK)
+			fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
+	}
+}
+ti_close(fin);
+
+return returnData;
+
+// double *data = malloc(sizeof(double) * dsp->usedSummaryNumber);
+// int i;
+// for(i=0; i<dsp->usedSummaryNumber; i++)
+//     data[i] = NAN;
+//
+// if(tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)
+// 	{
+// 	/* bigwig */
+// 	struct region *r;
+// 	i=0;
+// 	for(r=dsp->head; r!=NULL; r=r->next)
+// 		{
+// 		if(r->summarySize==0)
+// 			{
+// 			if(SQUAWK)
+// 				fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
+// 			continue;
+// 			}
+// 		if(!bigwigQuery(tk->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, r->summarySize, &data[i], tk->summeth))
+// 			{
+// 			return NULL;
+// 			}
+// 		i += r->summarySize;
+// 		}
+// 	return data;
+// 	}
+
 }
 
 void tabixQuery_categorical(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop, int spnum, int *data)
@@ -5799,7 +6140,7 @@ void rmSubstr(char *str, const char *toRemove)
 
 
 
-int main()
+int main(int argc, char **argv)
 {
 
 
@@ -5817,7 +6158,7 @@ if(SQUAWK) fputs(">>>>>\n", Squawk);
 	as =& will be used to chop up things...
 	TODO use singly linked list instead of gnu hash to get rid of entry limit
 	*/
-	char *tmp=getenv("QUERY_STRING");
+	char *tmp=argv[1];//getenv("QUERY_STRING");
 	if(tmp==NULL)
 		{
 		if(SQUAWK) fputs("cgi got no param\n", stderr);
@@ -8164,7 +8505,7 @@ if(cgiVarExists("makegeneplot"))
 		}
     char *urlpath=cgiString("datatk");
 	tabix_t *fin=NULL;
-	// different querying methods for bedgraph/tabix, categorical/tabix, and bigwig
+	// different querying methods for bedgraph/tabix, categorical/tabix, bigwig, and callingcard
 	boolean isTabix=(ft==FT_bedgraph_c||ft==FT_bedgraph_n||ft==FT_qdecor_n||ft==FT_callingcard_c||ft==FT_callingcard_n);
 	if(isTabix) {
 		fin=tabixOpen(urlpath,TRUE);
@@ -8183,13 +8524,34 @@ if(cgiVarExists("makegeneplot"))
 		 */
 		for(item=itemsl; item!=NULL; item=item->next)
 			{
-			double *data = malloc(sizeof(double) * spnum);
-			for(i=0; i<spnum; i++) data[i] = 0;
-			if(isTabix)
-				tabixQuery_bedgraph(fin, chrInfo[item->chrIdx]->name, item->start, item->stop, spnum, data, summeth_mean);
-			else
-				bigwigQuery(urlpath,chrInfo[item->chrIdx]->name, item->start, item->stop, spnum, data, summeth_mean);
-			item->data = data;
+				double *data = malloc(sizeof(double) * spnum);
+				for(i=0; i<spnum; i++) data[i] = 0;
+				if(isTabix && (ft!=FT_callingcard_c || ft!=FT_callingcard_n)) {
+					tabixQuery_bedgraph(fin, chrInfo[item->chrIdx]->name, item->start, item->stop, spnum, data, summeth_mean);
+					item->data = data;
+				}
+				
+				else if ((ft==FT_callingcard_c || ft==FT_callingcard_n)) {
+					// Get all calling cards in region; note that this does not perform local smoothing/collapsing
+					struct callingCard *cclist = beditemsort_startAsc(tabixQuery_callingCard(fin, chrInfo[item->chrIdx]->name, item->start, item->stop));
+					struct callingCardData *ccData = getCallingCardData(cclist);
+					int width = ((item->stop) - (item->start)) / spnum;
+					for (i = 0; i < ccData->length; i++) {
+						if (spnum >= item->stop - item->start)// atbplevel
+							ccData->xdata[i] = ccData->xdata[i] - item->start;
+						else // rounding to nearest bin
+							ccData->xdata[i] = (ccData->xdata[i] - item->start)/width;
+					}
+					item->xdata = ccData->xdata;
+					item->ydata = ccData->ydata;
+					// Free data
+					ccFree(cclist);
+					ccDataFree(ccData);
+				}
+				else {
+					bigwigQuery(urlpath,chrInfo[item->chrIdx]->name, item->start, item->stop, spnum, data, summeth_mean);
+					item->data = data;
+				}
 			}
 		}
     else if(is_s3)
@@ -8422,7 +8784,7 @@ if(cgiVarExists("makegeneplot"))
        this will be used in returning json data
      */
     struct slNode *clustersafenamesl = NULL, *namenode;
-    if(is_s4)
+    if(is_s4 && (ft!=FT_callingcard_c || ft!=FT_callingcard_n))
         {
 		i = 0;
 		for(item=itemsl; item!=NULL; item=item->next)
@@ -8474,7 +8836,7 @@ if(cgiVarExists("makegeneplot"))
        finishes s2
      *********************************/
     double value;
-    if(is_s2)
+    if(is_s2 && (ft!=FT_callingcard_c || ft!=FT_callingcard_n))
         {
 		/* spaghetti plot, a list of vectors
 		   [name string, v1, v2, v3, ...]
@@ -8532,7 +8894,7 @@ if(cgiVarExists("makegeneplot"))
        R rendering will be run in mean time if applicable
        this finishes up s1 and s3
      *********************************/
-    if(is_s1)
+    if(is_s1 && (ft!=FT_callingcard_c || ft!=FT_callingcard_n))
         {
 		// use R to summarize data
 		fputs("mat = t(matrix(c(", fout);
@@ -8578,7 +8940,7 @@ if(cgiVarExists("makegeneplot"))
 			}
 		fclose(fout);
 		}
-    else if(is_s3)
+    else if(is_s3 && (ft!=FT_callingcard_c || ft!=FT_callingcard_n))
         {
 		// won't reverse vector for genes on minus strand, this has already been done dude!
 		fputs("mat = t(matrix(c(", fout);
@@ -8717,7 +9079,7 @@ if(cgiVarExists("makegeneplot"))
 		fclose(fout);
 		}
     // common step to run R code for s1 and s3, do json return
-    if(is_s1 || is_s3)
+    if((is_s1 || is_s3) && (ft!=FT_callingcard_c || ft!=FT_callingcard_n))
         {
 		/* the summarized data will be writen to rtmpfile
 		   R "write" function is appending stuff to it
@@ -8759,7 +9121,7 @@ if(cgiVarExists("makegeneplot"))
          - vectors with zero std need to be discarded in correlation-based distance metric
 	 - should not transpose matrix in correlation-based distance metric
      *********************************/
-    if(is_s4)
+    if(is_s4 && (ft!=FT_callingcard_c || ft!=FT_callingcard_n))
         {
 		// make a logical vector in same length as itemsl
 		int totalNum=0;
@@ -10161,7 +10523,7 @@ if(hm.trackSl!=NULL)
 				if(p == 0)
 					{
 					/*** in a child process ***/
-					if(tk->ft==FT_bedgraph_c || tk->ft==FT_bedgraph_n || tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c || tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n)
+					if(tk->ft==FT_bedgraph_c || tk->ft==FT_bedgraph_n || tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)// || tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n)
 						{
 						double *data= tabixQuery_bedgraph_dsp(hm.dsp, tk);
 						if(data==NULL)
@@ -10181,6 +10543,29 @@ if(hm.trackSl!=NULL)
 							}
 						fclose(fout);
 						}
+					else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
+						fputs("10505\n", stderr);
+						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
+						fputs("10507\n", stderr);
+						if (ccData->xdata==NULL || ccData->ydata==NULL) {
+							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+							_exit(0);
+						}
+						FILE *fout = fopen(tk->tmpfile, "w");
+						if(fout == NULL) {
+							if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
+							_exit(0);
+						}
+						struct region *r;
+						struct callingCardData *current = ccData;
+						for(; current!=NULL; current=current->next) {
+							fputs("%d\n", current->length);
+							for (int i = 0; i < current->length; i++)
+								fprintf(fout, "%d\t%d\n", current->xdata[i], current->ydata[i]);
+						}
+						fclose(fout);
+						fputs("10525\n", stderr);
+					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
 						int *data=tabixQuery_categorical_dsp(hm.dsp, tk->urlpath, tk->ft);
@@ -10226,6 +10611,7 @@ if(hm.trackSl!=NULL)
 				waitpid(tk->pid, &status, 0);
 				if(status == 0)
 					{
+					fputs("10569\n", stderr);
 					/* child process has finished successfully */
 					tk->pid = 0;
 					/* ft-specific treatment */
@@ -10243,7 +10629,7 @@ if(hm.trackSl!=NULL)
 						}
 					else
 						{
-						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c||tk->ft==FT_callingcard_c||tk->ft==FT_callingcard_n)
+						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c)//||tk->ft==FT_callingcard_c||tk->ft==FT_callingcard_n)
 							{
 							for(i=0; i<dsp.usedSummaryNumber; i++)
 								{
@@ -10268,7 +10654,7 @@ if(hm.trackSl!=NULL)
 								}
 							// print out json for tkLst array element
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
-							if(tk->ft==FT_bedgraph_c||tk->ft==FT_bigwighmtk_c||tk->ft==FT_callingcard_c)
+							if(tk->ft==FT_bedgraph_c||tk->ft==FT_bigwighmtk_c)//||tk->ft==FT_callingcard_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
 							printf("'data':[");
 							// track data of different regions are in separate arrays
@@ -10290,6 +10676,41 @@ if(hm.trackSl!=NULL)
 								}
 							printf("]},");
 							}
+						else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
+							fputs("10633\n", stderr);
+							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
+							if(tk->ft==FT_callingcard_c)
+								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
+							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
+							if (ccData->xdata==NULL || ccData->ydata==NULL) {
+								if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+								_exit(0);
+							}
+							// FILE *fout = fopen(tk->tmpfile, "w");
+							// if(fout == NULL) {
+							// 	if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
+							// 	_exit(0);
+							// }
+							int i = 0;
+							struct region *r;
+							struct callingCardData *current = ccData;
+							printf("'xdata':[");
+							for(; current!=NULL; current=current->next) {
+								printf("[");
+								for (i = 0; i < current->length; i++)
+									printf("%d,", current->xdata[i]);
+								printf("],");
+							}
+							printf("],'ydata':[");
+							for(; current!=NULL; current=current->next) {
+								printf("[");
+								for (i = 0; i < current->length; i++)
+									printf("%d,", current->ydata[i]);
+								printf("],");
+							}
+							printf("]},");
+							ccFree(ccData);
+						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
 							{
 							for(i=0; i<dsp.usedSummaryNumber; i++)
@@ -10334,6 +10755,7 @@ if(hm.trackSl!=NULL)
 					}
 				else
 					{
+						fprintf(stderr, "%d\n", tk->pid);
 					fprintf(stderr, "%s(%d) unknown status for child process\n", tk->name, tk->ft);
 					brokenbeads_add(tk->name,tk->urlpath,tk->ft);
 					}

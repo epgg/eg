@@ -6910,6 +6910,7 @@ req.onreadystatechange= function() {
 		callback(data);
 	}
 };
+var x = escape(queryUrl);
 req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
 	(this.ajax_phrase?this.ajax_phrase:''), true);
 req.send();
