@@ -414,9 +414,9 @@ struct callingCard
 struct callingCardData
 	{
 	struct callingCardData *next;
-	long *xdata;
-	long *ydata;
-	int length;
+	unsigned long *xdata;
+	unsigned long *ydata;
+	unsigned long length;
 	};
 
 /**********************************
@@ -1547,9 +1547,7 @@ struct callingCard *tabixQuery_callingCard(tabix_t *fin, char *chrom, unsigned i
 generic interval-based query over tabix file
 query coord must be in the format of chr1:234-567
 
-the returned list is not sorted, it will be sorted on demand
-as different sorting methods will be used,
-e.g. sort by start, or stop
+the returned list is sorted by position according to the tabix file
 */
 char *querycoord;
 assert(asprintf(&querycoord, "%s:%d-%d", chrom, start, stop)>0);
@@ -1558,7 +1556,7 @@ if(ti_parse_region(fin->idx, querycoord, &chridx, &begin, &end)<0)
 	{
 	return NULL;
 	}
-struct callingCard *sl=NULL, *cc;
+struct callingCard *sl=NULL, *tail=NULL, *cc;
 ti_iter_t iter=ti_queryi(fin, chridx, begin, end);
 const char *row;
 char delim[]="\t";
@@ -1651,9 +1649,15 @@ while((row=ti_read(fin, iter, &len)) != 0)
 		}
 	}
 	// fputs("1623\n", stderr);
-	// fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
-	cc->next=sl;
-	sl=cc;
+	// if (count < 10) fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
+	if (sl == NULL) {
+		sl = cc;
+		tail = sl;
+	} else {
+		tail->next = cc;
+		tail = cc;
+	}
+	tail->next = NULL;
 	count++;
 	}
 ti_iter_destroy(iter);
@@ -1667,25 +1671,31 @@ return sl;
 }
 
 struct callingCardData *getCallingCardData(struct callingCard *cclist) {
-	int len = ccCount(cclist);
-	fprintf(stderr, "%d calling cards\n");
-	struct callingCardData *data = NULL;
-	int *xdata = malloc(sizeof(int) * len);
-	int *ydata = malloc(sizeof(int) * len);
+	unsigned long len = ccCount(cclist);
+	fprintf(stderr, "%d calling cards\n", len);
+	struct callingCardData *data = malloc(sizeof(struct callingCardData));
+	unsigned long *xdata = malloc(sizeof(unsigned long) * len);
+	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
-	for (int i = 0; i < len; i++) {
+	int i = 0;
+	while (current->next != NULL) {
 		xdata[i] = (current->start + current->stop)/2;
 		ydata[i] = current->count;
+		i++;
 		current = current->next;
+		// fprintf(stderr, "%d,%d,%d,%d\n", i, current->start, current->stop ,current->count);
 	}
 	fputs("1679\n", stderr);
+	// fprintf(stderr, "%d\n", len);
+	// fprintf(stderr, "%d\n", xdata[0]);
+	// fprintf(stderr, "%d\n", ydata[0]);
 	data->xdata = xdata;
 	data->ydata = ydata;
 	data->length = len;
 	fputs("1683\n", stderr);
-	free(xdata);
-	free(ydata);
+	// free(xdata);
+	// free(ydata);
 	fputs("1686\n", stderr);
 	return data;
 }
@@ -2385,22 +2395,24 @@ if(fin==NULL)
 int i, tmpLength, newLength;
 struct region *r;
 struct callingCard *cclist=NULL, *tmp=NULL;
-struct callingCardData *tmpData1=NULL, *tmpData2=NULL, *returnData=NULL;
+struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
 // returnData->length = 0;
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
-		tmp = beditemsort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
-		fprintf(stderr, "%s\n", tmp->chrom);
-		tmpData1 = getCallingCardData(tmp);
-		fprintf(stderr, "%d data points\n", tmpData1->length);
+		// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
+		tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
+		fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+		tmpData = getCallingCardData(tmp);
+		fprintf(stderr, "%d data points\n", tmpData->length);
 		if (returnData==NULL) { // This is the first region we are processing
-			returnData=tmpData1;
-			tmpData2=tmpData1;
+			returnData = tmpData;
+			tail = returnData;
 		}
 		else {
-			tmpData2->next=tmpData1;
-			tmpData2=tmpData1;
+			tail->next = tmpData;
+			tail = tmpData;
 		}
+		tail->next = NULL;
 	}
     else {
 		if(SQUAWK)
@@ -2408,7 +2420,7 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 	}
 }
 ti_close(fin);
-
+fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[0], returnData->ydata[0], tail->next);
 return returnData;
 
 // double *data = malloc(sizeof(double) * dsp->usedSummaryNumber);
@@ -6143,7 +6155,7 @@ void rmSubstr(char *str, const char *toRemove)
 int main(int argc, char **argv)
 {
 
-
+fputs("main\n", stderr);
 clock_t cpuTimeStart, cpuTimeTemp;
 if(CHECKCPUTIME) cpuTimeStart = clock();
 
@@ -8437,7 +8449,7 @@ if(cgiVarExists("getChromseq"))
     }
 
 
-
+fputs("8452\n", stderr);
 
 
 /* GP fetch data for gene plot
@@ -8517,6 +8529,7 @@ if(cgiVarExists("makegeneplot"))
     boolean is_s2 = strcmp(plottype,"s2")==0;
     boolean is_s3 = strcmp(plottype,"s3")==0;
     boolean is_s4 = strcmp(plottype,"s4")==0;
+	fputs("8532\n", stderr);
     if(is_s1 || is_s2 || is_s4)
         {
 		/* these types will take the coordinates as provided, everything, no matter gene or coord
@@ -8533,11 +8546,12 @@ if(cgiVarExists("makegeneplot"))
 				
 				else if ((ft==FT_callingcard_c || ft==FT_callingcard_n)) {
 					// Get all calling cards in region; note that this does not perform local smoothing/collapsing
+					fputs("8548\n", stderr);
 					struct callingCard *cclist = beditemsort_startAsc(tabixQuery_callingCard(fin, chrInfo[item->chrIdx]->name, item->start, item->stop));
 					struct callingCardData *ccData = getCallingCardData(cclist);
 					int width = ((item->stop) - (item->start)) / spnum;
 					for (i = 0; i < ccData->length; i++) {
-						if (spnum >= item->stop - item->start)// atbplevel
+						if (spnum >= item->stop - item->start) // atbplevel
 							ccData->xdata[i] = ccData->xdata[i] - item->start;
 						else // rounding to nearest bin
 							ccData->xdata[i] = (ccData->xdata[i] - item->start)/width;
@@ -9350,7 +9364,7 @@ boolean trigger_scaffoldUpdate = cgiVarExists("scaffoldUpdate");
 /* adding arbitrary types of custom tracks
 so that it will fetch hmtk data */
 
-
+fputs("9367\n", stderr);
 
 struct displayedRegion dsp;
 dsp.head = NULL;
@@ -10544,9 +10558,9 @@ if(hm.trackSl!=NULL)
 						fclose(fout);
 						}
 					else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
-						fputs("10505\n", stderr);
+						fputs("10561\n", stderr);
 						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
-						fputs("10507\n", stderr);
+						fputs("10563\n", stderr);
 						if (ccData->xdata==NULL || ccData->ydata==NULL) {
 							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
 							_exit(0);
@@ -10564,7 +10578,7 @@ if(hm.trackSl!=NULL)
 								fprintf(fout, "%d\t%d\n", current->xdata[i], current->ydata[i]);
 						}
 						fclose(fout);
-						fputs("10525\n", stderr);
+						fputs("10581\n", stderr);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
