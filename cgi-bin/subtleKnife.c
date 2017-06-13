@@ -1659,7 +1659,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	}
 	tail->next = NULL;
 	count++;
-	fprintf(stderr, "%lu\n", tail->start);
+	// fprintf(stderr, "%lu\n", tail->start);
 	}
 ti_iter_destroy(iter);
 
@@ -2393,11 +2393,15 @@ if(fin==NULL)
 	return NULL;
 	}
 
-int i, tmpLength, newLength;
+int i, width;
 struct region *r;
 struct callingCard *cclist=NULL, *tmp=NULL;
 struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
 // returnData->length = 0;
+// fprintf(stderr, "dsp region start: %d\n", dsp->start->coord);
+// fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
+fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
+fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
 		// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
@@ -2405,6 +2409,7 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 		fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
 		tmpData = getCallingCardData(tmp);
 		fprintf(stderr, "%d data points\n", tmpData->length);
+
 		if (returnData==NULL) { // This is the first region we are processing
 			returnData = tmpData;
 			tail = returnData;
