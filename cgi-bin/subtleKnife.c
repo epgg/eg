@@ -1659,6 +1659,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	}
 	tail->next = NULL;
 	count++;
+	fprintf(stderr, "%lu\n", tail->start);
 	}
 ti_iter_destroy(iter);
 
@@ -1679,7 +1680,7 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
 	int i = 0;
-	while (current->next != NULL) {
+	while (current != NULL) {
 		xdata[i] = (current->start + current->stop)/2;
 		ydata[i] = current->count;
 		i++;
@@ -2420,7 +2421,7 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 	}
 }
 ti_close(fin);
-fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[0], returnData->ydata[0], tail->next);
+fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[2655], returnData->ydata[2655], tail->next);
 return returnData;
 
 // double *data = malloc(sizeof(double) * dsp->usedSummaryNumber);
@@ -10516,6 +10517,7 @@ if(hm.trackSl!=NULL)
 
 	/* fetch data */
 	int i;
+	int lines = 0; // To count calling cards
 	boolean notfinished = TRUE;
 	int processRunningNum = 0;
 	while(notfinished)
@@ -10562,23 +10564,34 @@ if(hm.trackSl!=NULL)
 						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
 						fputs("10563\n", stderr);
 						if (ccData->xdata==NULL || ccData->ydata==NULL) {
+							fputs("10565\n", stderr);
 							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
 							_exit(0);
 						}
 						FILE *fout = fopen(tk->tmpfile, "w");
 						if(fout == NULL) {
+							fputs("10571\n", stderr);
 							if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
 							_exit(0);
 						}
+						fputs("10575\n", stderr);
 						struct region *r;
-						struct callingCardData *current = ccData;
-						for(; current!=NULL; current=current->next) {
-							fputs("%d\n", current->length);
-							for (int i = 0; i < current->length; i++)
-								fprintf(fout, "%d\t%d\n", current->xdata[i], current->ydata[i]);
+						struct callingCardData *current;// = ccData;
+						fputs("10578\n", stderr);
+						fprintf(stderr, "ccData length = %d\n", ccData->length);
+						fprintf(stderr, "ccData xdata[0] = %d\n", ccData->xdata[0]);
+						fprintf(stderr, "ccData ydata[0] = %d\n", ccData->ydata[0]);
+						fprintf(stderr, "Current points to %d\n", current);
+						if (ccData == NULL) fputs("ccData is NULL\n", stderr);
+						for(current = ccData; current!=NULL; current=current->next) {
+							fprintf(stderr, "%d\n", current->length);
+							for (int i = 0; i < current->length; i++) {
+								fprintf(fout, "%lu\t%lu\n", current->xdata[i], current->ydata[i]);
+							}
+							lines++;
 						}
 						fclose(fout);
-						fputs("10581\n", stderr);
+						fputs("10585\n", stderr);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
@@ -10625,7 +10638,7 @@ if(hm.trackSl!=NULL)
 				waitpid(tk->pid, &status, 0);
 				if(status == 0)
 					{
-					fputs("10569\n", stderr);
+					fputs("10637\n", stderr);
 					/* child process has finished successfully */
 					tk->pid = 0;
 					/* ft-specific treatment */
@@ -10691,10 +10704,51 @@ if(hm.trackSl!=NULL)
 							printf("]},");
 							}
 						else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
+							unsigned long *xdata = malloc(sizeof(unsigned long) * lines);
+							unsigned long *ydata = malloc(sizeof(unsigned long) * lines);
 							fputs("10633\n", stderr);
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
 							if(tk->ft==FT_callingcard_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
+							// for(int i=0; i < lines; i++) {
+							// 	if(getline(&line, &s, fin) == -1) {
+							// 		fprintf(stderr, "truncated tmpfile: %s\n", tk->tmpfile);
+							// 		for(; i < lines; i++) {
+							// 			xdata[i]=NAN;
+							// 			ydata[i]=NAN;
+							// 		}
+							// 		break;
+							// 	}
+							// 	if(line[0]=='n') {
+							// 		xdata[i]=NAN; // is nan
+							// 		ydata[i]=NAN; // is nan
+							// 	}
+							// 	else {
+							// 		sscanf(line, "%lu\t%lu", &xdata[i], &ydata[i]);
+							// 	}
+							// }
+							// printf("'xdata':[");
+							// int i = 0, j;
+							// for(current = ccData; current!=NULL; current=current->next) {
+							// 	printf("[");
+							// 	for(j = 0; i < current->length; j++) {
+							// 		printf("%lu,", xdata[i + j]);
+							// 	}
+							// 	printf("],");
+							// 	i += j;
+							// }
+							// printf("],'ydata':[");
+							// i = 0, j;
+							// for(current = ccData; current!=NULL; current=current->next) {
+							// 	int i = 0;
+							// 	printf("[");
+							// 	for(int j = 0; i < current->length; j++) {
+							// 		printf("%lu,", ydata[i + j]);
+							// 	}
+							// 	printf("],");
+							// 	i += j;
+							// }
+							// printf("]},");
 							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
 							if (ccData->xdata==NULL || ccData->ydata==NULL) {
 								if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
@@ -10707,16 +10761,17 @@ if(hm.trackSl!=NULL)
 							// }
 							int i = 0;
 							struct region *r;
-							struct callingCardData *current = ccData;
+							struct callingCardData *current;// = ccData;
+							if (ccData->next == NULL) fprintf(stderr, "ccData->next is NULL\n");
 							printf("'xdata':[");
-							for(; current!=NULL; current=current->next) {
+							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
 								for (i = 0; i < current->length; i++)
 									printf("%d,", current->xdata[i]);
 								printf("],");
 							}
 							printf("],'ydata':[");
-							for(; current!=NULL; current=current->next) {
+							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
 								for (i = 0; i < current->length; i++)
 									printf("%d,", current->ydata[i]);
@@ -10777,7 +10832,7 @@ if(hm.trackSl!=NULL)
 				}
 			}
 		}
-	if(SQUAWK) fputs("track data fetched\n", stderr);
+	if(SQUAWK) fprintf(stderr, "track data fetched\n");
 	}
 
 
@@ -10785,7 +10840,7 @@ printf("],"); // close tkdatalst
 
 brokenbeads_print();
 
-puts("}"); // json outmost brace
+printf("}"); // json outmost brace
 
 if(CHECKCPUTIME)
     {
