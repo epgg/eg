@@ -17346,7 +17346,13 @@ Browser.prototype.jsonAddtracks=function(data) {
 	// print2console(lst.length,2);
 	// pre-process json data
 	for(var i=0; i<lst.length; i++) {
-		if(!(lst[i].ft == 33 || lst[i].ft == 34) && !lst[i].data) {
+		// if calling card, check for both xdata and ydata
+		if(lst[i].ft == 33 || lst[i].ft == 34) {
+			if(!lst[i].xdata || !lst[i].ydata) {
+				print2console('Error adding '+FT2verbal[lst[i].ft]+' track "'+lst[i].label+'"',3);
+				continue;
+			}
+		} else if(!lst[i].data) {
 			// no data, wrong track
 			print2console('Error adding '+FT2verbal[lst[i].ft]+' track "'+lst[i].label+'"',3);
 			continue;
@@ -17552,7 +17558,11 @@ var tknames=[];
 var hasnewtk=false;
 var weavertk=[];
 for(var i=0; i<lst.length; i++) {
-	if(!lst[i].data) continue;
+	// if calling card, check for both xdata and ydata
+	if(lst[i].ft == 33 || lst[i].ft == 34) {
+		if(!lst[i].xdata || !lst[i].ydata) continue;
+	} else if(!lst[i].data) continue;
+	
 	var obj=this.findTrack(lst[i].name);
 	if(!obj) {
 		obj=this.makeTrackDisplayobj(lst[i].name, lst[i].ft);
