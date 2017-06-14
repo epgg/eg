@@ -9292,7 +9292,8 @@ Browser.prototype.callingcard_base=function(arg)
 {
 /* if rid is undefined, won't apply weaving
 */
-var data=arg.data,
+var xdata=arg.xdata,
+	ydata=arg.ydata,
 	ctx=arg.ctx,
 	colors=arg.colors,
 	tk=arg.tk,
@@ -9308,6 +9309,9 @@ var curveonly=false;
 if(tk.qtc && tk.qtc.curveonly) {
 	curveonly=true;
 }
+
+var length;
+if (xdata.length == ydata.length) length = xdata.length;
 
 var insertlookup=null;
 var thisregion=null;
@@ -9356,9 +9360,10 @@ if(plothm) {
 	nb=_tmp[2];
 }
 var svgdata=[];
-for(var i=0; i<data.length; i++) {
+for(var i=0; i < length; i++) {
 	// for each data point
-	var score=data[i];
+	var position=xdata[i]
+	var score=ydata[i];
 	var bary=null, barh=null, barcolor=null,
 		tipy=null, tipcolor=null;
 	if(isNaN(score)) {
@@ -9493,7 +9498,7 @@ for(var i=0; i<data.length; i++) {
 		// ctx.fillStyle = barcolor;
 		// ctx.fillRect(x, bary, w, curveonly? 2 : barh);
 		ctx.beginPath();
-		ctx.arc(x, bary, 4, 0, 2*Math.PI);
+		ctx.arc(position, bary, 4, 0, 2*Math.PI);
 		ctx.strokeStyle=barcolor;
 		ctx.stroke();
 		if(tosvg) {
@@ -17341,7 +17346,7 @@ Browser.prototype.jsonAddtracks=function(data) {
 	// print2console(lst.length,2);
 	// pre-process json data
 	for(var i=0; i<lst.length; i++) {
-		if(!lst[i].data) {
+		if(!(lst[i].ft == 33 || lst[i].ft == 34) && !lst[i].data) {
 			// no data, wrong track
 			print2console('Error adding '+FT2verbal[lst[i].ft]+' track "'+lst[i].label+'"',3);
 			continue;

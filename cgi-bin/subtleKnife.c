@@ -417,6 +417,7 @@ struct callingCardData
 	unsigned long *xdata;
 	unsigned long *ydata;
 	unsigned long length;
+	unsigned long numWritten; // Number of calling cards written to file
 	};
 
 /**********************************
@@ -2393,7 +2394,7 @@ if(fin==NULL)
 	return NULL;
 	}
 
-int i, width;
+int i, width, dspStart;
 struct region *r;
 struct callingCard *cclist=NULL, *tmp=NULL;
 struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
@@ -2402,6 +2403,8 @@ struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
 // fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
 fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
+width = dsp->entireLength / dsp->usedSummaryNumber;
+fprintf(stderr, "width: %d\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
 		// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
@@ -2409,7 +2412,12 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 		fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
 		tmpData = getCallingCardData(tmp);
 		fprintf(stderr, "%d data points\n", tmpData->length);
-
+		dspStart = r->dstart;
+		fprintf(stderr, "dspStart = %d\n", dspStart);
+		for (i = 0; i < tmpData->length; i++)
+			// fprintf(stderr, "%lu,", tmpData->xdata[i]);
+			tmpData->xdata[i] = (tmpData->xdata[i] - dspStart)/width;
+		
 		if (returnData==NULL) { // This is the first region we are processing
 			returnData = tmpData;
 			tail = returnData;
@@ -6158,7 +6166,7 @@ void rmSubstr(char *str, const char *toRemove)
 
 
 
-int main(int argc, char **argv)
+int main()//int argc, char **argv)
 {
 
 fputs("main\n", stderr);
@@ -6176,7 +6184,7 @@ if(SQUAWK) fputs(">>>>>\n", Squawk);
 	as =& will be used to chop up things...
 	TODO use singly linked list instead of gnu hash to get rid of entry limit
 	*/
-	char *tmp=argv[1];//getenv("QUERY_STRING");
+	char *tmp=getenv("QUERY_STRING");
 	if(tmp==NULL)
 		{
 		if(SQUAWK) fputs("cgi got no param\n", stderr);
@@ -10522,7 +10530,8 @@ if(hm.trackSl!=NULL)
 
 	/* fetch data */
 	int i;
-	int lines = 0; // To count calling cards
+	// struct callingCardData *ccData; // To iterate over calling cards
+	// int lines = 0; // To count calling cards
 	boolean notfinished = TRUE;
 	int processRunningNum = 0;
 	while(notfinished)
@@ -10592,10 +10601,11 @@ if(hm.trackSl!=NULL)
 							fprintf(stderr, "%d\n", current->length);
 							for (int i = 0; i < current->length; i++) {
 								fprintf(fout, "%lu\t%lu\n", current->xdata[i], current->ydata[i]);
+								// lines++;
 							}
-							lines++;
 						}
 						fclose(fout);
+						// fprintf(stderr, "number lines written: %d\n", lines);
 						fputs("10585\n", stderr);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
@@ -10709,9 +10719,10 @@ if(hm.trackSl!=NULL)
 							printf("]},");
 							}
 						else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
-							unsigned long *xdata = malloc(sizeof(unsigned long) * lines);
-							unsigned long *ydata = malloc(sizeof(unsigned long) * lines);
-							fputs("10633\n", stderr);
+							// fprintf(stderr, "number lines to read = %d\n", lines);
+							// unsigned long *xdata = malloc(sizeof(unsigned long) * lines);
+							// unsigned long *ydata = malloc(sizeof(unsigned long) * lines);
+							// fputs("10723\n", stderr);
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
 							if(tk->ft==FT_callingcard_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
@@ -10723,18 +10734,24 @@ if(hm.trackSl!=NULL)
 							// 			ydata[i]=NAN;
 							// 		}
 							// 		break;
-							// 	}
-							// 	if(line[0]=='n') {
-							// 		xdata[i]=NAN; // is nan
-							// 		ydata[i]=NAN; // is nan
-							// 	}
-							// 	else {
-							// 		sscanf(line, "%lu\t%lu", &xdata[i], &ydata[i]);
+							// 	} else {
+							// 		fprintf(stderr, "%d line = %s\n", i, line);
+							// 		if(line[0]=='n') {
+							// 			xdata[i]=NAN; // is nan
+							// 			ydata[i]=NAN; // is nan
+							// 		} else {
+							// 			fputs("10741\n", stderr);
+							// 			sscanf(line, "%lu\t%lu", &xdata[i], &ydata[i]);
+							// 			fprintf(stderr, "xdata: %lu, ydata: %lu\n", xdata[i], ydata[i]);
+							// 		}
 							// 	}
 							// }
+							// fputs("10744\n", stderr);
 							// printf("'xdata':[");
 							// int i = 0, j;
-							// for(current = ccData; current!=NULL; current=current->next) {
+							// struct callingCardData *current;
+							// for(current = ccData; current != NULL; current = current->next) {
+							// 	fputs("10749\n", stderr);
 							// 	printf("[");
 							// 	for(j = 0; i < current->length; j++) {
 							// 		printf("%lu,", xdata[i + j]);
@@ -10742,9 +10759,10 @@ if(hm.trackSl!=NULL)
 							// 	printf("],");
 							// 	i += j;
 							// }
+							// fputs("10756\n", stderr);
 							// printf("],'ydata':[");
 							// i = 0, j;
-							// for(current = ccData; current!=NULL; current=current->next) {
+							// for(current = ccData; current != NULL; current = current->next) {
 							// 	int i = 0;
 							// 	printf("[");
 							// 	for(int j = 0; i < current->length; j++) {
@@ -10754,6 +10772,8 @@ if(hm.trackSl!=NULL)
 							// 	i += j;
 							// }
 							// printf("]},");
+							
+							
 							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
 							if (ccData->xdata==NULL || ccData->ydata==NULL) {
 								if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
