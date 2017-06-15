@@ -1,9 +1,10 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN"> 
-<HTML> 
-  <HEAD> 
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<HTML>
+  <HEAD>
     <TITLE>WashU EpiGenome Browser</TITLE>
       <link rel="stylesheet" type="text/css" href="css/style.css"/>
 
+      <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
       <script type="text/javascript" src="js/base.js"></script>
       <script type="text/javascript" src="js/gsm.js"></script>
       <script type="text/javascript" src="js/fileload.js"></script>
@@ -15,13 +16,18 @@
       <script type="text/javascript" src="js/validhub.js"></script>
       <script type="text/javascript" src="js/sukn.js"></script>
       <script type="text/javascript" src="js/personality.js"></script>
-      
+
+      <script src="https://igv.org/web/jb/test/dist/juicebox.js"></script>
+      <script src="https://igv.org/web/beta/igv-beta.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+      <script type="text/javascript" src="js/hicInterface.js"></script>
+
 	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=UTF8">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
 	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 	<meta http-equiv="Pragma" content="no-cache" />
 	<meta http-equiv="Expires" content="0" />
-  </HEAD> 
+  </HEAD>
 
 <BODY onload='readygo()'>
 <img id=hypothetical></img>

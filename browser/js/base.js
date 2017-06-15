@@ -26,7 +26,7 @@ because during urlparam parsing, genome is not there so name can't be made
 cateTk:{which:-1,
 	itemidx:null, // category idx
 	item:null, // the color blob for the itemidx in config panel
-	}, 
+	},
 // querying sam read info when clicking on a sam track
 samread:{},
 // moving terms horizontally in mcm metadata colormap
@@ -260,8 +260,8 @@ magenta1:'rgba(153,51,153,0.1)',
 };
 
 var hicMatrixOptions=[
-	{value:'observed',text:'observed'},
-	{value:'oe',text:'oe',selected:true},
+	{value:'observed',text:'observed',selected:true},
+	//{value:'oe',text:'oe',selected:true},
 	//{value:'norm',text:'norm',selected:true},
 	//{value:'expected',text:'expected'},
 	//{value:'pearson',text:'pearson'},
@@ -274,7 +274,7 @@ var hicNormOptions=[
     ];
 var hicUnitOptions=[
 	{value:'BP',text:'BP',selected:true},
-	{value:'FRAG',text:'FRAG'},
+	//{value:'FRAG',text:'FRAG'},
     ];
 var hicUnitRes = {
 options_bp:[
@@ -468,9 +468,9 @@ this.move={
 	oldpos:0,
 	moved:false,
 	mousex:0};
-this.entire={length:0, 
-	spnum:0, 
-	summarySize:0, 
+this.entire={length:0,
+	spnum:0,
+	summarySize:0,
 	atbplevel:false,
 	bpwidth:0};
 this.dspBoundary={};
@@ -478,8 +478,8 @@ this.dspBoundary={};
 this.juxtaposition={};
 this.ideogram = {
 	canvas:null,
-	band:[], 
-	chr:null, 
+	band:[],
+	chr:null,
 	minihash:{},
 	minirulerhash:{},
 	longhash:{},
@@ -512,7 +512,7 @@ this.htest = {pvalue:[],
 	pth:'#b30000',nth:'#b30000',thtype:0,logtype:log_10,height:50}, };
 /* pairwise comparison central object */
 this.pwc = {
-	inuse:false, 
+	inuse:false,
 	qtc:{pr:230,pg:0,pb:0, nr:0,ng:204,nb:0,
 	pth:'#800000',nth:'#008000',
 	thtype:0,thmin:-3,thmax:3,thpercentile:95,
@@ -1003,7 +1003,7 @@ if(param.custom_track) {
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_lr_c);},false);
 	d3.innerHTML='Interaction<div style="color:inherit;font-weight:normal;font-size:70%;">pairwise interaction</div>';
-	
+
         d3=dom_create('div',d2);
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_hi_c);},false);
@@ -1613,7 +1613,7 @@ if(what == 0) {
 	while(holder.hasChildNodes())
 		holder.removeChild(holder.lastChild);
 } else {
-	for(var i=what; i<L; i++) 
+	for(var i=what; i<L; i++)
 		holder.removeChild(holder.lastChild);
 }
 }
@@ -2770,7 +2770,7 @@ var j=null;
 	        try{
 		    j=eval('({'+str+'})');
 	        } catch(err) {}
-            }       
+            }
     }catch(e){
         return null;
     }
@@ -2818,7 +2818,7 @@ return bpw/this.regionLst[rid][7];
 
 Browser.prototype.cumoffset=function(rid,coord,include)
 {
-/* anti sx2rcoord 
+/* anti sx2rcoord
 recalculate xoffset for each coordinate-anchor, no need to keep track of global xoffset, lazy
 from region coord to c-u-mulative x offset
 special case for cottonbbj
@@ -3016,7 +3016,7 @@ for(var i=0; i<this.regionLst.length; i++) {
 if(!hit) return null;
 if(printcoord) {
 	hit.str= this.genome.temporal_ymd ?
-		month2str[parseInt(hit.coord/100)]+' '+(hit.coord%100)+', '+this.regionLst[hit.rid][0] : 
+		month2str[parseInt(hit.coord/100)]+' '+(hit.coord%100)+', '+this.regionLst[hit.rid][0] :
 		this.regionLst[hit.rid][0]+' '+parseInt(hit.coord);
 }
 return hit;
@@ -3354,7 +3354,7 @@ if(this.weaver) {
 			for(var c in ins) {
 				ctx.fillRect(
 					this.cumoffset(i,parseInt(c)),
-					yoffset, 
+					yoffset,
 					this.bp2sw(i,ins[c]),
 					tc.height);
 			}
@@ -3373,10 +3373,10 @@ if(tkobj.ft==FT_matplot) {
 	for(var i=0; i<tkobj.tracks.length; i++) {
 		var n=tkobj.tracks[i];
 		if(typeof(n)=='string') {
-			this.tklst.forEach(function(t){ 
+			this.tklst.forEach(function(t){
 				if(t.name==n) {
 					t.mastertk=tkobj;
-					tkobj.tracks[i]=t; 
+					tkobj.tracks[i]=t;
 				}
 			});
 		}
@@ -3799,7 +3799,7 @@ if(tkobj.ft==FT_matplot) {
 					viewrangeblank=false;
 				}
 				// TODO replace pcolorscore with tkobj.maxv/.minv
-				var color= (item.name >= 0) ? 
+				var color= (item.name >= 0) ?
 					'rgba('+tkobj.qtc.pr+','+tkobj.qtc.pg+','+tkobj.qtc.pb+','+Math.min(1,item.name/pcolorscore)+')' :
 					'rgba('+tkobj.qtc.nr+','+tkobj.qtc.ng+','+tkobj.qtc.nb+','+Math.min(1,item.name/ncolorscore)+')';
 
@@ -3839,7 +3839,7 @@ if(tkobj.ft==FT_matplot) {
 				if(Math.max(item.boxstart,canvasstart)<Math.min(item.boxstart+item.boxwidth,canvasstop)) {
 					viewrangeblank=false;
 				}
-				
+
 				/* horizontal width of two mates
 				the width is used as horizontal side of a isosceles
 				*/
@@ -4297,7 +4297,7 @@ if(tkobj.ft==FT_matplot) {
 
 				if(isSam) {
 					/**************
-						bam read 
+						bam read
 					 **************/
 					if(item.hasmate) {
 						/** paired read **/
@@ -4533,8 +4533,8 @@ if(tkobj.ft==FT_matplot) {
 }
 
 // horizontal line
-if(tkobj.horizontallines && 
-	(isNumerical(tkobj) || tkobj.ft==FT_matplot || tkobj.ft==FT_cm_c) && 
+if(tkobj.horizontallines &&
+	(isNumerical(tkobj) || tkobj.ft==FT_matplot || tkobj.ft==FT_cm_c) &&
 	tkobj.qtc.height>=20 &&
 	(tkobj.maxv!=undefined && tkobj.minv!=undefined)) {
 	for(var i=0; i<tkobj.horizontallines.length; i++) {
@@ -4643,13 +4643,13 @@ if(ft==FT_ld_c || ft==FT_ld_n) {
 	stopRidx=this.dspBoundary.vstopr;
 	startViewCoord=this.dspBoundary.vstartc;
 	stopViewCoord=this.dspBoundary.vstopc;
-	
+
 	/* ld data preprocessing
 	in case of multi-region (juxtaposition or geneset)
 	synthetic lr items would not be in multiregions
 	*/
 	tkobj.ld.hash={}; // key: snp rs, val: {rid:?, coord:?, topx:?, bottomx:? }
-	// 
+	//
 	/* rid/coord is real info
 	topx/bottomx: plotting offset on the linkage graph
 	*/
@@ -5045,7 +5045,7 @@ if(isSam) {
 	Data2 = null;
 }
 
-/* convert item coord into box start/width 
+/* convert item coord into box start/width
 only do for items within lws and rws
 those fit in will have valid .boxstart/boxwidth computed,
 else they will be left undefined
@@ -5082,7 +5082,7 @@ if(isSam) {
 					}
 				} else {
 					// materid is sure to be bigger than i
-					item.boxstart = this.cumoffset(i, 
+					item.boxstart = this.cumoffset(i,
 						fvd? Math.max(item.start,r[3]) : Math.min(item.stop,r[4]) );
 					var r2=this.regionLst[materid];
 					var fvd2=(r2[8] && r2[8].item.hsp.strand=='-')?false:true;
@@ -5092,7 +5092,7 @@ if(isSam) {
 						) - item.boxstart;
 				}
 			} else {
-				item.boxstart = this.cumoffset(i, 
+				item.boxstart = this.cumoffset(i,
 					fvd? Math.max(item.start,r[3]) : Math.min(item.stop,r[4]) );
 				item.boxwidth = Math.max(1,
 					this.cumoffset(i, fvd? Math.min(item.stop,r[4]) : Math.max(item.start,r[3]))
@@ -5215,7 +5215,7 @@ if(drawArc || drawTriheatmap) {
 			if(item.boxstart==undefined || item.boxwidth==undefined) continue;
 			item.namestart=undefined;
 			var sid=0;
-			
+
 			if(j>0) {
 				if(fvd) {
 					while(stack[sid]>item.start) sid++;
@@ -5263,7 +5263,7 @@ if(drawArc || drawTriheatmap) {
 		canvas.height=densitydecorpaddingtop+tkobj.qtc.height+1+(fullStackHeight+1)*(maxstack+1);
 	}
 } else {
-	/*** 
+	/***
 		tk stack
 
 	in thin mode, allow items sit right next to each other in one stack
@@ -6309,7 +6309,7 @@ case 2:
 		case 30:
 			if(tk.showscoreidx!=undefined) {
 				tk.showscoreidx=gflag.menu.hammock_focus.scoreidx;
-				// dpuru : Sep 25, 2015 - patch fix for https://github.com/epgg/eg/issues/17				
+				// dpuru : Sep 25, 2015 - patch fix for https://github.com/epgg/eg/issues/17
 				// Also - set the default qtc style on density to Red
 				if (tk.showscoreidx == 1 ){
 					tk.qtc.pr = 0;
@@ -6766,7 +6766,25 @@ function loading_done() { waitcloak.style.display='none'; }
 
 /*** __ajax__ ***/
 
+Browser.prototype.promisfyAjax=function(url, otherPromises) {
+	if (!otherPromises) {
+		otherPromises = []
+	}
+	let promises = [];
+	promises[0] = new Promise(function(resolve, reject) {
+		this.ajax(url, resolve);
+	}.bind(this));
 
+	promises = promises.concat(otherPromises);
+
+	return Promise.all(promises).then(function (results) {
+		let ajaxData = results[0];
+		for (let i = 1; i < results.length; i++) {
+			ajaxData.tkdatalst.push(results[i]);
+		}
+		return ajaxData;
+	});
+}
 
 Browser.prototype.ajaxSaveUrlpiece=function(callback)
 {
@@ -6778,7 +6796,7 @@ if(this.urloffset >= url.length) {
 }
 var req=new XMLHttpRequest();
 var bbj=this;
-req.onreadystatechange= function() { 
+req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		try {eval('('+t+')');}
@@ -6799,7 +6817,7 @@ Browser.prototype.ajax=function(queryUrl, callback)
 /* in case of too long url, need to send it in small pieces one at a time
 to get rid of "Request Entity Too Large" error on server
 
-in case of saving status, don't run ajaxSaveUrlpiece(), 
+in case of saving status, don't run ajaxSaveUrlpiece(),
 as the already-escaped url will be escaped again,
 and there's no good way to unescape on server-side
 
@@ -6815,7 +6833,7 @@ if(queryUrl.length > urllenlimit) {
 }
 var req = new XMLHttpRequest();
 
-req.onreadystatechange= function() { 
+req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		try {
@@ -6838,7 +6856,7 @@ req.send();
 function ajaxPost(data2post, callback)
 {
 var req= new XMLHttpRequest();
-req.onreadystatechange= function() { 
+req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		if(t.substr(0,5)=='ERROR') {
@@ -6859,7 +6877,7 @@ Browser.prototype.ajaxText=function(url, callback)
 // don't use with long url
 console.log(url);
 var req= new XMLHttpRequest();
-req.onreadystatechange= function() { 
+req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		if(t.substr(0,5)=='ERROR') {
@@ -7390,7 +7408,7 @@ if(param.tklst) {
 				continue;
 			}
 			if(t.name) {
-				/* name already provided, should be from golden 
+				/* name already provided, should be from golden
 				patch here
 				if registry obj already exist for this track
 				need to update qtc
@@ -7740,7 +7758,7 @@ for(var i=0; i<_tklst.length; i++) {
 		lst[FT_lr_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore);
 		break;
 	case FT_hi_c:
-		lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size+','+t.qtc.hasChr);
+		//lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size+','+t.qtc.hasChr);
 		break;
 	case FT_ld_c:
 		lst[FT_ld_c].push(name+','+label+','+url);
@@ -7857,6 +7875,7 @@ Browser.prototype.ajaxX=function(param,norendering)
 - jumping to a gene but got multiple hits
 - gsv itemlist updating
 - generate a splinter
+- (added by Silas Hsu) getting data for HiC track -- we will query the data from a diff endpoint
 */
 gflag.bbj_x_updating[this.horcrux]=1;
 if(this.main) {
@@ -7864,7 +7883,10 @@ if(this.main) {
 	this.shieldOn();
 }
 var bbj=this;
-this.ajax(param+this.houseParam(),function(data){bbj.ajaxX_cb(data,norendering);});
+this.promisfyAjax(param+bbj.houseParam(), HicInterface.getHicPromises(this, this.tklst))
+	.then(function(serverData) {
+		bbj.ajaxX_cb(serverData, norendering);
+	});
 }
 
 Browser.prototype.ajaxX_cb=function(data,norendering)
@@ -9846,7 +9868,7 @@ var iname=item.name2?item.name2:item.name;
 var fvd=(thisregion[8] && thisregion[8].item.hsp.strand=='-') ? false : true;
 
 if(!item.struct) {
-	/*****  full, no structure 
+	/*****  full, no structure
 	including unmatched lr item
 	*/
 	var param= {
@@ -10203,14 +10225,14 @@ if(namestart) {
 		if(x2>namestop) {
 			// draw strand surrounding name
 			w=namestart-4-a;
-			var ss=decoritem_strokeStrandarrow(ctx, 
+			var ss=decoritem_strokeStrandarrow(ctx,
 				strand,
 				a, w, y, h,
 				color, tosvg);
 			if(tosvg) s=s.concat(ss);
 			a=namestop+4;
 			w=x2-a-2;
-			ss=decoritem_strokeStrandarrow(ctx, 
+			ss=decoritem_strokeStrandarrow(ctx,
 				strand,
 				a, w, y, h,
 				color, tosvg);
@@ -10225,7 +10247,7 @@ if(namestart) {
 		w=x2-a-2;
 	}
 }
-s=decoritem_strokeStrandarrow(ctx, 
+s=decoritem_strokeStrandarrow(ctx,
 	strand,
 	a, w, y, h,
 	color, tosvg);
@@ -12884,7 +12906,7 @@ if(tosvg) return svgdata;
 }
 
 function toggle20(event) {
-// native decor, show/hide children tk by clicking on arrow in 
+// native decor, show/hide children tk by clicking on arrow in
 	var hook = event.target;
 	var bait = event.target.parentNode.parentNode.nextSibling;
 	if(bait.style.display == "none") {
@@ -13442,7 +13464,7 @@ function stc_longrange_nfilterscore_KU(event) { if(event.keyCode==13) stc_longra
 
 
 /*** __palette__ ***
-a pair of two functions, 
+a pair of two functions,
 - xx_initiator()
  toggles on palette, register xx() for click event
 - xx()
@@ -13482,7 +13504,7 @@ case 25: document.getElementById('geneplot_s3_utr5c').style.backgroundColor = pa
 case 26: document.getElementById('geneplot_s3_utr3c').style.backgroundColor = palette.output; return;
 case 27: document.getElementById('geneplot_s3_exonsc').style.backgroundColor = palette.output; return;
 case 28: document.getElementById('geneplot_s3_intronsc').style.backgroundColor = palette.output; return;
-case 30: 
+case 30:
 	menu.c50.color1.style.backgroundColor=palette.output;
 	menu_update_track(1);
 	return;
@@ -13922,7 +13944,7 @@ if(miss) {
 		(tkobj.queryUrl ? '<a href='+tkobj.queryUrl+rs1+' style="color:white" target=_blank>'+rs1+'</a>' : rs1)+
 		'<br>No data';
 }
-// duplication 
+// duplication
 var td2=tr3.insertCell(1);
 miss=true;
 for(var i=0; i<t[1].length; i++) {
@@ -14461,7 +14483,7 @@ if(!this.move.direction) {
 		var a=this.hmSpan*3/totallen;
 		var b=parseInt(a);
 		this.entire.bpwidth=b+((a-b)>=.5?1:0);
-		
+
 		/* atbplevel special update:
 		regionLst[i][5] to be region plotting width
 		entire.spnum to be plotting width of everything...
@@ -14607,7 +14629,7 @@ Browser.prototype.updateDspBoundary=function()
 /* call after zoom level might have been changed
 updates .dspBoundary and .entire
 requires:
-move.styleLeft 
+move.styleLeft
 regionLst, where [5] region plot width must be ready
 */
 var d=this.dspBoundary;
@@ -14788,7 +14810,7 @@ if(hd && hd.allowupdate) {
 			hd.innerHTML=
 				(gflag.dspstat_showgenomename?this.genome.name+'&nbsp':'')+
 				(this.genome.defaultStuff.runmode==RM_genome ?
-					((r1[0]==r2[0]) ? 
+					((r1[0]==r2[0]) ?
 						r1[0]+':'+this.dspBoundary.vstartc+'-'+this.dspBoundary.vstopc :
 						'from '+r1[0]+', '+this.dspBoundary.vstartc+' to '+r2[0]+', '+this.dspBoundary.vstopc) :
 					(month2sstr[Math.floor(this.dspBoundary.vstartc/100)]+' '+(this.dspBoundary.vstartc%100)+', '+r1[0]+' to '+month2sstr[Math.floor(this.dspBoundary.vstopc/100)]+' '+(this.dspBoundary.vstopc%100)+', '+r2[0]));
@@ -14903,7 +14925,7 @@ if(t.style.display=='none') {
 }
 switch(event.target.which) {
 case 1: w+=100; break;
-case 2: 
+case 2:
 	if(w<=min_hmspan) {
 		print2console('Cannot shrink width any further',2);
 		w=min_hmspan;
@@ -14912,7 +14934,7 @@ case 2:
 	}
 	break;
 case 3: w+=10; break;
-case 4: 
+case 4:
 	if(w<=min_hmspan) {
 		print2console('Cannot shrink width any further',2);
 		w=min_hmspan;
@@ -16948,10 +16970,11 @@ this.cloak();
 this.shieldOn();
 var bbj=this;
 // allow custom genome
-this.ajax(this.displayedRegionParamPrecise()+'&addtracks=on&'+
-	'dbName='+this.genome.name+
-	this.genome.customgenomeparam()+
-	trackParam(olst),function(data){bbj.ajax_addtracks_cb(data);});
+
+let url = this.displayedRegionParamPrecise()+'&addtracks=on&'+
+	'dbName='+this.genome.name+this.genome.customgenomeparam()+trackParam(olst);
+this.promisfyAjax(url, HicInterface.getHicPromises(this, olst))
+	.then(bbj.ajax_addtracks_cb.bind(this));
 }
 
 Browser.prototype.ajax_addtracks_cb=function(data)
@@ -17204,7 +17227,7 @@ for(var i=0; i<lst.length; i++) {
 		tknames.push([lst[i].name,false]);
 	}
 
-	/* a few attributes of display object need to be recovered from the json data object 
+	/* a few attributes of display object need to be recovered from the json data object
 	e.g. decor track mode, long range track filtering scores
 	TODO tidy up logic, obj should carry these attributes already, unless that's something changed by cgi
 	*/
@@ -17316,7 +17339,7 @@ for(var i=0; i<lst.length; i++) {
 }
 // done making obj.data
 if(weavertk.length>0) {
-	/* weaving 
+	/* weaving
 	sort out alignment data from weaver tk
 	*/
 	if(!this.move.direction) {
@@ -18254,7 +18277,7 @@ if(showgenomelogo) {
 }
 /* must reset genome and weaver
 */
-b.weaver.q={}; 
+b.weaver.q={};
 b.regionLst=[];
 
 b.ajax_loadbbjdata(b.init_bbj_param);
@@ -18482,7 +18505,7 @@ if(!apps.wvfind.geneset) {
 	return;
 }
 apps.wvfind.tracks={};
-apps.wvfind.goldenbutt.style.display= 
+apps.wvfind.goldenbutt.style.display=
 //apps.wvfind.trackbutt.style.display=
 apps.wvfind.textbutt.style.display='none';
 stripChild(apps.wvfind.table,0);
@@ -19272,12 +19295,12 @@ Browser.prototype.mdgettrack = function (term, mdidx, tkset) {
 
         /**
  		* Edited by dpuru on 4/27/15.
- 		
+
         * Re-implement the above logic by inverting the loop call
-        * flatHmtk is set in the first line of Browser.prototype.generateTrackselectionGrid 
-        * 
+        * flatHmtk is set in the first line of Browser.prototype.generateTrackselectionGrid
+        *
         * Browser.prototype.flattenhmtk = Creates accesses this.genome.hmtk and generates
-        * a data structure upfront - just ONCE - instead of this.genome.hmtk invoked 
+        * a data structure upfront - just ONCE - instead of this.genome.hmtk invoked
         * every time mdgettrack is called
 
         */
@@ -19438,7 +19461,7 @@ for(var i=0; i<lst.length; i++) {
 	slst.push('</div>');
 }
 box.innerHTML=slst.join('')+
-	(term in voc.idx2desc ? 
+	(term in voc.idx2desc ?
 	'<div style="font-size:70%;opacity:.8;">'+voc.idx2desc[term]+'<br>'+
 	'term id: '+term+
 	'</div>' : ''
@@ -19656,7 +19679,7 @@ if(term in mdobj.p2c) {
 	}
 } else {
 	// is leaf
-	dom_addtext(li, 
+	dom_addtext(li,
 		(term in mdobj.idx2attr ? mdobj.idx2attr[term] : term)+
 		(term in mdobj.idx2desc ? '<div style="font-size:70%;opacity:.7;">'+mdobj.idx2desc[term]+'</div>' : '')
 	);
@@ -20668,7 +20691,7 @@ return t;
 Browser.prototype.generateTrackselectionLayout=function()
 {
 if(!this.facet) return;
-if(this.facet.dim1.mdidx==null) { 
+if(this.facet.dim1.mdidx==null) {
 	// uninitiated
 	var count=gflag.mdlst.length;
 	if(count==0) {
@@ -20707,7 +20730,7 @@ if(this.facet.dim1.mdidx==null) {
 			break;
 		}
 	}
-} 
+}
 this.facet.dim1.dom.innerHTML= mdterm2str(this.facet.dim1.mdidx,this.facet.dim1.term);
 this.facet.rowlst=[];
 this.facet.collst=[];
@@ -20907,7 +20930,7 @@ for(i=0; i<this.facet.rowlst.length; i++) {
 			d.onmouseover=facet_cellmover;
 			d.onmouseout=facet_cellmout;
 			d.onclick=facet_clickcell;
-			d.innerHTML = 
+			d.innerHTML =
 				((num[1]==0) ? '<span>0</span>' : '<span class=r>'+num[1]+'</span>')+
 				'<span>/</span>' +
 				'<span class=g>'+ num[0] + '</span>';
@@ -20942,7 +20965,7 @@ for(i=0; i<this.facet.rowlst.length; i++) {
 }
 }
 
-function facet_header_press(event) 
+function facet_header_press(event)
 {
 var t=event.target;
 if(t.tagName!='TD') {t=t.parentNode;}
@@ -21005,7 +21028,7 @@ if(num[0] == 0) {
 	d.idx=idx;
 	d.addEventListener('click',facet_clickcell,false);
 	d.title='click to show tracks';
-	d.innerHTML= 
+	d.innerHTML=
 		((num[1]==0) ? '<span>0</span>' : '<span class=r>'+num[1]+'</span>')+
 		'<span>/</span>' +
 		'<span class=g>'+ num[0] + '</span>';
@@ -21238,7 +21261,7 @@ if(tkselectionlst.length == 0) {
 	return;
 }
 var pos=absolutePosition(div);
-bbj.showhmtkchoice({lst:tkselectionlst, 
+bbj.showhmtkchoice({lst:tkselectionlst,
 	x:pos[0]+div.clientWidth-6-document.body.scrollLeft,
 	y:pos[1]-10-document.body.scrollTop,
 	context:10,
@@ -23705,8 +23728,8 @@ var d=this.tkplot_line({
 	min:mtk.minv,
 	color:'rgb('+q.pr+','+q.pg+','+q.pb+')',
 	linewidth:2,
-	x:0, 
-	y:densitydecorpaddingtop, 
+	x:0,
+	y:densitydecorpaddingtop,
 	w:(this.entire.atbplevel ? this.entire.bpwidth : 1),
 	h:mtk.qtc.height,
 	pointup:true,tosvg:tosvg});
@@ -24650,7 +24673,7 @@ for(var tag in this.splinters) {
 
 function newCustomTrack_isInvalid(hash)
 {
-/* first fetch url and name of custom track into global variables, 
+/* first fetch url and name of custom track into global variables,
 then call the validation routine
 */
 var url = hash.url;
@@ -25228,7 +25251,7 @@ if(!text) {
                 } else {
                         print2console('Invalid JSON from this hub: '+url,2);
                 }
-         //   }   
+         //   }
         //}
 }
 this.ajax_loadbbjdata(this.init_bbj_param);
@@ -25274,7 +25297,7 @@ return j;
 function hubtagistrack(tag)
 {
 // this supports longrange to be backward compatible
-if(tag=='bedgraph' || tag=='bigwig' || tag=='bed' || tag=='bigbed' || 
+if(tag=='bedgraph' || tag=='bigwig' || tag=='bed' || tag=='bigbed' ||
 tag=='longrange' || tag=='interaction' || tag=='hic' ||
 tag=='bam' || tag=='categorical' ||
 tag=='methylc'||tag=='ld'||
@@ -27033,7 +27056,7 @@ menu_hide();
 
 
 function jumpsnp_keyup(event) { if(event.keyCode==13) menuJumpsnp(); }
-function menuJumpsnp() 
+function menuJumpsnp()
 {
 var ss=menu.relocate.snp.value;
 if(ss.length==0) {
@@ -27271,7 +27294,7 @@ this.border.rpos=this.scaffold.len[lastone];
 
 Genome.prototype.scfdoverview_makepanel=function()
 {
-/* make overview panel 
+/* make overview panel
 by the content and order of scaffold.current
 if there's too many scaffolds, *do not* make this
 */
@@ -28063,7 +28086,7 @@ var L=this.move.styleLeft,
 	X=this.svg.gx,
 	Y=this.svg.gy;
 switch(e.type) {
-case svgt_no: 
+case svgt_no:
 	return;
 case svgt_line:
 case svgt_line_notscrollable:
@@ -28292,7 +28315,7 @@ for(var i=0; i<this.tklst.length; i++) {
 var maxH=this.svg.gy+this.ideogram.canvas.height;
 this.svg.gy=oldgy;
 
-/* chr ideogram below ghm 
+/* chr ideogram below ghm
 */
 var h=this.ideogram.canvas.height;
 // need to set svg.gy to below ghm
@@ -28499,7 +28522,7 @@ if((S.rd_f && S.rd_r) || (S.cg_f && S.cg_r) || (S.chg_f && S.chg_r) || (S.chh_f 
 					b[j]=((isNaN(b1)?0:(b1*a1))+(isNaN(b2)?0:(b2*a2)))/a[j];
 				}
 			}
-				
+
 
 			/* figure out chg/chh for "combined"
 			meanwhile apply rd filtering using rd data on respective strand
@@ -28734,7 +28757,7 @@ if(tk.cm.combine) {
 						color:tk.cm.color.chg_r,
 						bg:tk.cm.bg.chg_r}:null),
 				chh:(S.chh_r?{
-						data:S.chh_r.data, 
+						data:S.chh_r.data,
 						color:tk.cm.color.chh_r,
 						bg:tk.cm.bg.chh_r}:null),
 				},
