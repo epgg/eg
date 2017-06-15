@@ -1567,8 +1567,13 @@ int len;
 int count = 0;
 long l;
 boolean haveInvalid=FALSE;
+fprintf(stderr,"About to parse lines\n");
 while((row=ti_read(fin, iter, &len)) != 0)
+// while(TRUE)
 	{
+	// int x = (row=ti_read(fin, iter, &len));
+	// fprintf(stderr, "ti_read return: %d\n", x);
+	// if (x == 0) break;
 	tmpstr=strdup(row);
 	// fprintf(stderr, "%s\n", tmpstr);
 	if(tmpstr==NULL)
@@ -2389,6 +2394,7 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
    Free after use.
 */
 
+fprintf(stderr, "fin = tabixOpen(%s)\n", tk->urlpath);
 tabix_t *fin=tabixOpen(tk->urlpath, TRUE);
 if(fin==NULL)
 	{
@@ -2411,6 +2417,7 @@ else width = 1;
 fprintf(stderr, "width: %d\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
+		fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
 		// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
 		tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
 		fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
@@ -10580,6 +10587,7 @@ if(hm.trackSl!=NULL)
 						}
 					else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
 						fputs("10561\n", stderr);
+						fprintf(stderr, "New display head start = %d, new display head stop = %d, new display tail start = %d, new display tail stop = %d\n", hm.dsp->head->dstart, hm.dsp->head->dstop, hm.dsp->tail->dstart, hm.dsp->tail->dstop);
 						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
 						fputs("10563\n", stderr);
 						if (ccData->xdata==NULL || ccData->ydata==NULL) {
