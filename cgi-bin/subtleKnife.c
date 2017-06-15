@@ -415,7 +415,7 @@ struct callingCard
 struct callingCardData
 	{
 	struct callingCardData *next;
-	unsigned long *xdata;
+	float *xdata;
 	unsigned long *ydata;
 	unsigned long length;
 	unsigned long numWritten; // Number of calling cards written to file
@@ -1682,7 +1682,7 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	unsigned long len = ccCount(cclist);
 	fprintf(stderr, "%d calling cards\n", len);
 	struct callingCardData *data = malloc(sizeof(struct callingCardData));
-	unsigned long *xdata = malloc(sizeof(unsigned long) * len);
+	float *xdata = malloc(sizeof(float) * len);
 	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
@@ -2401,7 +2401,8 @@ if(fin==NULL)
 	return NULL;
 	}
 
-int i, width, dspStart;
+int i, dspStart;
+float width;
 struct region *r;
 struct callingCard *cclist=NULL, *tmp=NULL;
 struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
@@ -2412,9 +2413,9 @@ boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
 fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-if(!atbplevel) width = round((float) dsp->entireLength / (float) dsp->usedSummaryNumber);
+if(!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
 else width = 1;
-fprintf(stderr, "width: %d\n", width);
+fprintf(stderr, "width: %f\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
 		fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
@@ -10606,7 +10607,7 @@ if(hm.trackSl!=NULL)
 						struct callingCardData *current;// = ccData;
 						fputs("10578\n", stderr);
 						fprintf(stderr, "ccData length = %d\n", ccData->length);
-						fprintf(stderr, "ccData xdata[0] = %d\n", ccData->xdata[0]);
+						fprintf(stderr, "ccData xdata[0] = %f\n", ccData->xdata[0]);
 						fprintf(stderr, "ccData ydata[0] = %d\n", ccData->ydata[0]);
 						fprintf(stderr, "Current points to %d\n", current);
 						if (ccData == NULL) fputs("ccData is NULL\n", stderr);
@@ -10805,7 +10806,7 @@ if(hm.trackSl!=NULL)
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
 								for (i = 0; i < current->length; i++)
-									printf("%d,", current->xdata[i]);
+									printf("%f,", current->xdata[i]);
 								printf("],");
 							}
 							printf("],'ydata':[");
