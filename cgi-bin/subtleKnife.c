@@ -2412,7 +2412,7 @@ boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
 fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-if(!atbplevel) width = dsp->entireLength / dsp->usedSummaryNumber;
+if(!atbplevel) width = round((float) dsp->entireLength / (float) dsp->usedSummaryNumber);
 else width = 1;
 fprintf(stderr, "width: %d\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {

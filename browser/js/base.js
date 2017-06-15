@@ -9496,12 +9496,12 @@ for(var i=0; i < length; i++) {
 				svgdata.push({type:svgt_line,x1:svgx, y1:y, x2:svgx, y2:y+pheight, w:svgw, color:ctx.fillStyle});
 			}
 		}
-		// ctx.fillStyle = barcolor;
-		// ctx.fillRect(x, bary, w, curveonly? 2 : barh);
-		ctx.beginPath();
-		ctx.arc(position, bary, 4, 0, 2*Math.PI);
-		ctx.strokeStyle=barcolor;
-		ctx.stroke();
+		ctx.fillStyle = barcolor;
+		ctx.fillRect(position, bary, w, curveonly? 2 : barh);
+		// ctx.beginPath();
+		// ctx.arc(position, bary, 4, 0, 2*Math.PI);
+		// ctx.strokeStyle=barcolor;
+		// ctx.stroke();
 		if(tosvg) {
 			svgdata.push({type:svgt_rect,x:svgx,y:bary,w:svgw,h:barh,fill:barcolor});
 		}
