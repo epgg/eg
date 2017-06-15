@@ -3448,11 +3448,12 @@ if(tkobj.ft==FT_matplot) {
 	if(tosvg) svgdata=svgdata.concat(_d);
 
 	this.set_tkYscale(tkobj);
-	var data2= qtrack_logtransform(tkobj.data, tkobj.qtc);
+	var data2= qtrack_logtransform(tkobj.ydata, tkobj.qtc);
 	for(var i=0; i<this.regionLst.length; i++) {
 		var r=this.regionLst[i];
 		var svd=this.callingcard_base({
-			data:data2[i],
+			xdata:tkobj.xdata[i],
+			ydata:data2[i],
 			ctx:ctx,
 			colors:{p:'rgb('+tkobj.qtc.pr+','+tkobj.qtc.pg+','+tkobj.qtc.pb+')',
 				n:'rgb('+tkobj.qtc.nr+','+tkobj.qtc.ng+','+tkobj.qtc.nb+')',
@@ -12131,6 +12132,10 @@ do not deal with tkgroup, only get it from data
 if(tk.ft==FT_matplot) {
 	return this.tklst_yscale(tk.tracks);
 }
+if(tk.ft == FT_callingcard_n || tk.ft == FT_callingcard_c) {
+	var data2= qtrack_logtransform(tk.ydata, tk.qtc);
+	return qtrack_getthreshold(data2, tk.qtc, this.dspBoundary.vstartr, this.dspBoundary.vstopr, this.dspBoundary.vstarts, this.dspBoundary.vstops);
+}
 if(isNumerical(tk)) {
 	var data2= qtrack_logtransform(tk.data, tk.qtc);
 	return qtrack_getthreshold(data2, tk.qtc, this.dspBoundary.vstartr, this.dspBoundary.vstopr, this.dspBoundary.vstarts, this.dspBoundary.vstops);
@@ -15726,9 +15731,15 @@ if(tk.mode==M_bar) {
 	return [];
 }
 if(isNumerical(tk)) {
-	if(A>=tk.data.length) return null;
-	if(B>=tk.data[A].length) return null;
-	return tk.data[A][B];
+	if(tk.ft == FT_callingcard_n || tk.ft == FT_callingcard_c) {
+		if(A>=tk.ydata.length) return null;
+		if(B>=tk.ydata[A].length) return null;
+		return tk.ydata[A][B];		
+	} else {
+		if(A>=tk.data.length) return null;
+		if(B>=tk.data[A].length) return null;
+		return tk.data[A][B];
+	}
 }
 switch(tk.ft) {
 case FT_cat_n:
@@ -17593,7 +17604,45 @@ for(var i=0; i<lst.length; i++) {
 	}
 	// work out the data
 	var dj=lst[i].data; // data from json
-	if(isNumerical(obj) || isHmtk(obj.ft) || obj.ft==FT_catmat || obj.ft==FT_qcats) {
+	var xdj=lst[i].xdata; // calling card data
+	var ydj=lst[i].ydata; // calling card data
+	if(obj.ft == FT_callingcard_n || obj.ft == FT_callingcard_c) {
+		// numerical or cat
+		var smooth=(obj.qtc && obj.qtc.smooth);
+		if(!this.move.direction) {
+			if(smooth) {
+				obj.data_raw=ydj;
+				if(!obj.ydata) {
+					smooth_tkdata(obj);
+				}
+			} else {
+				obj.xdata=xdj;
+				obj.ydata=ydj;
+			}
+		} else {
+			var v=smooth?obj.data_raw:obj.ydata;
+			if(this.move.direction == 'l') {
+				if(this.move.merge) {
+					v[0] = dj[dj.length-1].concat(v[0]);
+					dj.pop();
+				}
+				v = dj.concat(v);
+			} else {
+				if(this.move.merge) {
+					var idx=v.length-1;
+					v[idx] = v[idx].concat(dj[0]);
+					dj.shift();
+				}
+				v = v.concat(dj);
+			}
+			if(smooth) {
+				obj.data_raw=v;
+			} else {
+				obj.ydata=v;
+			}
+		}
+		obj.skipped=undefined;		
+	} else if(isNumerical(obj) || isHmtk(obj.ft) || obj.ft==FT_catmat || obj.ft==FT_qcats) {
 		// numerical or cat
 		var smooth=(obj.qtc && obj.qtc.smooth);
 		if(!this.move.direction) {

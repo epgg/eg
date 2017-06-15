@@ -373,6 +373,7 @@ struct displayedRegion
 	/* for restricting reading lots of items
 	when showing longrange tracks for browser
 	*/
+	int hmspan;
 	struct nnode *dspFilter;
     };
 struct heatmap
@@ -2398,12 +2399,15 @@ int i, width, dspStart;
 struct region *r;
 struct callingCard *cclist=NULL, *tmp=NULL;
 struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
+boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
 // returnData->length = 0;
 // fprintf(stderr, "dsp region start: %d\n", dsp->start->coord);
 // fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
 fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
+fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-width = dsp->entireLength / dsp->usedSummaryNumber;
+if(!atbplevel) width = dsp->entireLength / dsp->usedSummaryNumber;
+else width = 1;
 fprintf(stderr, "width: %d\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
@@ -9416,7 +9420,7 @@ hm.decor30=NULL;
 hm.genetrack_sl = genetrack_sl;
 
 hmSpan = cgiInt("hmspan");
-
+dsp.hmspan = hmSpan;
 
 /***************************************
 dsp can be determined in a number of ways, exclusive of each other:
@@ -10186,6 +10190,7 @@ else
 					double sf = dsp.entireLength * (1+zoomoutPerc) / hmSpan;
 					computeSummarySize(hm.dsp, ceil(hmSpan / (1+zoomoutPerc)));
 					int spnum = hmSpan*zoomoutPerc / (1+zoomoutPerc);
+					fprintf(stderr, "10189 spnum = %d\n", spnum);
 					if(dsp.runmode == RM_genome)
 						{
 						moveBoundary_genome(hm.dsp, 'l', dist, &spnum, sf);
