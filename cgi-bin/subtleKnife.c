@@ -9934,6 +9934,9 @@ else
 						{
 						r->chromIdx = dsp.start->chromIdx;
 						r->dstart = r->dstop = dsp.start->coord;
+						fprintf(stderr, "LEFT SHIFT\n");
+						fprintf(stderr, "dsp.start->coord = %d\n", dsp.start->coord);
+						fprintf(stderr, "dsp.stop->coord = %d\n", dsp.stop->coord);
 						}
 					}
 				else
@@ -9952,6 +9955,9 @@ else
 						{
 						r->chromIdx = dsp.stop->chromIdx;
 						r->dstart = r->dstop = dsp.stop->coord;
+						fprintf(stderr, "RIGHT SHIFT\n");
+						fprintf(stderr, "dsp.start->coord = %d\n", dsp.start->coord);
+						fprintf(stderr, "dsp.stop->coord = %d\n", dsp.stop->coord);
 						}
 					}
 				r->bstart = 0;
@@ -10589,6 +10595,8 @@ if(hm.trackSl!=NULL)
 					else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
 						fputs("10561\n", stderr);
 						fprintf(stderr, "New display head start = %d, new display head stop = %d, new display tail start = %d, new display tail stop = %d\n", hm.dsp->head->dstart, hm.dsp->head->dstop, hm.dsp->tail->dstart, hm.dsp->tail->dstop);
+						fprintf(stderr, "New genome head start = %d, new genome head stop = %d, new genome tail start = %d, new genome tail stop = %d\n", hm.dsp->head->bstart, hm.dsp->head->bstop, hm.dsp->tail->bstart, hm.dsp->tail->bstop);
+						// fprintf(stderr, "start coord: %d\n", dsp.start->coord);
 						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
 						fputs("10563\n", stderr);
 						if (ccData->xdata==NULL || ccData->ydata==NULL) {
