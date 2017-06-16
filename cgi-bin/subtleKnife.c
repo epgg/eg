@@ -2388,7 +2388,7 @@ return data;
 }
 
 // For calling card data. Modeled after tabixQuery_bedgraph_dsp
-struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, struct track *tk)
+struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, struct track *tk, char *move, int start, int stop)
 {
 /* Fetch all calling cards within displayed region.
    Free after use.
@@ -2418,9 +2418,10 @@ else width = 1;
 fprintf(stderr, "width: %f\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
-		fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
+		if (!move) {start = r->dstart; stop = r->dstop;}
+		fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, start, stop);
 		// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
-		tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
+		tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, start, stop);
 		fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
 		tmpData = getCallingCardData(tmp);
 		fprintf(stderr, "%d data points\n", tmpData->length);
@@ -2428,7 +2429,18 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 		fprintf(stderr, "dspStart = %d\n", dspStart);
 		for (i = 0; i < tmpData->length; i++)
 			// fprintf(stderr, "%lu,", tmpData->xdata[i]);
-			tmpData->xdata[i] = (tmpData->xdata[i] - dspStart)/width;
+			// The following is a hack necessary to render calling card positions appropriately
+			// Will probably need to improve it
+			if (move) {
+				if (move[0] == 'r') {
+					// fprintf(stderr, "FOUND IT!\n");
+					tmpData->xdata[i] = (tmpData->xdata[i] - start + dsp->entireLength)/width;
+				} else {
+					tmpData->xdata[i] = (tmpData->xdata[i] - start)/width;
+				}
+			} else {
+				tmpData->xdata[i] = (tmpData->xdata[i] - start)/width;
+			}
 		
 		if (returnData==NULL) { // This is the first region we are processing
 			returnData = tmpData;
@@ -10596,8 +10608,26 @@ if(hm.trackSl!=NULL)
 						fputs("10561\n", stderr);
 						fprintf(stderr, "New display head start = %d, new display head stop = %d, new display tail start = %d, new display tail stop = %d\n", hm.dsp->head->dstart, hm.dsp->head->dstop, hm.dsp->tail->dstart, hm.dsp->tail->dstop);
 						fprintf(stderr, "New genome head start = %d, new genome head stop = %d, new genome tail start = %d, new genome tail stop = %d\n", hm.dsp->head->bstart, hm.dsp->head->bstop, hm.dsp->tail->bstart, hm.dsp->tail->bstop);
-						// fprintf(stderr, "start coord: %d\n", dsp.start->coord);
-						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
+						int startCoord = cgiInt("startCoord");
+						int stopCoord = cgiInt("stopCoord");
+						char *move = cgiString("move");
+						int mDistance = 0;
+						if (move != NULL) {
+							fprintf(stderr, "Move string = %s\n", move);
+							mDistance = cgiInt("distance");
+							fprintf(stderr, "moving %s by %d\n", move, mDistance);
+							if (move[0] == 'r') {
+								startCoord += mDistance;
+								stopCoord += mDistance;
+							} else if (move[0] == 'l') {
+								startCoord -= mDistance;
+								stopCoord -= mDistance;
+							} else {
+								;
+							}
+						}
+						fprintf(stderr, "startCoord = %d, stopCoord = %d\n", startCoord, stopCoord);
+						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move, startCoord, stopCoord);
 						fputs("10563\n", stderr);
 						if (ccData->xdata==NULL || ccData->ydata==NULL) {
 							fputs("10565\n", stderr);
@@ -10629,6 +10659,7 @@ if(hm.trackSl!=NULL)
 						fclose(fout);
 						// fprintf(stderr, "number lines written: %d\n", lines);
 						fputs("10585\n", stderr);
+						ccFree(ccData);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
@@ -10795,8 +10826,25 @@ if(hm.trackSl!=NULL)
 							// }
 							// printf("]},");
 							
-							
-							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk);
+							int startCoord = cgiInt("startCoord");
+							int stopCoord = cgiInt("stopCoord");
+							char *move = cgiString("move");
+							int mDistance = 0;
+							if (move != NULL) {
+								fprintf(stderr, "Move string = %s\n", move);
+								mDistance = cgiInt("distance");
+								fprintf(stderr, "moving %s by %d\n", move, mDistance);
+								if (move[0] == 'r') {
+									startCoord += mDistance;
+									stopCoord += mDistance;
+								} else if (move[0] == 'l') {
+									startCoord -= mDistance;
+									stopCoord -= mDistance;
+								} else {
+									;
+								}
+							}
+							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move, startCoord, stopCoord);
 							if (ccData->xdata==NULL || ccData->ydata==NULL) {
 								if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
 								_exit(0);

@@ -615,6 +615,17 @@ if(cls)
 	s.className=cls;
 return s;
 }
+
+function dom_addslider(holder, id, min, max, value)
+{
+	var s=dom_create('input', holder);
+	s.type='range';
+	s.id=id;
+	s.min=min;
+	s.max=max;
+	s.value=value;
+}
+
 function make_headertable(holder)
 {
 var t=dom_create('div',holder,'display:table;background-color:'+colorCentral.background_faint_7+';border-top:solid 1px '+colorCentral.magenta7);
@@ -3449,6 +3460,7 @@ if(tkobj.ft==FT_matplot) {
 
 	this.set_tkYscale(tkobj);
 	var data2= qtrack_logtransform(tkobj.ydata, tkobj.qtc);
+	var opacity=document.getElementById("opacity");
 	for(var i=0; i<this.regionLst.length; i++) {
 		var r=this.regionLst[i];
 		var svd=this.callingcard_base({
@@ -3460,6 +3472,7 @@ if(tkobj.ft==FT_matplot) {
 				pth:tkobj.qtc.pth,
 				nth:tkobj.qtc.nth,
 				barbg:tkobj.qtc.barplotbg},
+			opacity:opacity.value * 0.01,
 			tk:tkobj,
 			rid:i,
 			x:this.cumoffset(i,r[3]),
@@ -9297,6 +9310,7 @@ var xdata=arg.xdata,
 	ydata=arg.ydata,
 	ctx=arg.ctx,
 	colors=arg.colors,
+	opacity=arg.opacity,
 	tk=arg.tk,
 	ridx=arg.rid, // for weaver
 	initcoord=arg.initcoord, // for weaver, given for barplot
@@ -9496,12 +9510,13 @@ for(var i=0; i < length; i++) {
 				svgdata.push({type:svgt_line,x1:svgx, y1:y, x2:svgx, y2:y+pheight, w:svgw, color:ctx.fillStyle});
 			}
 		}
-		ctx.fillStyle = barcolor;
-		ctx.fillRect(position, bary, w, curveonly? 2 : barh);
-		// ctx.beginPath();
-		// ctx.arc(position, bary, 4, 0, 2*Math.PI);
-		// ctx.strokeStyle=barcolor;
-		// ctx.stroke();
+		// ctx.fillStyle = barcolor;
+		// ctx.fillRect(position, bary, w, curveonly? 2 : barh);
+		ctx.beginPath();
+		ctx.arc(position, bary, 4, 0, 2*Math.PI);
+		ctx.strokeStyle=barcolor;
+		ctx.globalAlpha=opacity;
+		ctx.stroke();
 		if(tosvg) {
 			svgdata.push({type:svgt_rect,x:svgx,y:bary,w:svgw,h:barh,fill:barcolor});
 		}
@@ -11380,7 +11395,52 @@ if(param.menu_curvenoarea) {
 	menu.c66.checkbox=dom_addcheckbox(menu.c66,'Curve only',menu_tkcurveonly_change);
 }
 
+// palette=dom_create('div');
+// palette.style.display='none';
+// palette.style.position='fixed';
+// palette.style.zIndex=104;
+// palette.addEventListener('mouseover',paletteMover,false);
+// palette.addEventListener('mouseout',paletteMout,false);
+// palette.innerHTML='<div style="position:relative;width:l70px;height:100px;">\
+// <div style="position:absolute;left:0px;top:15px;background-color:black;opacity:0.7;width:170px;height:150px;border-top-left-radius:5px;border-top-right-radius:5px;-moz-border-radius-topleft:5px;-moz-border-radius-topright:5px;border-bottom:solid 1px #404040;"></div>\
+// <div style="position:absolute;left:0px;top:166px;background-color:black;opacity:0.6;width:170px;height:60px;border-bottom-left-radius:5px;border-bottom-right-radius:5px;-moz-border-radius-bottomleft:5px;-moz-border-radius-bottomright:5px;"></div>\
+// <table style="position:absolute;left:0px;top:15px;width:170px;height:150px;"><tr><td align=center valign=middle style="width:270px:">\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ff0000;">red</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#008000;">green</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#0000ff;">blue</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ffff00;color:#858585;">yellow</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#800000;">maroon</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#808000;">olive</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ffa500;">orange</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#008080;">teal</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ff00ff;">fuchsia</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#6a5acd;">slateblue</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#4b0082;">indigo</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#a52a2a;">brown</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#DC143C;">crimson</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#8A2BE2;">bluevelvet</div>\
+// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#696969;">dimgray</div>\
+// </td></tr></table>\
+// <div style="position:absolute;left:20px;top:172px;">\
+// <div style="position:relative;width:110px;">\
+// <canvas id=palettegrove width=100 height=20 style="position:absolute;left:13px;top:18px;" onclick=palettegrove_click(event)></canvas>\
+// <canvas id=paletteslider width=26 height=26 style="position:absolute;left:50px;top:0px;cursor:pointer;" onmousedown=palettesliderMD(event)></canvas>\
+// </div>\
+// </div>\
+// </div>';
+// palette.grove = document.getElementById('palettegrove');
+// palette.slider = document.getElementById('paletteslider');
 
+menu.c67=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
+dom_addtext(menu.c67,'Opacity&nbsp;');
+dom_addslider(menu.c67, 'opacity', 0, 100, 50);
+// menu.c67.innerHTML='<input id="opacity" type="range" min=0 max=100 value=50 >'
+// menu.c67.select=dom_addselect(menu.c67,menu_qtksummary_select,
+// 	[{value:summeth_mean,text:'Average'},
+// 	{value:summeth_max,text:'Max'},
+// 	{value:summeth_min,text:'Min'},
+// 	{value:summeth_sum,text:'Total'} ]);
+// menu.c67.select.style.marginRight=15;
 
 menu.c53=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 menu.c53.checkbox=dom_addcheckbox(menu.c53,'Apply to all tracks',toggle15);
@@ -11568,6 +11628,9 @@ if(param.cp_custtk) {
 	fn=function(){custtk_shortcut(FT_huburl);};
 	apps.custtk.shortcut[FT_huburl]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'datahub',clc:fn});
 	gflag.applst.push({name:'Datahub',toggle:fn});
+	fn=function(){custtk_shortcut(FT_callingcard_c);};
+	apps.custtk.shortcut[FT_callingcard_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'callingcard',clc:fn});
+	gflag.applst.push({name:'Calling card track',toggle:fn});
 	/*
 	fn=function(){custtk_shortcut(FT_catmat);};
 	apps.custtk.shortcut[FT_]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'',clc:fn});
@@ -17609,7 +17672,7 @@ for(var i=0; i<lst.length; i++) {
 	if(obj.ft == FT_callingcard_n || obj.ft == FT_callingcard_c) {
 		// numerical or cat
 		var smooth=(obj.qtc && obj.qtc.smooth);
-		if(!this.move.direction) {
+		// if(!this.move.direction) {
 			if(smooth) {
 				obj.data_raw=ydj;
 				if(!obj.ydata) {
@@ -17619,28 +17682,28 @@ for(var i=0; i<lst.length; i++) {
 				obj.xdata=xdj;
 				obj.ydata=ydj;
 			}
-		} else {
-			var v=smooth?obj.data_raw:obj.ydata;
-			if(this.move.direction == 'l') {
-				if(this.move.merge) {
-					v[0] = dj[dj.length-1].concat(v[0]);
-					dj.pop();
-				}
-				v = dj.concat(v);
-			} else {
-				if(this.move.merge) {
-					var idx=v.length-1;
-					v[idx] = v[idx].concat(dj[0]);
-					dj.shift();
-				}
-				v = v.concat(dj);
-			}
-			if(smooth) {
-				obj.data_raw=v;
-			} else {
-				obj.ydata=v;
-			}
-		}
+		// } else {
+		// 	var v=smooth?obj.data_raw:obj.ydata;
+		// 	if(this.move.direction == 'l') {
+		// 		if(this.move.merge) {
+		// 			v[0] = dj[dj.length-1].concat(v[0]);
+		// 			dj.pop();
+		// 		}
+		// 		v = dj.concat(v);
+		// 	} else {
+		// 		if(this.move.merge) {
+		// 			var idx=v.length-1;
+		// 			v[idx] = v[idx].concat(dj[0]);
+		// 			dj.shift();
+		// 		}
+		// 		v = v.concat(dj);
+		// 	}
+		// 	if(smooth) {
+		// 		obj.data_raw=v;
+		// 	} else {
+		// 		obj.ydata=v;
+		// 	}
+		// }
 		obj.skipped=undefined;		
 	} else if(isNumerical(obj) || isHmtk(obj.ft) || obj.ft==FT_catmat || obj.ft==FT_qcats) {
 		// numerical or cat
@@ -23235,6 +23298,23 @@ menu.c14.style.display='block';
 menu.c14.unify.style.display='none';
 menu.c51.sharescale.style.display=tk.group!=undefined?'block':'none';
 }
+function config_callingcard(tk)
+{
+var q=tk.qtc;
+qtcpanel_setdisplay({qtc:q,
+color1:'rgb('+q.pr+','+q.pg+','+q.pb+')',
+color1text:'positive',
+color2:'rgb('+q.nr+','+q.ng+','+q.nb+')',
+color2text:'negative',
+ft:tk.ft,
+});
+menu.c14.style.display='block';
+menu.c14.unify.style.display='none';
+menu.c46.style.display='none';
+menu.c51.sharescale.style.display=tk.group!=undefined?'block':'none';
+menu.c59.style.display='none';
+menu.c67.style.display='block';
+}
 function config_cat(tk)
 {
 cateCfg_show(tk,false);
@@ -23425,9 +23505,11 @@ case FT_bedgraph_n:
 case FT_bigwighmtk_c:
 case FT_bigwighmtk_n:
 case FT_qdecor_n:
+	config_numerical(tk);
+	break;
 case FT_callingcard_c:
 case FT_callingcard_n:
-	config_numerical(tk);
+	config_callingcard(tk);
 	break;
 case FT_cat_c:
 case FT_cat_n:
