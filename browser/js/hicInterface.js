@@ -77,10 +77,10 @@ class HicInterface {
             let chr2Index = dataset.findChromosomeIndex(chr2);
             let state = HicInterface.coordinatesToState(dataset, chr1Index, bpX, bpXMax, chr2Index, bpY, bpYMax,
                 minResolution);
-            d_binsize = dataset.bpResolutions[state.zoom]
+            this.hicTrack.d_binsize = dataset.bpResolutions[state.zoom];
             return HicInterface.getBlocks(dataset, state, this.hicTrack.normalization);
         }).then((blocks) => {
-            return this.formatBlocks(blocks, chr1, d_binsize); // FIXME d_binsize
+            return this.formatBlocks(blocks, chr1);
         });
         return promise;
     }
@@ -124,8 +124,7 @@ class HicInterface {
     }
 
     static findMatchingZoomIndex(targetResolution, resolutionArray) { // Basically gets bin size
-        var z;
-        for (z = resolutionArray.length - 1; z > 0; z--) {
+        for (let z = resolutionArray.length - 1; z > 0; z--) {
             if (resolutionArray[z] >= targetResolution) {
                 return z;
             }
@@ -179,13 +178,13 @@ class HicInterface {
         other attributes: see base.js line 17215.  It just replaces track.qtc attributes with the ones that the server
         sends if names match
     */
-    formatBlocks(blocks, chromosome, d_binsize) {
+    formatBlocks(blocks, chromosome) {
         let blocksAsCoorData = blocks.map(function(block) {
             return HicInterface.blockToCoordinateData(block, chromosome);
         });
 
         let combinedCoorData = [].concat.apply([], blocksAsCoorData); // Concatenate all the data into one array
-        for (let i = 0; i < combinedCoorData.length; i++) {
+        for (let i = 0; i < combinedCoorData.length; i++) { // Make sure ids are unique
             combinedCoorData[i].id = i;
         }
 
@@ -195,21 +194,38 @@ class HicInterface {
             ft: this.hicTrack.ft,
             mode: this.hicTrack.mode,
             bin_size: this.hicTrack.bin_size,
-            d_binsize: d_binsize
+            d_binsize: this.hicTrack.d_binsize
         };
     }
 
     static blockToCoordinateData(block, chromosome) {
         var binSize = block.zoomData.zoom.binSize;
-        return block.records.map(function (record, index) {
-            return {
-                id: index,
-                name: `${chromosome}:${record.bin1 * binSize}-${(record.bin1 + 1) * binSize},${record.counts}`,
-                start: record.bin2 * binSize,
-                stop: (record.bin2 + 1) * binSize,
-                strand: (record.bin1 < record.bin2) ? "<" : ">"
-            }
-        });
+        var allData = [];
+        var id = 0;
+        for (let record of block.records) {
+            allData.push(new CoordinateRecord(id, chromosome, record.bin1, record.bin2, binSize, record.counts));
+            id++;
+            // Apparently, our API cannot infer the other half of a symmetric matrix from just a triangular part,
+            // so we have to make a new record with bin1 and bin2 switched...
+            allData.push(new CoordinateRecord(id, chromosome, record.bin2, record.bin1, binSize, record.counts));
+            id++;
+        }
+        return allData;
+    }
+}
+
+class CoordinateRecord {
+    constructor(id, chromosome, bin1, bin2, binSize, counts) {
+        let coor1Start = bin1 * binSize;
+        let coor1Stop = (bin1 + 1) * binSize;
+        let coor2Start = bin2 * binSize;
+        let coor2Stop = (bin2 + 1) * binSize;
+
+        this.id = id;
+        this.name = `${chromosome}:${coor1Start}-${coor1Stop},${counts}`;
+        this.start = coor2Start;
+        this.stop = coor2Stop;
+        this.strand = (bin1 < bin2) ? "<" : ">";
     }
 }
 
