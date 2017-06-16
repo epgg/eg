@@ -72,16 +72,16 @@ class HicInterface {
         }
 
         var d_binsize = 0;
-        let promise = this.datasetPromise.then((dataset) => {
+        let promise = this.datasetPromise.then(function (dataset) {
             let chr1Index = dataset.findChromosomeIndex(chr1);
             let chr2Index = dataset.findChromosomeIndex(chr2);
             let state = HicInterface.coordinatesToState(dataset, chr1Index, bpX, bpXMax, chr2Index, bpY, bpYMax,
                 minResolution);
             this.hicTrack.d_binsize = dataset.bpResolutions[state.zoom];
-            return HicInterface.getBlocks(dataset, state, this.hicTrack.normalization);
-        }).then((blocks) => {
+            return HicInterface.getBlocks(dataset, state, this.hicTrack.qtc.norm);
+        }.bind(this)).then(function (blocks) {
             return this.formatBlocks(blocks, chr1);
-        });
+        }.bind(this));
         return promise;
     }
 
