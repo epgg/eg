@@ -11503,42 +11503,7 @@ if(param.menu_curvenoarea) {
 	menu.c66.checkbox=dom_addcheckbox(menu.c66,'Curve only',menu_tkcurveonly_change);
 }
 
-// palette=dom_create('div');
-// palette.style.display='none';
-// palette.style.position='fixed';
-// palette.style.zIndex=104;
-// palette.addEventListener('mouseover',paletteMover,false);
-// palette.addEventListener('mouseout',paletteMout,false);
-// palette.innerHTML='<div style="position:relative;width:l70px;height:100px;">\
-// <div style="position:absolute;left:0px;top:15px;background-color:black;opacity:0.7;width:170px;height:150px;border-top-left-radius:5px;border-top-right-radius:5px;-moz-border-radius-topleft:5px;-moz-border-radius-topright:5px;border-bottom:solid 1px #404040;"></div>\
-// <div style="position:absolute;left:0px;top:166px;background-color:black;opacity:0.6;width:170px;height:60px;border-bottom-left-radius:5px;border-bottom-right-radius:5px;-moz-border-radius-bottomleft:5px;-moz-border-radius-bottomright:5px;"></div>\
-// <table style="position:absolute;left:0px;top:15px;width:170px;height:150px;"><tr><td align=center valign=middle style="width:270px:">\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ff0000;">red</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#008000;">green</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#0000ff;">blue</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ffff00;color:#858585;">yellow</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#800000;">maroon</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#808000;">olive</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ffa500;">orange</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#008080;">teal</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#ff00ff;">fuchsia</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#6a5acd;">slateblue</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#4b0082;">indigo</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#a52a2a;">brown</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#DC143C;">crimson</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#8A2BE2;">bluevelvet</div>\
-// <div class=palettedye onclick=palettedyeclick(event) style="background-color:#696969;">dimgray</div>\
-// </td></tr></table>\
-// <div style="position:absolute;left:20px;top:172px;">\
-// <div style="position:relative;width:110px;">\
-// <canvas id=palettegrove width=100 height=20 style="position:absolute;left:13px;top:18px;" onclick=palettegrove_click(event)></canvas>\
-// <canvas id=paletteslider width=26 height=26 style="position:absolute;left:50px;top:0px;cursor:pointer;" onmousedown=palettesliderMD(event)></canvas>\
-// </div>\
-// </div>\
-// </div>';
-// palette.grove = document.getElementById('palettegrove');
-// palette.slider = document.getElementById('paletteslider');
-
+// Calling card opacity slider
 menu.c67=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 dom_addtext(menu.c67,'Opacity&nbsp;');
 menu.c67.slider=dom_addslider(menu.c67, 'opacity', 0, 100, 1, 50, opacityslider);
