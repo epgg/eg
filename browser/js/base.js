@@ -340,16 +340,63 @@ var scale_auto=0,
    note height is for **plot height** not including top/bottom padding!
  */
 var defaultQtcStyle = {
-	heatmap:{pr:255,pg:0,pb:0,nr:0,ng:0,nb:230,pth:'#800000',nth:'#000099', thtype:scale_auto,thmin:0,thmax:10,thpercentile:90,height:15,summeth:summeth_mean},
-	ft3:{pr:0,pg:0,pb:230,nr:255,ng:0,nb:0,pth:'#000099',nth:'#800000', thtype:scale_auto,thmin:0,thmax:10,thpercentile:90,height:15,summeth:summeth_mean},
-	ft8:{pr:115,pg:0,pb:230,nr:179,ng:0,nb:179,pth:'#400080',nth:'#4d004d', thtype:scale_auto,thmin:0,thmax:10,thpercentile:95,height:50,summeth:summeth_mean},
-	anno:{ textcolor:'#000000',
+	heatmap:{
+		pr:255,
+		pg:0,
+		pb:0,
+		nr:0,
+		ng:0,
+		nb:230,
+		pth:'#800000',
+		nth:'#000099',
+		thtype:scale_auto,
+		thmin:0,
+		thmax:10,
+		thpercentile:90,
+		height:15,
+		summeth:summeth_mean
+	},
+	ft3:{
+		pr:0,
+		pg:0,
+		pb:230,
+		nr:255,
+		ng:0,
+		nb:0,
+		pth:'#000099',
+		nth:'#800000',
+		thtype:scale_auto,
+		thmin:0,
+		thmax:10,
+		thpercentile:90,
+		height:15,
+		summeth:summeth_mean
+	},
+	ft8:{
+		pr:115,
+		pg:0,
+		pb:230,
+		nr:179,
+		ng:0,
+		nb:179,
+		pth:'#400080',
+		nth:'#4d004d',
+		thtype:scale_auto,
+		thmin:0,
+		thmax:10,
+		thpercentile:95,
+		height:50,
+		summeth:summeth_mean
+	},
+	anno:{
+		textcolor:'#000000',
 		fontsize:'8pt',
 		fontfamily:'sans-serif',
 		fontbold:false,
 		bedcolor:'#336666'
 	},
-	ft5:{ textcolor:'#000000',
+	ft5:{
+		textcolor:'#000000',
 		fontsize:'8pt',
 		fontfamily:'sans-serif',
 		fontbold:false,
@@ -357,7 +404,8 @@ var defaultQtcStyle = {
 		reversecolor:'rgb(153,0,0)',
 		mismatchcolor:'rgb(255,255,0)',
 	},
-	interaction:{ textcolor:'#000000',
+	interaction:{
+		textcolor:'#000000',
 		thtype:scale_auto,
 		fontsize:'8pt',
 		fontfamily:'sans-serif',
@@ -371,7 +419,8 @@ var defaultQtcStyle = {
 		height:50, // for density mode
 		anglescale:1,
 	},
-	hic:{ textcolor:'#000000',
+	hic:{
+		textcolor:'#000000',
 		thtype:scale_auto,
 		fontsize:'8pt',
 		fontfamily:'sans-serif',
@@ -384,20 +433,70 @@ var defaultQtcStyle = {
 		nfilterscore:0,
 		height:50, // for density mode
 		anglescale:1,
-                matrix:'oe', // matrix
-                norm:'KR', //KR
-                unit_res:'BP',
-                bin_size:0,
-                hasChr:0,
+        matrix:'oe', // matrix
+        norm:'KR', //KR
+        unit_res:'BP',
+        bin_size:0,
+        hasChr:0,
 	},
 	// categorical
-	ft12:{height:15},
-	ft13:{height:15},
+	ft12:{
+		height:15
+	},
+	ft13:{
+		height:15
+	},
 	// bev tracks
-	bev:{pr:115,pg:0,pb:230,nr:179,ng:0,nb:179,pth:'#4d0099',nth:'#4D004d', thtype:scale_auto,thmin:0,thmax:10,thpercentile:95,height:30,summeth:summeth_mean},
+	bev:{
+		pr:115,
+		pg:0,
+		pb:230,
+		nr:179,
+		ng:0,
+		nb:179,
+		pth:'#4d0099',
+		nth:'#4D004d',
+		thtype:scale_auto,
+		thmin:0,
+		thmax:10,
+		thpercentile:95,
+		height:30,
+		summeth:summeth_mean
+	},
 	//dpuru : Sep 25, 2015 : Patch fix for https://github.com/epgg/eg/issues/17
 	// changed rgb(0,77,0) dark green -> rgb(255,0,0) red
-	density:{pr:255,pg:0,pb:0,nr:0,ng:0,nb:230,pth:'#800000',nth:'#000099', thtype:scale_auto,thmin:0,thmax:10,thpercentile:95,height:50,summeth:summeth_mean},
+	density:{
+		pr:255,
+		pg:0,
+		pb:0,
+		nr:0,
+		ng:0,
+		nb:230,
+		pth:'#800000',
+		nth:'#000099',
+		thtype:scale_auto,
+		thmin:0,
+		thmax:10,
+		thpercentile:95,
+		height:50,
+		summeth:summeth_mean
+	},
+	ft34:{
+		pr:0,
+		pg:0,
+		pb:230,
+		nr:255,
+		ng:0,
+		nb:0,
+		pth:'#000099',
+		nth:'#800000',
+		thtype:scale_auto,
+		thmin:0,
+		thmax:10,
+		thpercentile:90,
+		height:15,
+		opacity:0.5
+	},
 }
 
 var urllenlimit = 4000; // url string length limit
@@ -616,14 +715,17 @@ if(cls)
 return s;
 }
 
-function dom_addslider(holder, id, min, max, value)
+function dom_addslider(holder, id, min, max, step, value, call)
 {
 	var s=dom_create('input', holder);
 	s.type='range';
 	s.id=id;
 	s.min=min;
 	s.max=max;
+	s.step=step;
 	s.value=value;
+	s.addEventListener('input', call);
+	s.addEventListener('change', call);
 }
 
 function make_headertable(holder)
@@ -3460,7 +3562,7 @@ if(tkobj.ft==FT_matplot) {
 
 	this.set_tkYscale(tkobj);
 	var data2= qtrack_logtransform(tkobj.ydata, tkobj.qtc);
-	var opacity=document.getElementById("opacity");
+	// var opacity=document.getElementById("opacity");
 	for(var i=0; i<this.regionLst.length; i++) {
 		var r=this.regionLst[i];
 		var svd=this.callingcard_base({
@@ -3472,7 +3574,7 @@ if(tkobj.ft==FT_matplot) {
 				pth:tkobj.qtc.pth,
 				nth:tkobj.qtc.nth,
 				barbg:tkobj.qtc.barplotbg},
-			opacity:opacity.value * 0.01,
+			opacity:tkobj.qtc.opacity,
 			tk:tkobj,
 			rid:i,
 			x:this.cumoffset(i,r[3]),
@@ -6569,18 +6671,24 @@ case 2:
 				U=true;
 			}
 			break;
-                case 44: //hic configure change
-                        tk.qtc.matrix = menu.lr.matrix.value;
-                        tk.qtc.norm = menu.lr.norm.value;
-                        tk.qtc.unit_res = menu.lr.unit.value;
-                        tk.qtc.bin_size = menu.lr.binsize.value;
-                        A=true;
-                        U=true;
-                        M=true
-                        H=true
+		case 41:
+			// Change opacity of calling cards
+			var opacity=document.getElementById('opacity').valueAsNumber * 0.01;
+			tk.qtc.opacity=opacity;
+			U=true;
+			break;
+        case 44: //hic configure change
+            tk.qtc.matrix = menu.lr.matrix.value;
+            tk.qtc.norm = menu.lr.norm.value;
+            tk.qtc.unit_res = menu.lr.unit.value;
+            tk.qtc.bin_size = menu.lr.binsize.value;
+            A=true;
+            U=true;
+            M=true;
+            H=true;
 			A_tklst.push(tk);
-                        break;
-			// eee
+            break;
+		// eee
 		default: fatalError('bbj tk: unknown update context');
 		}
 		if(U) {
@@ -11433,14 +11541,7 @@ if(param.menu_curvenoarea) {
 
 menu.c67=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 dom_addtext(menu.c67,'Opacity&nbsp;');
-dom_addslider(menu.c67, 'opacity', 0, 100, 50);
-// menu.c67.innerHTML='<input id="opacity" type="range" min=0 max=100 value=50 >'
-// menu.c67.select=dom_addselect(menu.c67,menu_qtksummary_select,
-// 	[{value:summeth_mean,text:'Average'},
-// 	{value:summeth_max,text:'Max'},
-// 	{value:summeth_min,text:'Min'},
-// 	{value:summeth_sum,text:'Total'} ]);
-// menu.c67.select.style.marginRight=15;
+menu.c67.slider=dom_addslider(menu.c67, 'opacity', 0, 100, 1, 50, opacityslider);
 
 menu.c53=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 menu.c53.checkbox=dom_addcheckbox(menu.c53,'Apply to all tracks',toggle15);
@@ -14005,6 +14106,12 @@ function palettegrove_click(event) {
     palette_context_update();
 }
 
+function opacityslider(event) {
+	// var opacity=document.getElementById('opacity');
+	// var value=event.target.value;
+	// print2console(value, 1);
+	menu_update_track(41);
+}
 
 function tk_bgcolor_initiator(event)
 {
@@ -16431,8 +16538,10 @@ case FT_callingcard_n:
 	qtc_paramCopy(defaultQtcStyle.heatmap, tk.qtc);
 	break;
 case FT_bedgraph_c:
-case FT_callingcard_c:
 	qtc_paramCopy(defaultQtcStyle.ft3, tk.qtc);
+	break;
+case FT_callingcard_c:
+	qtc_paramCopy(defaultQtcStyle.ft34, tk.qtc);
 	break;
 case FT_sam_c:
 case FT_bam_c:
