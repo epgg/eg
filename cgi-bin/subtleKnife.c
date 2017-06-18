@@ -107,9 +107,9 @@
 #define trashDir "/usr/lib/trash"
 #define WWWT "/var/www/browser/t"
 #define BINdir "."
-#define Mysqlserver "10.20.127.12"
-#define Mysqluser "hguser"
-#define Mysqlpswd "hguser"
+#define Mysqlserver "localhost"
+#define Mysqluser "eguser"
+#define Mysqlpswd "eguser"
 #define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /usr/lib/cgi-bin/Juicebox.jar"
 
 /* miscellaneous */
