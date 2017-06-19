@@ -417,6 +417,8 @@ struct callingCardData
 	struct callingCardData *next;
 	float *xdata;
 	unsigned long *ydata;
+	char *strand;
+	char *barcode;
 	unsigned long length;
 	unsigned long numWritten; // Number of calling cards written to file
 	};
@@ -593,6 +595,8 @@ void ccDataFree(void *in) {
 	struct callingCardData *ccData = (struct callingCardData *)in;
 	free(ccData->xdata);
 	free(ccData->ydata);
+	free(ccData->strand);
+	free(ccData->barcode);
 	free(ccData);
 }
 
@@ -1684,12 +1688,25 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	struct callingCardData *data = malloc(sizeof(struct callingCardData));
 	float *xdata = malloc(sizeof(float) * len);
 	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
+	char *strand[len];
+	char *barcode[len];
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
 	int i = 0;
 	while (current != NULL) {
 		xdata[i] = (current->start + current->stop)/2;
 		ydata[i] = current->count;
+		if (current->strand != NULL) {
+			strand[i] = current->strand;
+		} else {
+			strand[i] = '\0';
+		}
+		
+		if (current->barcode != NULL) {
+			barcode[i] = current->barcode;
+		} else {
+			barcode[i] = '\0';
+		}
 		i++;
 		current = current->next;
 		// fprintf(stderr, "%d,%d,%d,%d\n", i, current->start, current->stop ,current->count);
@@ -1700,6 +1717,8 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	// fprintf(stderr, "%d\n", ydata[0]);
 	data->xdata = xdata;
 	data->ydata = ydata;
+	data->strand = strand;
+	data->barcode = barcode;
 	data->length = len;
 	fputs("1683\n", stderr);
 	// free(xdata);
@@ -2451,6 +2470,7 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 			tail = tmpData;
 		}
 		tail->next = NULL;
+		ccFree(tmp);
 	}
     else {
 		if(SQUAWK)
@@ -10659,7 +10679,7 @@ if(hm.trackSl!=NULL)
 						fclose(fout);
 						// fprintf(stderr, "number lines written: %d\n", lines);
 						fputs("10585\n", stderr);
-						ccFree(ccData);
+						// ccDataFree(ccData);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
@@ -10858,6 +10878,7 @@ if(hm.trackSl!=NULL)
 							struct region *r;
 							struct callingCardData *current;// = ccData;
 							if (ccData->next == NULL) fprintf(stderr, "ccData->next is NULL\n");
+							fprintf(stderr, "printing xdata\n");
 							printf("'xdata':[");
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
@@ -10865,6 +10886,7 @@ if(hm.trackSl!=NULL)
 									printf("%f,", current->xdata[i]);
 								printf("],");
 							}
+							fprintf(stderr, "printing ydata\n");
 							printf("],'ydata':[");
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
@@ -10872,8 +10894,33 @@ if(hm.trackSl!=NULL)
 									printf("%d,", current->ydata[i]);
 								printf("],");
 							}
+							fprintf(stderr, "printing strand\n");
+							printf("],'strand':[");
+							for(current = ccData; current != NULL; current=current->next) {
+								printf("[");
+								for (i = 0; i < current->length; i++) {
+									if (current->strand[i] != '\0')
+										printf("%s,", current->strand[i]);
+									else
+										printf("'',");
+								}
+								printf("],");
+							}
+							fprintf(stderr, "printing barcode\n");
+							printf("],'barcode':[");
+							for(current = ccData; current != NULL; current=current->next) {
+								printf("[");
+								for (i = 0; i < current->length; i++) {
+									if (current->barcode[i] != '\0')
+										printf("%s,", current->barcode[i]);
+									else
+										printf("'',");
+								}
+								printf("],");
+							}
 							printf("]},");
-							ccFree(ccData);
+							fprintf(stderr, "done printing");
+							// ccDataFree(ccData);
 						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
 							{

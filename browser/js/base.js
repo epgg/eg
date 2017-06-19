@@ -3568,6 +3568,8 @@ if(tkobj.ft==FT_matplot) {
 		var svd=this.callingcard_base({
 			xdata:tkobj.xdata[i],
 			ydata:data2[i],
+			strand:tkobj.strand[i],
+			barcode:tkobj.barcode[i],
 			ctx:ctx,
 			colors:{p:'rgb('+tkobj.qtc.pr+','+tkobj.qtc.pg+','+tkobj.qtc.pb+')',
 				n:'rgb('+tkobj.qtc.nr+','+tkobj.qtc.ng+','+tkobj.qtc.nb+')',
@@ -9416,6 +9418,8 @@ Browser.prototype.callingcard_base=function(arg)
 */
 var xdata=arg.xdata,
 	ydata=arg.ydata,
+	strand=arg.strand,
+	barcode=arg.barcode,
 	ctx=arg.ctx,
 	colors=arg.colors,
 	opacity=arg.opacity,
@@ -9435,6 +9439,8 @@ if(tk.qtc && tk.qtc.curveonly) {
 
 var length;
 if (xdata.length == ydata.length) length = xdata.length;
+// Initialize dict object for fast lookup of individual insertions
+tk.hash = {}
 
 var insertlookup=null;
 var thisregion=null;
@@ -9485,7 +9491,7 @@ if(plothm) {
 var svgdata=[];
 for(var i=0; i < length; i++) {
 	// for each data point
-	var position=xdata[i]
+	var position=xdata[i];
 	var score=ydata[i];
 	var bary=null, barh=null, barcolor=null,
 		tipy=null, tipcolor=null;
@@ -9625,6 +9631,12 @@ for(var i=0; i < length; i++) {
 		ctx.strokeStyle=barcolor;
 		ctx.globalAlpha=opacity;
 		ctx.stroke();
+		tk.hash[Math.round(position).toString()] = {};
+		tk.hash[Math.round(position).toString()][bary.toString()] = {
+			score: score,
+			strand: strand[i],
+			barcode: barcode[i]
+		};
 		if(tosvg) {
 			svgdata.push({type:svgt_rect,x:svgx,y:bary,w:svgw,h:barh,fill:barcolor});
 		}
@@ -15754,6 +15766,17 @@ if(tk.ft==FT_qcats) {
 		'<br>'+hitpoint.str+'</div>'+cottonlabel+'</div>';
 	return;
 }
+if(tk.ft==FT_callingcard_c || tk.ft==FT_callingcard_n) {
+	pica_go(x,y);
+	var quantity=result[0];
+	var cat=result[1];
+	picasays.innerHTML= '<div style="padding:5px;font-size:16px;color:white">'+
+		'<div class=squarecell style="display:inline-block;background-color:'+cat[1]+'"></div> '+cat[0]+
+		'<div>'+quantity+'</div>'+
+		'<div class=picadim>'+ tk.label+
+		'<br>'+hitpoint.str+'</div>'+cottonlabel+'</div>';
+	return;
+}
 if(isNumerical(tk)) {
 	// no matter whether the track is in ghm or decor, the x is same
 	pica_go(x,y);
@@ -15867,9 +15890,22 @@ if(tk.mode==M_bar) {
 }
 if(isNumerical(tk)) {
 	if(tk.ft == FT_callingcard_n || tk.ft == FT_callingcard_c) {
-		if(A>=tk.ydata.length) return null;
-		if(B>=tk.ydata[A].length) return null;
-		return tk.ydata[A][B];		
+		// if(A>=tk.ydata.length) return null;
+		// if(B>=tk.ydata[A].length) return null;
+		var robj;
+		try {
+			robj=tk.hash[x.toString()];
+		}
+		catch (err) {
+			return null;
+		}
+		try {
+			robj=robj[y.toString()];
+		}
+		catch (err) {
+			return null;
+		}
+		return robj;		
 	} else {
 		if(A>=tk.data.length) return null;
 		if(B>=tk.data[A].length) return null;
@@ -17778,7 +17814,9 @@ for(var i=0; i<lst.length; i++) {
 		// 		obj.ydata=v;
 		// 	}
 		// }
-		obj.skipped=undefined;		
+		obj.skipped=undefined;
+		obj.strand=lst[i].strand;
+		obj.barcode=lst[i].barcode;
 	} else if(isNumerical(obj) || isHmtk(obj.ft) || obj.ft==FT_catmat || obj.ft==FT_qcats) {
 		// numerical or cat
 		var smooth=(obj.qtc && obj.qtc.smooth);
