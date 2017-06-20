@@ -7899,7 +7899,7 @@ this.promisfyAjax(param+this.houseParam())
 
 	.catch(function (error) {
 		print2console(error, 2);
-		this.ajaxX_cb(null, norendering);
+		this.ajaxX_cb(ajaxData, norendering);
 	}.bind(this));
 }
 

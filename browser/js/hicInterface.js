@@ -1,41 +1,5 @@
 'use strict'
 
-hic.Dataset.prototype.findChromosomeIndex = function(name) {
-    var nameToFind = name.replace("chr", "");
-    nameToFind = nameToFind.replace("M", "MT");
-    let found = this.chromosomes.find(function (chromosome) {
-        return chromosome.name == nameToFind;
-    });
-    if (found) {
-        return found.index;
-    }
-    return -1;
-}
-/**
- * Returns the largest bin size for a region such that there are at least MIN_BINS_PER_REGION in the region.  Returns
- * DEFAULT_BIN_SIZE if such a bin size could not be found, such as when 0 is passed to the function.
- * @param {number} regionLength - the length of the region
- * @returns {number} the bin size for the region
- */
-hic.Dataset.MIN_BINS_PER_REGION = 50;
-hic.Dataset.prototype.regionLengthToZoomIndex = function(regionLength) {
-    for (let i = 0; i < this.bpResolutions.length; i++) { // Iterate through bin sizes, largest to smallest
-        if (regionLength > hic.Dataset.MIN_BINS_PER_REGION * this.bpResolutions[i]) {
-            return i;
-        }
-    }
-    return 0;
-}
-
-hic.Dataset.prototype.binsizeToZoomIndex = function(targetResolution) { // findMatchingZoomIndex
-    for (let z = this.bpResolutions.length - 1; z > 0; z--) {
-        if (this.bpResolutions[z] >= targetResolution) {
-            return z;
-        }
-    }
-    return 0;
-}
-
 class HicInterface {
 
     constructor(hicTrack) {
@@ -259,4 +223,3 @@ class CoordinateRecord {
 }
 
 CoordinateRecord.DIGITS_TO_ROUND = 3;
-HicInterface.DEFAULT_MIN_RESOLUTION = 200;
