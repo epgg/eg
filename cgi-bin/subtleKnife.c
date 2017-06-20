@@ -2436,7 +2436,7 @@ fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
 if(!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
-else width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+else width = (float) dsp->entireLength / (float) dsp->hmspan;
 fprintf(stderr, "width: %f\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
