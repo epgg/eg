@@ -380,7 +380,7 @@ var defaultQtcStyle = {
 		nfilterscore:0,
 		height:50, // for density mode
 		anglescale:1,
-                matrix:'oe', // matrix
+                matrix:'observed', // matrix
                 norm:'KR', //KR
                 unit_res:'BP',
                 bin_size:0,
@@ -7882,11 +7882,25 @@ if(this.main) {
 	// cottonbbj mainless
 	this.shieldOn();
 }
-var bbj=this;
-this.promisfyAjax(param+bbj.houseParam(), HicInterface.getHicPromises(this, this.tklst))
-	.then(function(serverData) {
-		bbj.ajaxX_cb(serverData, norendering);
-	});
+
+var ajaxData;
+this.promisfyAjax(param+this.houseParam())
+	.then(function (data) {
+		ajaxData = data;
+		return Promise.all(HicInterface.getHicPromises(ajaxData.regionLst, this.tklst));
+	}.bind(this))
+
+	.then(function (hicDataTracks) {
+		for (let hicTrackData of hicDataTracks) {
+			ajaxData.tkdatalst.push(hicTrackData);
+		}
+		this.ajaxX_cb(ajaxData, norendering);
+	}.bind(this))
+
+	.catch(function (error) {
+		print2console(error, 2);
+		this.ajaxX_cb(null, norendering);
+	}.bind(this));
 }
 
 Browser.prototype.ajaxX_cb=function(data,norendering)
@@ -16973,8 +16987,12 @@ var bbj=this;
 
 let url = this.displayedRegionParamPrecise()+'&addtracks=on&'+
 	'dbName='+this.genome.name+this.genome.customgenomeparam()+trackParam(olst);
-this.promisfyAjax(url, HicInterface.getHicPromises(this, olst))
-	.then(bbj.ajax_addtracks_cb.bind(this));
+this.promisfyAjax(url, HicInterface.getHicPromises(this.regionLst, olst))
+	.then(bbj.ajax_addtracks_cb.bind(this))
+	.catch(function (error) {
+		print2console(error, 2);
+		bbj.ajax_addtracks_cb(null);
+	});
 }
 
 Browser.prototype.ajax_addtracks_cb=function(data)

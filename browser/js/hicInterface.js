@@ -11,6 +11,30 @@ hic.Dataset.prototype.findChromosomeIndex = function(name) {
     }
     return -1;
 }
+/**
+ * Returns the largest bin size for a region such that there are at least MIN_BINS_PER_REGION in the region.  Returns
+ * DEFAULT_BIN_SIZE if such a bin size could not be found, such as when 0 is passed to the function.
+ * @param {number} regionLength - the length of the region
+ * @returns {number} the bin size for the region
+ */
+hic.Dataset.MIN_BINS_PER_REGION = 50;
+hic.Dataset.prototype.regionLengthToZoomIndex = function(regionLength) {
+    for (let i = 0; i < this.bpResolutions.length; i++) { // Iterate through bin sizes, largest to smallest
+        if (regionLength > hic.Dataset.MIN_BINS_PER_REGION * this.bpResolutions[i]) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+hic.Dataset.prototype.binsizeToZoomIndex = function(targetResolution) { // findMatchingZoomIndex
+    for (let z = this.bpResolutions.length - 1; z > 0; z--) {
+        if (this.bpResolutions[z] >= targetResolution) {
+            return z;
+        }
+    }
+    return 0;
+}
 
 class HicInterface {
 
@@ -23,38 +47,68 @@ class HicInterface {
         this.datasetPromise = this.reader.loadDataset();
     }
 
-    static getHicPromises(browser, tracks) {
-        var promises = [];
+    static getHicPromises(regionLst, tracks) {
+        if (regionLst.length == 0) {
+            return [];
+        }
 
         let hicTracks = tracks.filter(function (track) {
-        	return track.ft == FT_hi_c;
+            return track.ft == FT_hi_c;
         });
+        if (hicTracks.length == 0) {
+            return [];
+        }
 
+        let longestRegion = regionLst.reduce(function (longestLengthSoFar, currentRegion) {
+            let currentLength = currentRegion[4] - currentRegion[3];
+            return currentLength > longestLengthSoFar ? currentLength : longestLengthSoFar;
+        }, regionLst[0][4] - regionLst[0][3]);
+
+        let promisesForEachTrack = [];
         for (let hicTrack of hicTracks) {
-        	/*
-        	hicTrack.qtc {
-        		bin_size: {number} the index
-        		d_binsize: {number} the actual value
-        		norm: {string} the normalization type
-        	}
-        	browser.regionLst[0] : left boundary of region info
-        	browser.regionLst[-1]: right boundary of region info
-        	browser.regionLst[i][0]: {string} chromosome
-        	browser.regionLst[i][3]: {number} start base pair
-        	browser.regionLst[i][4]: {number} end base pair
-        	*/
+            // Each hicTrack may cover multiple regions.  So each track's promise is a Promise.all for all regions
+            /*
+            hicTrack.qtc {
+                bin_size: {number} the index
+                d_binsize: {number} the actual value
+                norm: {string} the normalization type
+            }
+            browser.regionLst[0] : leftmost region
+            browser.regionLst[-1]: rightmost region
+            browser.regionLst[i][0]: {string} chromosome
+            browser.regionLst[i][3]: {number} start base pair
+            browser.regionLst[i][4]: {number} end base pair
+            */
             if (!hicTrack.hicInterface) {
                 hicTrack.hicInterface = new HicInterface(hicTrack);
             }
-        	let theRegion = 0; //FIXME when there's multiple regions...
-        	let chromosome = browser.regionLst[theRegion][0];
-        	let startBasePair = browser.regionLst[theRegion][3];
-        	let endBasePair = browser.regionLst[theRegion][4];
-        	promises.push(hicTrack.hicInterface.getData(chromosome, startBasePair, endBasePair, chromosome,
-                startBasePair, endBasePair, null)); // TODO add bin option
+
+            let promisesAcrossRegions = [];
+            for (let region of regionLst) {
+                let chromosome = region[0];
+                let startBasePair = region[3];
+                let endBasePair = region[4];
+                promisesAcrossRegions.push(hicTrack.hicInterface.getData(chromosome, startBasePair, endBasePair,
+                    chromosome, startBasePair, endBasePair, longestRegion));
+            }
+
+            let promise = Promise.all(promisesAcrossRegions)
+                .then(function (dataForEachRegion) {
+                    return {
+                        data: dataForEachRegion,
+                        name: hicTrack.name,
+                        ft: hicTrack.ft,
+                        mode: hicTrack.mode,
+                        bin_size: hicTrack.qtc.bin_size || scale_auto,
+                        d_binsize: hicTrack.qtc.d_binsize,
+                        matrix: "observed"
+                    }
+                });
+
+            promisesForEachTrack.push(promise);
         }
 
-        return promises;
+        return promisesForEachTrack;
     }
 
     /**
@@ -66,76 +120,81 @@ class HicInterface {
      * @param {number} chr1 -
      * (all params except normalization are number)
      */
-    getData(chr1, bpX, bpXMax, chr2, bpY, bpYMax, minResolution) {
-        if (!minResolution) {
-            minResolution = HicInterface.DEFAULT_MIN_RESOLUTION; // Defined at the bottom of file, after class definition
-        }
-
-        var d_binsize = 0;
+    getData(chr1, bpX, bpXMax, chr2, bpY, bpYMax, regionLengthOverride) {
+        let desiredBinSize = this.hicTrack.qtc.bin_size == scale_auto ?
+            null : Number.parseInt(this.hicTrack.qtc.bin_size);
         let promise = this.datasetPromise.then(function (dataset) {
             let chr1Index = dataset.findChromosomeIndex(chr1);
             let chr2Index = dataset.findChromosomeIndex(chr2);
-            let state = HicInterface.coordinatesToState(dataset, chr1Index, bpX, bpXMax, chr2Index, bpY, bpYMax,
-                minResolution);
-            this.hicTrack.d_binsize = dataset.bpResolutions[state.zoom];
-            return HicInterface.getBlocks(dataset, state, this.hicTrack.qtc.norm);
+            if (chr1Index == -1 || chr2Index == -1) {
+                print2console(`Couldn't find valid chromosome indices for ${chr1} and ${chr2} (hicInterface.js:130)`, 2);
+                return [];
+            }
+
+            let binCoors = HicInterface.getBinCoordinates(dataset, chr1Index, bpX, bpXMax, chr2Index, bpY, bpYMax,
+                desiredBinSize, regionLengthOverride);
+
+            this.hicTrack.qtc.d_binsize = dataset.bpResolutions[binCoors.zoomIndex];
+            return HicInterface.getBlocks(dataset, binCoors, this.hicTrack.qtc.norm);
         }.bind(this)).then(function (blocks) {
-            return this.formatBlocks(blocks, chr1);
-        }.bind(this));
+            return HicInterface.formatBlocks(blocks, chr1);
+        });
         return promise;
     }
 
-    static coordinatesToState(dataset, chr1, bpX, bpXMax, chr2, bpY, bpYMax, minResolution) { // hic.Browser.prototype.goto
-        var xCenter,
-            yCenter,
-            targetResolution,
-            viewDimensions = { //this.contactMatrixView.getViewDimensions(), // TODO need replacement for this
-                width: 200,
-                height: 50
-            },
-            maxExtent;
+    static getBinCoordinates(dataset, chr1, bpX, bpXMax, chr2, bpY, bpYMax, desiredBinSize, regionLengthOverride) { // hic.Browser.prototype.goto
+        let zoomIndex;
 
-        targetResolution = Math.max((bpXMax - bpX) / viewDimensions.width, (bpYMax - bpY) / viewDimensions.height);
-
-        if (targetResolution < minResolution) {
-            maxExtent = viewDimensions.width * minResolution;
-            xCenter = (bpX + bpXMax) / 2;
-            yCenter = (bpY + bpYMax) / 2;
-            bpX = Math.max(xCenter - maxExtent / 2);
-            bpY = Math.max(0, yCenter - maxExtent / 2);
-            targetResolution = minResolution;
+        if (desiredBinSize == null) {
+            let regionLength = regionLengthOverride || Math.max(bpXMax - bpX, bpYMax - bpY);
+            zoomIndex = dataset.regionLengthToZoomIndex(regionLength);
+        } else {
+            zoomIndex = dataset.binsizeToZoomIndex(desiredBinSize);
         }
+        let newBinsize = dataset.bpResolutions[zoomIndex],
+            newXBin = bpX / newBinsize, // First bin number of the region
+            newYBin = bpY / newBinsize,
+            widthInBins = Math.ceil((bpXMax - bpX) / newBinsize),
+            heightInBins = Math.ceil((bpYMax - bpY) / newBinsize);
 
-        var bpResolutions = dataset.bpResolutions,
-            newZoom = HicInterface.findMatchingZoomIndex(targetResolution, bpResolutions),
-            newResolution = bpResolutions[newZoom],
-            newPixelSize = Math.max(1, newResolution / targetResolution),
-            newXBin = bpX / newResolution,
-            newYBin = bpY / newResolution;
-
-        var state = {};
-        state.chr1 = chr1;
-        state.chr2 = chr2;
-        state.zoom = newZoom;
-        state.x = newXBin; // Stores the FIRST bin number
-        state.y = newYBin;
-        state.pixelSize = newPixelSize;
-        return state;
+        let binCoors = {
+            chr1: chr1,
+            chr2: chr2,
+            zoomIndex: zoomIndex,
+            xBin: newXBin,
+            yBin: newYBin,
+            widthInBins: widthInBins,
+            heightInBins: heightInBins
+        };
+        return binCoors;
     }
 
-    static findMatchingZoomIndex(targetResolution, resolutionArray) { // Basically gets bin size
-        for (let z = resolutionArray.length - 1; z > 0; z--) {
-            if (resolutionArray[z] >= targetResolution) {
-                return z;
+    static getBlocks(dataset, binCoors, normalization) { // hic.ContactMatrixView.prototype.update
+
+        return dataset.getMatrix(binCoors.chr1, binCoors.chr2).then(function (matrix) {
+            // Calculate the row and column of block
+            var zoomData = matrix.bpZoomData[binCoors.zoomIndex],
+                blockBinCount = zoomData.blockBinCount,
+                colMin = Math.floor(binCoors.xBin / blockBinCount),
+                colMax = Math.floor((binCoors.xBin + binCoors.widthInBins) / blockBinCount),
+                rowMin = Math.floor(binCoors.yBin / blockBinCount),
+                rowMax = Math.floor((binCoors.yBin + binCoors.heightInBins) / blockBinCount),
+                promises = [];
+
+            for (let r = rowMin; r <= rowMax; r++) {
+                for (let c = colMin; c <= colMax; c++) {
+                    let blockNumber = HicInterface.calculateBlockNumber(zoomData, r, c);
+                    promises.push(dataset.getNormalizedBlock(zoomData, blockNumber, normalization));
+                }
             }
-        }
-        return 0;
+
+            return Promise.all(promises);
+        });
     }
 
-
-    static calculateBlockNumber(zd, row, column) { // Based off of hic.ContactMatrixView.prototype.getImageTile
-        var sameChr = zd.chr1 === zd.chr2;
-        var blockColumnCount = zd.blockColumnCount;
+    static calculateBlockNumber(zoomData, row, column) { // Based off of hic.ContactMatrixView.prototype.getImageTile
+        var sameChr = zoomData.chr1 === zoomData.chr2;
+        var blockColumnCount = zoomData.blockColumnCount;
 
         if (sameChr && row < column) {
             return column * blockColumnCount + row;
@@ -145,41 +204,18 @@ class HicInterface {
         }
     }
 
-    static getBlocks(dataset, state, normalization) { // hic.ContactMatrixView.prototype.update
-
-        return dataset.getMatrix(state.chr1, state.chr2).then(function (matrix) {
-
-            var //widthInBins = self.$viewport.width() / state.pixelSize, // TODO need this.
-                //heightInBins = self.$viewport.height() / state.pixelSize,
-                widthInBins = 50,
-                heightInBins = 50,
-                zd = matrix.bpZoomData[state.zoom], // zd = zoomData.
-                blockBinCount = zd.blockBinCount,
-                col1 = Math.floor(state.x / blockBinCount),
-                col2 = Math.floor((state.x + widthInBins) / blockBinCount),
-                row1 = Math.floor(state.y / blockBinCount),
-                row2 = Math.floor((state.y + heightInBins) / blockBinCount),
-                promises = [];
-
-            for (let r = row1; r <= row2; r++) {
-                for (let c = col1; c <= col2; c++) {
-                    let blockNumber = HicInterface.calculateBlockNumber(zd, r, c);
-                    promises.push(dataset.getNormalizedBlock(zd, blockNumber, normalization));
-                }
-            }
-
-            return Promise.all(promises);
-        });
-    }
-
     /*
         data: {array} of {array}; data for each chromosome.  index not important.  Not sure if can we combine.
         name: {string} we can use this to tell tracks uniquely
         other attributes: see base.js line 17215.  It just replaces track.qtc attributes with the ones that the server
         sends if names match
     */
-    formatBlocks(blocks, chromosome) {
+    static formatBlocks(blocks, chromosome) {
         let blocksAsCoorData = blocks.map(function(block) {
+            if (!block) {
+                print2console(`No HiC data for block in ${chromosome}; try zooming in or re-adding the track`, 2);
+                return [];
+            }
             return HicInterface.blockToCoordinateData(block, chromosome);
         });
 
@@ -187,15 +223,7 @@ class HicInterface {
         for (let i = 0; i < combinedCoorData.length; i++) { // Make sure ids are unique
             combinedCoorData[i].id = i;
         }
-
-        return {
-            data: [combinedCoorData],
-            name: this.hicTrack.name,
-            ft: this.hicTrack.ft,
-            mode: this.hicTrack.mode,
-            bin_size: this.hicTrack.bin_size,
-            d_binsize: this.hicTrack.d_binsize
-        };
+        return combinedCoorData;
     }
 
     static blockToCoordinateData(block, chromosome) {
@@ -220,13 +248,15 @@ class CoordinateRecord {
         let coor1Stop = (bin1 + 1) * binSize;
         let coor2Start = bin2 * binSize;
         let coor2Stop = (bin2 + 1) * binSize;
+        let roundedCounts = counts.toFixed(CoordinateRecord.DIGITS_TO_ROUND);
 
         this.id = id;
-        this.name = `${chromosome}:${coor1Start}-${coor1Stop},${counts}`;
+        this.name = `${chromosome}:${coor1Start}-${coor1Stop},${roundedCounts}`;
         this.start = coor2Start;
         this.stop = coor2Stop;
         this.strand = (bin1 < bin2) ? "<" : ">";
     }
 }
 
+CoordinateRecord.DIGITS_TO_ROUND = 3;
 HicInterface.DEFAULT_MIN_RESOLUTION = 200;
