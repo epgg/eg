@@ -3562,7 +3562,8 @@ if(tkobj.ft==FT_matplot) {
 
 	this.set_tkYscale(tkobj);
 	var data2= qtrack_logtransform(tkobj.ydata, tkobj.qtc);
-	// var opacity=document.getElementById("opacity");
+	// Initialize objects for fast lookup of individual insertions
+	tkobj.insertions = []
 	for(var i=0; i<this.regionLst.length; i++) {
 		var r=this.regionLst[i];
 		var svd=this.callingcard_base({
@@ -9439,8 +9440,6 @@ if(tk.qtc && tk.qtc.curveonly) {
 
 var length;
 if (xdata.length == ydata.length) length = xdata.length;
-// Initialize dict object for fast lookup of individual insertions
-tk.hash = {}
 
 var insertlookup=null;
 var thisregion=null;
@@ -9631,12 +9630,7 @@ for(var i=0; i < length; i++) {
 		ctx.strokeStyle=barcolor;
 		ctx.globalAlpha=opacity;
 		ctx.stroke();
-		tk.hash[Math.round(position).toString()] = {};
-		tk.hash[Math.round(position).toString()][bary.toString()] = {
-			score: score,
-			strand: strand[i],
-			barcode: barcode[i]
-		};
+		tk.insertions.push([position, bary, score, strand[i], barcode[i]]);
 		if(tosvg) {
 			svgdata.push({type:svgt_rect,x:svgx,y:bary,w:svgw,h:barh,fill:barcolor});
 		}
@@ -15767,13 +15761,21 @@ if(tk.ft==FT_qcats) {
 	return;
 }
 if(tk.ft==FT_callingcard_c || tk.ft==FT_callingcard_n) {
+	// no matter whether the track is in ghm or decor, the x is same
 	pica_go(x,y);
-	var quantity=result[0];
-	var cat=result[1];
-	picasays.innerHTML= '<div style="padding:5px;font-size:16px;color:white">'+
-		'<div class=squarecell style="display:inline-block;background-color:'+cat[1]+'"></div> '+cat[0]+
-		'<div>'+quantity+'</div>'+
-		'<div class=picadim>'+ tk.label+
+	var bcstrand = '<div style="font-size:85%">';
+	if (result.strand)
+		bcstrand += '(' + result.strand + ') ';
+	bcstrand += result.barcode+'</div>';
+	var str='<div style="padding:5px;font-size:16px;color:white">';
+	if(tk.normalize) {
+		var n=sbj.track_normalize(tk,result);
+		str+=neatstr(n)+' ('+tk.normalize.method+')'+
+			'<br><span style="font-size:12px">'+result+' (raw)</span>';
+	} else {
+		str+=result.score+'<br>'+bcstrand+(tk.qtc.height<20?'<div style="font-size:70%;opacity:.8">min: '+tk.minv+', max: '+tk.maxv+'</div>':'');
+	}
+	picasays.innerHTML= str+ '<div class=picadim>'+tk.label+
 		'<br>'+hitpoint.str+'</div>'+cottonlabel+'</div>';
 	return;
 }
@@ -15890,22 +15892,24 @@ if(tk.mode==M_bar) {
 }
 if(isNumerical(tk)) {
 	if(tk.ft == FT_callingcard_n || tk.ft == FT_callingcard_c) {
-		// if(A>=tk.ydata.length) return null;
-		// if(B>=tk.ydata[A].length) return null;
-		var robj;
-		try {
-			robj=tk.hash[x.toString()];
+		var distance = Infinity;
+		var idx, d;
+		for (var i=0; i < tk.insertions.length; i++) {
+			d = Math.pow((x - tk.insertions[i][0]), 2) + Math.pow((y - tk.insertions[i][1]), 2)
+			if (d < distance) {
+				distance = d;
+				idx = i;
+			}
 		}
-		catch (err) {
-			return null;
+		if (distance <= 30) {// Threshold value, can be changed
+			return {
+				score: tk.insertions[idx][2],
+				strand: tk.insertions[idx][3],
+				barcode: tk.insertions[idx][4]
+			}	
 		}
-		try {
-			robj=robj[y.toString()];
-		}
-		catch (err) {
-			return null;
-		}
-		return robj;		
+		else
+			return null;	
 	} else {
 		if(A>=tk.data.length) return null;
 		if(B>=tk.data[A].length) return null;
