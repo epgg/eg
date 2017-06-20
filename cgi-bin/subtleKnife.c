@@ -418,7 +418,7 @@ struct callingCardData
 	float *xdata;
 	unsigned long *ydata;
 	char *strand;
-	char **barcode;
+	char *barcode;
 	unsigned long length;
 	unsigned long numWritten; // Number of calling cards written to file
 	};
@@ -596,8 +596,6 @@ void ccDataFree(void *in) {
 	free(ccData->xdata);
 	free(ccData->ydata);
 	free(ccData->strand);
-	for (int i=0; i < ccData->length; i++)
-		free(ccData->barcode[i]);
 	free(ccData->barcode);
 	free(ccData);
 }
@@ -1690,8 +1688,8 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	struct callingCardData *data = malloc(sizeof(struct callingCardData));
 	float *xdata = malloc(sizeof(float) * len);
 	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
-	char *strand = malloc(sizeof(char) * len);
-	char **barcode = malloc(sizeof(char*) * len);
+	char *strand[len];
+	char *barcode[len];
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
 	int i = 0;
@@ -1705,9 +1703,8 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 		}
 		
 		if (current->barcode != NULL) {
-			barcode[i] = &(current->barcode);
+			barcode[i] = current->barcode;
 		} else {
-			barcode[i] = malloc(sizeof(char));
 			barcode[i] = '\0';
 		}
 		i++;
@@ -2436,7 +2433,7 @@ fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
 if(!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
-else width = (float) dsp->entireLength / (float) dsp->hmspan;
+else width = 1;
 fprintf(stderr, "width: %f\n", width);
 for(r=dsp->head; r!=NULL; r=r->next) {
     if(r->summarySize > 0) {
@@ -2456,12 +2453,12 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 			if (move) {
 				if (move[0] == 'r') {
 					// fprintf(stderr, "FOUND IT!\n");
-					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+					tmpData->xdata[i] = (tmpData->xdata[i] - start + dsp->entireLength)/width;
 				} else {
-					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+					tmpData->xdata[i] = (tmpData->xdata[i] - start)/width;
 				}
 			} else {
-				tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+				tmpData->xdata[i] = (tmpData->xdata[i] - start)/width;
 			}
 		
 		if (returnData==NULL) { // This is the first region we are processing
@@ -10682,7 +10679,7 @@ if(hm.trackSl!=NULL)
 						fclose(fout);
 						// fprintf(stderr, "number lines written: %d\n", lines);
 						fputs("10585\n", stderr);
-						ccDataFree(ccData);
+						// ccDataFree(ccData);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
@@ -10922,8 +10919,8 @@ if(hm.trackSl!=NULL)
 								printf("],");
 							}
 							printf("]},");
-							fprintf(stderr, "done printing\n");
-							ccDataFree(ccData);
+							fprintf(stderr, "done printing");
+							// ccDataFree(ccData);
 						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
 							{
