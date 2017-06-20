@@ -2428,7 +2428,7 @@ float width;
 struct region *r;
 struct callingCard *cclist=NULL, *tmp=NULL;
 struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
-boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
+boolean atbplevel = dsp->usedSummaryNumber > dsp->entireLength;
 // returnData->length = 0;
 // fprintf(stderr, "dsp region start: %d\n", dsp->start->coord);
 // fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
@@ -2453,17 +2453,30 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 			// fprintf(stderr, "%lu,", tmpData->xdata[i]);
 			// The following is a hack necessary to render calling card positions appropriately
 			// Will probably need to improve it
-			if (move) {
-				if (move[0] == 'r') {
-					// fprintf(stderr, "FOUND IT!\n");
-					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+			if (!atbplevel) {
+				if (move) {
+					if (move[0] == 'r') {
+						// fprintf(stderr, "FOUND IT!\n");
+						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+					} else {
+						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+					}
 				} else {
 					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
 				}
 			} else {
-				tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+				if (move) {
+					if (move[0] == 'r') {
+						// fprintf(stderr, "FOUND IT!\n");
+						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
+					} else {
+						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
+					}
+				} else {
+					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
+				}
+				
 			}
-		
 		if (returnData==NULL) { // This is the first region we are processing
 			returnData = tmpData;
 			tail = returnData;
