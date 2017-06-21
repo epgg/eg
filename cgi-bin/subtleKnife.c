@@ -2430,8 +2430,8 @@ struct callingCard *cclist=NULL, *tmp=NULL;
 struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
 boolean atbplevel = dsp->usedSummaryNumber > dsp->entireLength;
 // returnData->length = 0;
-// fprintf(stderr, "dsp region start: %d\n", dsp->start->coord);
-// fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
+fprintf(stderr, "dsp region start: %d\n", dsp->start->coord);
+fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
 fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
@@ -2450,7 +2450,7 @@ for(r=dsp->head; r!=NULL; r=r->next) {
 		dspStart = r->dstart;
 		fprintf(stderr, "dspStart = %d\n", dspStart);
 		for (i = 0; i < tmpData->length; i++)
-			// fprintf(stderr, "%lu,", tmpData->xdata[i]);
+			fprintf(stderr, "%lu,", tmpData->xdata[i]);
 			// The following is a hack necessary to render calling card positions appropriately
 			// Will probably need to improve it
 			if (!atbplevel) {
@@ -10670,6 +10670,7 @@ if(hm.trackSl!=NULL)
 							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
 							_exit(0);
 						}
+						fputs("10568\n", stderr);
 						FILE *fout = fopen(tk->tmpfile, "w");
 						if(fout == NULL) {
 							fputs("10571\n", stderr);
@@ -10811,7 +10812,7 @@ if(hm.trackSl!=NULL)
 							// fprintf(stderr, "number lines to read = %d\n", lines);
 							// unsigned long *xdata = malloc(sizeof(unsigned long) * lines);
 							// unsigned long *ydata = malloc(sizeof(unsigned long) * lines);
-							// fputs("10723\n", stderr);
+							fputs("10723\n", stderr);
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
 							if(tk->ft==FT_callingcard_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
@@ -10835,7 +10836,7 @@ if(hm.trackSl!=NULL)
 							// 		}
 							// 	}
 							// }
-							// fputs("10744\n", stderr);
+							fputs("10744\n", stderr);
 							// printf("'xdata':[");
 							// int i = 0, j;
 							// struct callingCardData *current;
@@ -10848,7 +10849,7 @@ if(hm.trackSl!=NULL)
 							// 	printf("],");
 							// 	i += j;
 							// }
-							// fputs("10756\n", stderr);
+							fputs("10756\n", stderr);
 							// printf("],'ydata':[");
 							// i = 0, j;
 							// for(current = ccData; current != NULL; current = current->next) {
@@ -10880,6 +10881,7 @@ if(hm.trackSl!=NULL)
 									;
 								}
 							}
+							fputs("10883\n", stderr);
 							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move, startCoord, stopCoord);
 							if (ccData->xdata==NULL || ccData->ydata==NULL) {
 								if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
@@ -10890,6 +10892,7 @@ if(hm.trackSl!=NULL)
 							// 	if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
 							// 	_exit(0);
 							// }
+							fputs("10894\n", stderr);
 							int i = 0;
 							struct region *r;
 							struct callingCardData *current;// = ccData;
@@ -10902,6 +10905,7 @@ if(hm.trackSl!=NULL)
 									printf("%f,", current->xdata[i]);
 								printf("],");
 							}
+							fputs("10907\n", stderr);
 							fprintf(stderr, "printing ydata\n");
 							printf("],'ydata':[");
 							for(current = ccData; current!=NULL; current=current->next) {
@@ -10910,6 +10914,7 @@ if(hm.trackSl!=NULL)
 									printf("%d,", current->ydata[i]);
 								printf("],");
 							}
+							fputs("10916\n", stderr);
 							fprintf(stderr, "printing strand\n");
 							printf("],'strand':[");
 							for(current = ccData; current != NULL; current=current->next) {
@@ -10922,6 +10927,7 @@ if(hm.trackSl!=NULL)
 								}
 								printf("],");
 							}
+							fputs("10929\n", stderr);
 							fprintf(stderr, "printing barcode\n");
 							printf("],'barcode':[");
 							for(current = ccData; current != NULL; current=current->next) {
@@ -10934,9 +10940,11 @@ if(hm.trackSl!=NULL)
 								}
 								printf("],");
 							}
+							fputs("10942\n", stderr);
 							printf("]},");
 							fprintf(stderr, "done printing\n");
 							ccDataFree(ccData);
+							fputs("10946\n", stderr);
 						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
 							{
