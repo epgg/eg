@@ -593,12 +593,21 @@ void ccFree(void *in) {
 
 void ccDataFree(void *in) {
 	struct callingCardData *ccData = (struct callingCardData *)in;
+	fputs("596\n", stderr);
+	// fprintf(stderr, "sizeof xdata: %d\n", sizeof(ccData->xdata));
 	free(ccData->xdata);
+	// fputs("598\n", stderr);
+	// fprintf(stderr, "sizeof ydata: %d\n", sizeof(ccData->ydata));
 	free(ccData->ydata);
+	// fputs("600\n", stderr);
+	// for (int i=0; i < ccData->length; i++)
 	free(ccData->strand);
+	// fputs("603\n", stderr);
 	for (int i=0; i < ccData->length; i++)
 		free(ccData->barcode[i]);
+	// fputs("606\n", stderr);
 	free(ccData->barcode);
+	// fputs("608\n", stderr);
 	free(ccData);
 }
 
@@ -1653,7 +1662,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 		// End of line, no barcode and strand information present
 		; // Do nothing, resume after this if statement
 	} else {
-		cc->strand = strdup(tok);
+		cc->strand = strdup(tok)[0];
 		// barcode, if present
 		fputs("barcode\n", stderr);
 		tok = strtok(NULL, delim);
@@ -1691,28 +1700,33 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	unsigned long len = ccCount(cclist);
 	fprintf(stderr, "%d calling cards\n", len);
 	struct callingCardData *data = malloc(sizeof(struct callingCardData));
-	float *xdata = malloc(sizeof(float) * len);
-	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
-	char *strand = malloc(sizeof(char) * len);
-	char **barcode = malloc(sizeof(char*) * len);
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
 	int i = 0;
 	if (current == NULL) { // No calling cards 
 		data->length = len;
+		data->xdata = NULL;
+		data->ydata = NULL;
+		data->strand = NULL;
+		data->barcode = NULL;
 		return data;
 	}
+	float *xdata = malloc(sizeof(float) * len);
+	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
+	char *strand = malloc(sizeof(char) * len);
+	char **barcode = malloc(sizeof(char*) * len);
 	while (current != NULL) {
 		xdata[i] = (current->start + current->stop)/2;
 		ydata[i] = current->count;
 		if (current->strand != NULL) {
 			strand[i] = current->strand;
 		} else {
+			// strand[i] = malloc(sizeof(char));
 			strand[i] = '\0';
 		}
 		
 		if (current->barcode != NULL) {
-			barcode[i] = &(current->barcode);
+			barcode[i] = current->barcode;
 		} else {
 			barcode[i] = malloc(sizeof(char));
 			barcode[i] = '\0';
@@ -10688,11 +10702,11 @@ if(hm.trackSl!=NULL)
 							_exit(0);
 						}
 						fputs("10568\n", stderr);
-						if (ccData->xdata==NULL || ccData->ydata==NULL) {
-							fputs("10565\n", stderr);
-							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
-							_exit(0);
-						}
+						// if (ccData->xdata==NULL || ccData->ydata==NULL) {
+						// 	fputs("10565\n", stderr);
+						// 	if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+						// 	_exit(0);
+						// }
 						fputs("10575\n", stderr);
 						struct region *r;
 						struct callingCardData *current;// = ccData;
@@ -10714,7 +10728,7 @@ if(hm.trackSl!=NULL)
 						fclose(fout);
 						// fprintf(stderr, "number lines written: %d\n", lines);
 						fputs("10585\n", stderr);
-						// ccDataFree(ccData);
+						ccDataFree(ccData);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
@@ -10901,10 +10915,10 @@ if(hm.trackSl!=NULL)
 							}
 							fputs("10883\n", stderr);
 							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move, startCoord, stopCoord);
-							if (ccData->xdata==NULL || ccData->ydata==NULL) {
-								if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
-								_exit(0);
-							}
+							// if (ccData->xdata==NULL || ccData->ydata==NULL) {
+							// 	if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+							// 	_exit(0);
+							// }
 							// FILE *fout = fopen(tk->tmpfile, "w");
 							// if(fout == NULL) {
 							// 	if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
@@ -10937,9 +10951,11 @@ if(hm.trackSl!=NULL)
 							printf("],'strand':[");
 							for(current = ccData; current != NULL; current=current->next) {
 								printf("[");
+								fputs("10940\n", stderr);
 								for (i = 0; i < current->length; i++) {
+									fputs("10942\n", stderr);
 									if (current->strand[i] != '\0')
-										printf("%s,", current->strand[i]);
+										{fputs("10944\n", stderr); printf("'%c',", current->strand[i]);}
 									else
 										printf("'',");
 								}
@@ -10952,7 +10968,7 @@ if(hm.trackSl!=NULL)
 								printf("[");
 								for (i = 0; i < current->length; i++) {
 									if (current->barcode[i] != '\0')
-										printf("%s,", current->barcode[i]);
+										printf("'%s',", current->barcode[i]);
 									else
 										printf("'',");
 								}
@@ -10961,7 +10977,7 @@ if(hm.trackSl!=NULL)
 							fputs("10942\n", stderr);
 							printf("]},");
 							fprintf(stderr, "done printing\n");
-							// ccDataFree(ccData);
+							ccDataFree(ccData);
 							fputs("10946\n", stderr);
 						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
