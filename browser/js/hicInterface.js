@@ -2,10 +2,15 @@
 
 class HicInterface {
 
-    constructor(hicTrack) {
-        this.hicTrack = hicTrack;
+    /*
+     * One would think that a HicTrack depends on a HicInterface, and therefore HicTracks should take a HicInterface in
+     * the constructor.  Unfortunately, tracks in the browser are plain objects, so we have this solution instead, where
+     * HicInterfaces depend on HicTracks.
+     */
+    constructor(url) {
+        this.url = url;
         this.reader = new hic.HiCReader({
-            url: hicTrack.url,
+            url: url,
             config: {}
         });
         this.datasetPromise = this.reader.loadDataset();
@@ -43,36 +48,56 @@ class HicInterface {
             browser.regionLst[i][3]: {number} start base pair
             browser.regionLst[i][4]: {number} end base pair
             */
-            if (!hicTrack.hicInterface) {
-                hicTrack.hicInterface = new HicInterface(hicTrack);
+            let hicInterface = hicTrack.hicInterface || new HicInterface(hicTrack.url);
+            if (hicTrack.url != hicInterface.url) { // This should never be true, but just in case...
+                hicInterface = new HicInterface(hicTrack.url);
             }
 
-            let promisesAcrossRegions = [];
+            let promisesForEachRegion = [];
             for (let region of regionLst) {
                 let chromosome = region[0];
                 let startBasePair = region[3];
                 let endBasePair = region[4];
-                promisesAcrossRegions.push(hicTrack.hicInterface.getData(chromosome, startBasePair, endBasePair,
-                    chromosome, startBasePair, endBasePair, longestRegion));
+                let binSizeOverride = hicTrack.qtc.bin_size == scale_auto ?
+                    null : Number.parseInt(hicTrack.qtc.bin_size);
+                promisesForEachRegion.push(hicInterface.getRecords(chromosome, startBasePair, endBasePair, chromosome,
+                    startBasePair, endBasePair, hicTrack.qtc.norm, longestRegion, binSizeOverride));
             }
 
-            let promise = Promise.all(promisesAcrossRegions)
-                .then(function (dataForEachRegion) {
-                    return {
-                        data: dataForEachRegion,
-                        name: hicTrack.name,
-                        ft: hicTrack.ft,
-                        mode: hicTrack.mode,
-                        bin_size: hicTrack.qtc.bin_size || scale_auto,
-                        d_binsize: hicTrack.qtc.d_binsize,
-                        matrix: "observed"
-                    }
+            let trackPromise = Promise.all(promisesForEachRegion)
+                .then(function (recordsObjForEachRegion) {
+                    return hicInterface.constructTrackData(hicTrack, recordsObjForEachRegion);
                 });
-
-            promisesForEachTrack.push(promise);
+            promisesForEachTrack.push(trackPromise);
         }
 
         return promisesForEachTrack;
+    }
+
+    constructTrackData(hicTrack, recordsObjForEachRegion) {
+        let binSize = recordsObjForEachRegion.find(function (recordsObj) { // The first obj where binSize is not null
+            return recordsObj.binSize != null;
+        }).binSize;
+        let recordsForEachRegion = recordsObjForEachRegion.map(function (recordsObj) {
+            return recordsObj.records;
+        });
+
+        let trackData = {
+            data: recordsForEachRegion,
+            name: hicTrack.name,
+            ft: hicTrack.ft,
+            mode: hicTrack.mode,
+            bin_size: hicTrack.qtc.bin_size || scale_auto,
+            d_binsize: binSize,
+            matrix: "observed",
+            hicInterface: this
+        }
+        /*
+        By putting `hicInterface: this`, we expect Browser.prototype.jsonTrackdata (in base.js) to attach `this` to
+        the HiC track, and then we can take advantage of juicebox.js' caching when the track appears again in
+        getHicPromises().
+        */
+        return trackData;
     }
 
     /**
@@ -84,49 +109,61 @@ class HicInterface {
      * @param {number} chr1 -
      * (all params except normalization are number)
      */
-    getData(chr1, bpX, bpXMax, chr2, bpY, bpYMax, regionLengthOverride) {
-        let desiredBinSize = this.hicTrack.qtc.bin_size == scale_auto ?
-            null : Number.parseInt(this.hicTrack.qtc.bin_size);
+    getRecords(chr1, bpX, bpXMax, chr2, bpY, bpYMax, normalization, regionLengthOverride, binSizeOverride) {
+        let regionLength = regionLengthOverride || Math.max(bpXMax - bpX, bpYMax - bpY);
+        let recordsObj = {
+            binSize: null,
+            records: []
+        };
+
         let promise = this.datasetPromise.then(function (dataset) {
             let chr1Index = dataset.findChromosomeIndex(chr1);
             let chr2Index = dataset.findChromosomeIndex(chr2);
             if (chr1Index == -1 || chr2Index == -1) {
-                print2console(`Couldn't find valid chromosome indices for ${chr1} and ${chr2} (hicInterface.js:130)`, 2);
+                print2console(`Couldn't find valid chromosome indices for ${chr1} and/or ${chr2}`, 2);
                 return [];
             }
 
-            let binCoors = HicInterface.getBinCoordinates(dataset, chr1Index, bpX, bpXMax, chr2Index, bpY, bpYMax,
-                desiredBinSize, regionLengthOverride);
+            let zoomIndex = HicInterface.getZoomIndex(dataset, regionLength, binSizeOverride);
+            let binSize = dataset.bpResolutions[zoomIndex];
+            recordsObj.binSize = binSize
+            let binCoors = HicInterface.getBinCoordinates(chr1Index, bpX, bpXMax, chr2Index, bpY, bpYMax,
+                zoomIndex, binSize);
 
-            this.hicTrack.qtc.d_binsize = dataset.bpResolutions[binCoors.zoomIndex];
-            return HicInterface.getBlocks(dataset, binCoors, this.hicTrack.qtc.norm);
-        }.bind(this)).then(function (blocks) {
-            return HicInterface.formatBlocks(blocks, chr1);
+            return HicInterface.getBlocks(dataset, binCoors, normalization);
+        }).then(function (blocks) {
+            if (!blocks) {
+                print2console(`No HiC data for ${chr1}`, 0);
+            } else {
+                recordsObj.records = HicInterface.formatAndMergeBlocks(blocks, chr1);
+            }
+            return recordsObj;
         });
         return promise;
     }
 
-    static getBinCoordinates(dataset, chr1, bpX, bpXMax, chr2, bpY, bpYMax, desiredBinSize, regionLengthOverride) { // hic.Browser.prototype.goto
-        let zoomIndex;
-
-        if (desiredBinSize == null) {
-            let regionLength = regionLengthOverride || Math.max(bpXMax - bpX, bpYMax - bpY);
-            zoomIndex = dataset.regionLengthToZoomIndex(regionLength);
+    static getZoomIndex(dataset, regionLength, desiredBinSize) {
+        if (desiredBinSize > 0) {
+            return dataset.binsizeToZoomIndex(desiredBinSize);
+        } else if (regionLength > 0) {
+            return dataset.regionLengthToZoomIndex(regionLength);
         } else {
-            zoomIndex = dataset.binsizeToZoomIndex(desiredBinSize);
+            return 0;
         }
-        let newBinsize = dataset.bpResolutions[zoomIndex],
-            newXBin = bpX / newBinsize, // First bin number of the region
-            newYBin = bpY / newBinsize,
-            widthInBins = Math.ceil((bpXMax - bpX) / newBinsize),
-            heightInBins = Math.ceil((bpYMax - bpY) / newBinsize);
+    }
+
+    static getBinCoordinates(chr1, bpX, bpXMax, chr2, bpY, bpYMax, zoomIndex, binSize) { // hic.Browser.prototype.goto
+        let xBin = bpX / binSize, // First bin number of the region
+            yBin = bpY / binSize,
+            widthInBins = Math.ceil((bpXMax - bpX) / binSize),
+            heightInBins = Math.ceil((bpYMax - bpY) / binSize);
 
         let binCoors = {
             chr1: chr1,
             chr2: chr2,
             zoomIndex: zoomIndex,
-            xBin: newXBin,
-            yBin: newYBin,
+            xBin: xBin,
+            yBin: yBin,
             widthInBins: widthInBins,
             heightInBins: heightInBins
         };
@@ -136,6 +173,10 @@ class HicInterface {
     static getBlocks(dataset, binCoors, normalization) { // hic.ContactMatrixView.prototype.update
 
         return dataset.getMatrix(binCoors.chr1, binCoors.chr2).then(function (matrix) {
+            if (!matrix) {
+                return null;
+            }
+
             // Calculate the row and column of block
             var zoomData = matrix.bpZoomData[binCoors.zoomIndex],
                 blockBinCount = zoomData.blockBinCount,
@@ -174,12 +215,12 @@ class HicInterface {
         other attributes: see base.js line 17215.  It just replaces track.qtc attributes with the ones that the server
         sends if names match
     */
-    static formatBlocks(blocks, chromosome) {
+    static formatAndMergeBlocks(blocks, chromosome) {
+        if (!blocks) {
+            return [];
+        }
+
         let blocksAsCoorData = blocks.map(function(block) {
-            if (!block) {
-                print2console(`No HiC data for block in ${chromosome}; try zooming in or re-adding the track`, 2);
-                return [];
-            }
             return HicInterface.blockToCoordinateData(block, chromosome);
         });
 
@@ -191,6 +232,10 @@ class HicInterface {
     }
 
     static blockToCoordinateData(block, chromosome) {
+        if (!block) {
+            print2console(`No HiC data for block in ${chromosome}, possibly corrupt file?`, 2);
+            return [];
+        }
         var binSize = block.zoomData.zoom.binSize;
         var allData = [];
         var id = 0;

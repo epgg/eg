@@ -6766,24 +6766,10 @@ function loading_done() { waitcloak.style.display='none'; }
 
 /*** __ajax__ ***/
 
-Browser.prototype.promisfyAjax=function(url, otherPromises) {
-	if (!otherPromises) {
-		otherPromises = []
-	}
-	let promises = [];
-	promises[0] = new Promise(function(resolve, reject) {
-		this.ajax(url, resolve);
+Browser.prototype.promisfyAjax=function(url) {
+	return new Promise(function(resolve, reject) {
+		this.ajax(url, resolve, reject);
 	}.bind(this));
-
-	promises = promises.concat(otherPromises);
-
-	return Promise.all(promises).then(function (results) {
-		let ajaxData = results[0];
-		for (let i = 1; i < results.length; i++) {
-			ajaxData.tkdatalst.push(results[i]);
-		}
-		return ajaxData;
-	});
 }
 
 Browser.prototype.ajaxSaveUrlpiece=function(callback)
@@ -6812,7 +6798,7 @@ req.open("POST", gflag.cors_host+"/cgi-bin/subtleKnife?NODECODE=on&offset="+this
 req.send();
 }
 
-Browser.prototype.ajax=function(queryUrl, callback)
+Browser.prototype.ajax=function(queryUrl, callback, errorCallback)
 {
 /* in case of too long url, need to send it in small pieces one at a time
 to get rid of "Request Entity Too Large" error on server
@@ -6833,7 +6819,7 @@ if(queryUrl.length > urllenlimit) {
 }
 var req = new XMLHttpRequest();
 
-req.onreadystatechange= function() {
+req.onreadystatechange = function() {
 	if(req.readyState==4 && req.status==200) {
 		var t=req.responseText;
 		try {
@@ -6841,13 +6827,28 @@ req.onreadystatechange= function() {
 		} catch(err) {
 			// unrecoverable??
 			gflag.badjson.push(t);
-			print2console('Json syntax error...',3);
-			callback(null);
+			print2console('Unreadable response from server',3);
+			if (errorCallback) {
+				errorCallback(new Error('Json syntax error'));
+			} else {
+				callback(null);
+			}
 			return;
 		}
 		callback(data);
 	}
 };
+
+req.onerror = function() {
+	print2console(`HTTP ${req.status} on ajax`, 3);
+	if (errorCallback) {
+		console.log(`HTTP ${req.status} : ${req.responseText}`)
+		errorCallback(new Error(`HTTP ${req.status}`));
+	} else {
+		callback(null);
+	}
+}
+
 req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
 	(this.ajax_phrase?this.ajax_phrase:''), true);
 req.send();
@@ -7883,11 +7884,12 @@ if(this.main) {
 	this.shieldOn();
 }
 
-var ajaxData;
+var ajaxData = null;
 this.promisfyAjax(param+this.houseParam())
 	.then(function (data) {
 		ajaxData = data;
-		return Promise.all(HicInterface.getHicPromises(ajaxData.regionLst, this.tklst));
+		let hicPromise = Promise.all(HicInterface.getHicPromises(ajaxData.regionLst, this.tklst));
+		return hicPromise;
 	}.bind(this))
 
 	.then(function (hicDataTracks) {
@@ -7898,7 +7900,7 @@ this.promisfyAjax(param+this.houseParam())
 	}.bind(this))
 
 	.catch(function (error) {
-		print2console(error, 2);
+		print2console(error.message, 2);
 		this.ajaxX_cb(ajaxData, norendering);
 	}.bind(this));
 }
@@ -16987,12 +16989,25 @@ var bbj=this;
 
 let url = this.displayedRegionParamPrecise()+'&addtracks=on&'+
 	'dbName='+this.genome.name+this.genome.customgenomeparam()+trackParam(olst);
-this.promisfyAjax(url, HicInterface.getHicPromises(this.regionLst, olst))
-	.then(bbj.ajax_addtracks_cb.bind(this))
+let ajaxData = null;
+this.promisfyAjax(url)
+	.then(function (data) {
+		ajaxData = data;
+		let hicPromise = Promise.all(HicInterface.getHicPromises(this.regionLst, olst));
+		return hicPromise;
+	}.bind(this))
+
+	.then(function (hicDataTracks) {
+		for (let hicTrackData of hicDataTracks) {
+			ajaxData.tkdatalst.push(hicTrackData);
+		}
+		this.ajax_addtracks_cb(ajaxData);
+	}.bind(this))
+
 	.catch(function (error) {
-		print2console(error, 2);
-		bbj.ajax_addtracks_cb(null);
-	});
+		print2console(error.message, 2);
+		this.ajax_addtracks_cb(ajaxData);
+	}.bind(this));
 }
 
 Browser.prototype.ajax_addtracks_cb=function(data)
@@ -17261,6 +17276,7 @@ for(var i=0; i<lst.length; i++) {
 			if('bin_size' in lst[i]) obj.qtc.bin_size=lst[i].bin_size;
 			if('d_binsize' in lst[i]) obj.qtc.d_binsize=lst[i].d_binsize;
 			if('hasChr' in lst[i]) obj.qtc.hasChr=lst[i].hasChr;
+			if('hicInterface' in lst[i]) obj.hicInterface=lst[i].hicInterface;
 		}
 	}
 	// work out the data
