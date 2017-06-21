@@ -15860,6 +15860,7 @@ if(tk.ft==FT_qcats) {
 if(tk.ft==FT_callingcard_c || tk.ft==FT_callingcard_n) {
 	// no matter whether the track is in ghm or decor, the x is same
 	pica_go(x,y);
+	hitpoint=sbj.sx2rcoord(result.position,true);
 	var bcstrand = '<div style="font-size:85%">';
 	if (result.strand)
 		bcstrand += '(' + result.strand + ') ';
@@ -16000,6 +16001,7 @@ if(isNumerical(tk)) {
 		}
 		if (distance <= 30) {// Threshold value, can be changed
 			return {
+				position: tk.insertions[idx][0],
 				score: tk.insertions[idx][2],
 				strand: tk.insertions[idx][3],
 				barcode: tk.insertions[idx][4]
@@ -17099,24 +17101,10 @@ if(tk.ft==FT_callingcard_c || tk.ft==FT_callingcard_n) {
 			bcstrand += '(' + result.strand + ') ';
 		bcstrand += result.barcode+'</div>';
 	}
-	
+	if (result != null)
+		hitpoint=sbj.sx2rcoord(result.position,true);
 	dom_create('div',bubble.says,'margin:10px;color:white;').innerHTML=countstr + bcstrand + hitpoint.str;
 	return;
-	
-	// if (result.strand)
-	// 	bcstrand += '(' + result.strand + ') ';
-	// bcstrand += result.barcode+'</div>';
-	// var str='<div style="padding:5px;font-size:16px;color:white">';
-	// if(tk.normalize) {
-	// 	var n=sbj.track_normalize(tk,result);
-	// 	str+=neatstr(n)+' ('+tk.normalize.method+')'+
-	// 		'<br><span style="font-size:12px">'+result+' (raw)</span>';
-	// } else {
-	// 	str+=result.score+'<br>'+bcstrand+(tk.qtc.height<20?'<div style="font-size:70%;opacity:.8">min: '+tk.minv+', max: '+tk.maxv+'</div>':'');
-	// }
-	// picasays.innerHTML= str+ '<div class=picadim>'+tk.label+
-	// 	'<br>'+hitpoint.str+'</div>'+cottonlabel+'</div>';
-	// return;
 }
 
 if(isNumerical(tk)) {
