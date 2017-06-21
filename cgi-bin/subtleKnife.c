@@ -1313,15 +1313,17 @@ tabix_t *tabixOpen(char *urlpath, boolean isremote)
 /* open tabix file and load index!
 to be used repeatedly, free after use
 */
+	fputs("1316\n", stderr);
 tabix_t *fin=ti_open(urlpath,0);
 if(fin==0)
-	return NULL;
+	{fputs("1319\n", stderr); return NULL;}
 if(!isremote)
 	{
 	if(ti_lazy_index_load(fin)<0)
-		return NULL;
+		{fputs("1323\n", stderr); return NULL;}
 	return fin;
 	}
+	fputs("1326\n", stderr);
 // ready to change dir
 char *deposit_dir=getDepositePath4url(urlpath);
 char *olddir=getcwd(NULL,0);
@@ -1337,6 +1339,7 @@ if(chdir(olddir)!=0)
 	fputs("failed to change back dir afterwards\n",stderr);
 	return NULL;
 	}
+	fputs("1342\n",stderr);
 return fin;
 }
 
@@ -1581,7 +1584,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	// fprintf(stderr, "ti_read return: %d\n", x);
 	// if (x == 0) break;
 	tmpstr=strdup(row);
-	// fprintf(stderr, "%s\n", tmpstr);
+	fprintf(stderr, "%s\n", tmpstr);
 	if(tmpstr==NULL)
 		{
 		fprintf(stderr, "%s: mem\n", __FUNCTION__);
@@ -1593,7 +1596,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	cc->strand = NULL;
 	cc->barcode = NULL;
 	// chr
-	// fputs("chr\n", stderr);
+	fputs("chr\n", stderr);
 	tok = strtok(tmpstr, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1602,7 +1605,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 		cc->chrom = strdup(tok);
 	}
 	// start
-	// fputs("start\n", stderr);
+	fputs("start\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1616,7 +1619,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->start = l;
 	}
 	// stop
-	// fputs("stop\n", stderr);
+	fputs("stop\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1630,7 +1633,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->stop = l;
 	}
 	// read count
-	// fputs("count\n", stderr);
+	fputs("count\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1644,7 +1647,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->count = l;
 	}
 	// strand, if present
-	// fputs("strand\n", stderr);
+	fputs("strand\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		// End of line, no barcode and strand information present
@@ -1652,7 +1655,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	} else {
 		cc->strand = strdup(tok);
 		// barcode, if present
-		// fputs("barcode\n", stderr);
+		fputs("barcode\n", stderr);
 		tok = strtok(NULL, delim);
 		if (tok == NULL) {
 			// End of line, strand present but not barcode
@@ -1661,7 +1664,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->barcode = strdup(tok);
 		}
 	}
-	// fputs("1623\n", stderr);
+	fputs("1623\n", stderr);
 	// if (count < 10) fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
 	if (sl == NULL) {
 		sl = cc;
@@ -1695,6 +1698,10 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	struct callingCard *current = cclist;
 	fputs("1673\n", stderr);
 	int i = 0;
+	if (current == NULL) { // No calling cards 
+		data->length = len;
+		return data;
+	}
 	while (current != NULL) {
 		xdata[i] = (current->start + current->stop)/2;
 		ydata[i] = current->count;
@@ -2410,93 +2417,102 @@ return data;
 }
 
 // For calling card data. Modeled after tabixQuery_bedgraph_dsp
-struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, struct track *tk, char *move, int start, int stop)
-{
-/* Fetch all calling cards within displayed region.
-   Free after use.
-*/
+struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, struct track *tk, char *move, int start, int stop) {
+	/* Fetch all calling cards within displayed region.
+	   Free after use.
+	*/
 
-fprintf(stderr, "fin = tabixOpen(%s)\n", tk->urlpath);
-tabix_t *fin=tabixOpen(tk->urlpath, TRUE);
-if(fin==NULL)
-	{
-	return NULL;
-	}
-
-int i, dspStart;
-float width;
-struct region *r;
-struct callingCard *cclist=NULL, *tmp=NULL;
-struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
-boolean atbplevel = dsp->usedSummaryNumber > dsp->entireLength;
-// returnData->length = 0;
-fprintf(stderr, "dsp region start: %d\n", dsp->start->coord);
-fprintf(stderr, "dsp region stop: %d\n", dsp->stop->coord);
-fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
-fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
-fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-if(!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
-else width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
-fprintf(stderr, "width: %f\n", width);
-for(r=dsp->head; r!=NULL; r=r->next) {
-    if(r->summarySize > 0) {
-		if (!move) {start = r->dstart; stop = r->dstop;}
-		fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, start, stop);
-		// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
-		tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, start, stop);
-		fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
-		tmpData = getCallingCardData(tmp);
-		fprintf(stderr, "%d data points\n", tmpData->length);
-		dspStart = r->dstart;
-		fprintf(stderr, "dspStart = %d\n", dspStart);
-		for (i = 0; i < tmpData->length; i++)
-			fprintf(stderr, "%lu,", tmpData->xdata[i]);
-			// The following is a hack necessary to render calling card positions appropriately
-			// Will probably need to improve it
-			if (!atbplevel) {
-				if (move) {
-					if (move[0] == 'r') {
-						// fprintf(stderr, "FOUND IT!\n");
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+	fprintf(stderr, "fin = tabixOpen(%s)\n", tk->urlpath);
+	tabix_t *fin=tabixOpen(tk->urlpath, TRUE);
+	if(fin==NULL)
+		{
+		return NULL;
+		}
+		fputs("2428\n", stderr);
+	int i, dspStart;
+	float width;
+	struct region *r;
+		fputs("2432\n", stderr);
+	struct callingCard *cclist=NULL, *tmp=NULL;
+	struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
+		fputs("2435\n", stderr);
+	boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
+	fputs("2437\n", stderr);
+	// returnData->length = 0;
+	fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
+	fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
+	fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
+	if(!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+	else width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+	fprintf(stderr, "width: %f\n", width);
+	for(r=dsp->head; r!=NULL; r=r->next) {
+	    if(r->summarySize > 0) {
+			if (!move) {start = r->dstart; stop = r->dstop;}
+			fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, start, stop);
+			// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
+			tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, start, stop);
+			if (tmp == NULL)
+				fprintf(stderr, "No calling cards in view\n");
+			else
+				fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+			tmpData = getCallingCardData(tmp);
+			fprintf(stderr, "%d data points\n", tmpData->length);
+			dspStart = r->dstart;
+			fprintf(stderr, "dspStart = %d\n", dspStart);
+		
+			for (i = 0; i < tmpData->length; i++) {
+				// fprintf(stderr, "%lu,", tmpData->xdata[i]);
+				// The following is a hack necessary to render calling card positions appropriately
+				// Will probably need to improve it
+				if (!atbplevel) {
+					if (move) {
+						if (move[0] == 'r') {
+							// fprintf(stderr, "FOUND IT!\n");
+							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+						} else {
+							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+						}
 					} else {
 						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
 					}
 				} else {
-					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
-				}
-			} else {
-				if (move) {
-					if (move[0] == 'r') {
-						// fprintf(stderr, "FOUND IT!\n");
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
+					if (move) {
+						if (move[0] == 'r') {
+							// fprintf(stderr, "FOUND IT!\n");
+							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
+						} else {
+							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
+						}
 					} else {
 						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
 					}
-				} else {
-					tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
 				}
-				
 			}
-		if (returnData==NULL) { // This is the first region we are processing
-			returnData = tmpData;
-			tail = returnData;
+		
+			fputs("2491\n", stderr);
+			if (returnData==NULL) { // This is the first region we are processing
+				returnData = tmpData;
+				tail = returnData;
+			} else {
+				tail->next = tmpData;
+				tail = tmpData;
+			}
+			fputs("2500\n", stderr);
+			tail->next = NULL;
+			if (tmp != NULL) {
+				ccFree(tmp);
+			}	
+		} else {
+			if(SQUAWK)
+				fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
 		}
-		else {
-			tail->next = tmpData;
-			tail = tmpData;
-		}
-		tail->next = NULL;
-		ccFree(tmp);
 	}
-    else {
-		if(SQUAWK)
-			fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
-	}
+	fputs("2510\n", stderr);
+	ti_close(fin);
+	// fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[2655], returnData->ydata[2655], tail->next);
+	fputs("2513\n", stderr);
+	return returnData;
 }
-ti_close(fin);
-fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[2655], returnData->ydata[2655], tail->next);
-return returnData;
-
 // double *data = malloc(sizeof(double) * dsp->usedSummaryNumber);
 // int i;
 // for(i=0; i<dsp->usedSummaryNumber; i++)
@@ -2524,7 +2540,7 @@ return returnData;
 // 	return data;
 // 	}
 
-}
+// }
 
 void tabixQuery_categorical(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop, int spnum, int *data)
 {
@@ -10665,38 +10681,40 @@ if(hm.trackSl!=NULL)
 						fprintf(stderr, "startCoord = %d, stopCoord = %d\n", startCoord, stopCoord);
 						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move, startCoord, stopCoord);
 						fputs("10563\n", stderr);
-						if (ccData->xdata==NULL || ccData->ydata==NULL) {
-							fputs("10565\n", stderr);
-							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
-							_exit(0);
-						}
-						fputs("10568\n", stderr);
 						FILE *fout = fopen(tk->tmpfile, "w");
 						if(fout == NULL) {
 							fputs("10571\n", stderr);
 							if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
 							_exit(0);
 						}
+						fputs("10568\n", stderr);
+						if (ccData->xdata==NULL || ccData->ydata==NULL) {
+							fputs("10565\n", stderr);
+							if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+							_exit(0);
+						}
 						fputs("10575\n", stderr);
 						struct region *r;
 						struct callingCardData *current;// = ccData;
 						fputs("10578\n", stderr);
-						fprintf(stderr, "ccData length = %d\n", ccData->length);
-						fprintf(stderr, "ccData xdata[0] = %f\n", ccData->xdata[0]);
-						fprintf(stderr, "ccData ydata[0] = %d\n", ccData->ydata[0]);
-						fprintf(stderr, "Current points to %d\n", current);
-						if (ccData == NULL) fputs("ccData is NULL\n", stderr);
-						for(current = ccData; current!=NULL; current=current->next) {
-							fprintf(stderr, "%d\n", current->length);
-							for (int i = 0; i < current->length; i++) {
-								fprintf(fout, "%lu\t%lu\n", current->xdata[i], current->ydata[i]);
-								// lines++;
+						// fprintf(stderr, "ccData length = %d\n", ccData->length);
+						// fprintf(stderr, "ccData xdata[0] = %f\n", ccData->xdata[0]);
+						// fprintf(stderr, "ccData ydata[0] = %d\n", ccData->ydata[0]);
+						// fprintf(stderr, "Current points to %d\n", current);
+						// if (ccData == NULL) fputs("ccData is NULL\n", stderr);
+						if (ccData != NULL && ccData->length > 0) {
+							for(current = ccData; current!=NULL; current=current->next) {
+								fprintf(stderr, "%d\n", current->length);
+								for (int i = 0; i < current->length; i++) {
+									fprintf(fout, "%f\t%lu\n", current->xdata[i], current->ydata[i]);
+									// lines++;
+								}
 							}
 						}
 						fclose(fout);
 						// fprintf(stderr, "number lines written: %d\n", lines);
 						fputs("10585\n", stderr);
-						ccDataFree(ccData);
+						// ccDataFree(ccData);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
 						{
@@ -10943,7 +10961,7 @@ if(hm.trackSl!=NULL)
 							fputs("10942\n", stderr);
 							printf("]},");
 							fprintf(stderr, "done printing\n");
-							ccDataFree(ccData);
+							// ccDataFree(ccData);
 							fputs("10946\n", stderr);
 						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
