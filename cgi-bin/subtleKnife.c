@@ -1829,9 +1829,9 @@ int scale=50, binsize;
     }else if (reglen >= scale*50000 && reglen < scale*100000){
         binsize = 50000;
     }else if (reglen >= scale*25000 && reglen < scale*50000){
-        binsize = 10000;
-    }else if(reglen >= scale*10000 && reglen < scale*25000){
         binsize = 25000;
+    }else if(reglen >= scale*10000 && reglen < scale*25000){
+        binsize = 10000;
     }else if(reglen >= scale*5000 && reglen < scale*10000){
         binsize = 5000;
     }else{
