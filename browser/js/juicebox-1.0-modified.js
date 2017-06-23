@@ -2064,8 +2064,7 @@ var hic = (function (hic) {
     }
 
     /**
-     * Returns the largest bin size for a region such that there are at least MIN_BINS_PER_REGION in the region.  Returns
-     * DEFAULT_BIN_SIZE if such a bin size could not be found, such as when 0 is passed to the function.
+     * Returns the largest bin size for a region such that there are at least MIN_BINS_PER_REGION in the region.
      * @param {number} regionLength - the length of the region
      * @returns {number} the bin size for the region
      */
@@ -2075,7 +2074,7 @@ var hic = (function (hic) {
                 return i;
             }
         }
-        return 0;
+        return this.bpResolutions.length - 1;
     }
 
     hic.Dataset.prototype.binsizeToZoomIndex = function(targetResolution) { // findMatchingZoomIndex
@@ -2147,7 +2146,7 @@ var hic = (function (hic) {
                                         var normRecords = [],
                                             normBlock;
 
-                                        if(nv1 === undefined ||nv2 === undefined) {
+                                        if(nv1 == undefined ||nv2 == undefined) {
                                             console.log("Undefined normalization vector for: " + normalization);
                                             fulfill(block);
                                         }

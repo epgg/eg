@@ -7888,7 +7888,7 @@ var ajaxData = null;
 this.promisfyAjax(param+this.houseParam())
 	.then(function (data) {
 		ajaxData = data;
-		let hicPromise = Promise.all(HicInterface.getHicPromises(ajaxData.regionLst, this.tklst));
+		let hicPromise = Promise.all(HicInterface.getHicPromises(this.tklst, ajaxData.regionLst));
 		return hicPromise;
 	}.bind(this))
 
@@ -16993,7 +16993,7 @@ let ajaxData = null;
 this.promisfyAjax(url)
 	.then(function (data) {
 		ajaxData = data;
-		let hicPromise = Promise.all(HicInterface.getHicPromises(this.regionLst, olst));
+		let hicPromise = Promise.all(HicInterface.getHicPromises(olst, this.regionLst));
 		return hicPromise;
 	}.bind(this))
 
