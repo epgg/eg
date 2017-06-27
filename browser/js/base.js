@@ -3578,6 +3578,7 @@ if(tkobj.ft==FT_matplot) {
 				nth:tkobj.qtc.nth,
 				barbg:tkobj.qtc.barplotbg},
 			opacity:tkobj.qtc.opacity,
+			size:parseFloat(menu.c68.size.value),
 			tk:tkobj,
 			rid:i,
 			x:this.cumoffset(i,r[3]),
@@ -6680,6 +6681,11 @@ case 2:
 			tk.qtc.opacity=opacity;
 			U=true;
 			break;
+		case 42:
+			var size=parseFloat(menu.c68.size.value);
+			tk.qtc.size=size;
+			U=true;
+			break;
         case 44: //hic configure change
             tk.qtc.matrix = menu.lr.matrix.value;
             tk.qtc.norm = menu.lr.norm.value;
@@ -9424,6 +9430,7 @@ var xdata=arg.xdata,
 	ctx=arg.ctx,
 	colors=arg.colors,
 	opacity=arg.opacity,
+	size=arg.size,
 	tk=arg.tk,
 	ridx=arg.rid, // for weaver
 	initcoord=arg.initcoord, // for weaver, given for barplot
@@ -9626,7 +9633,7 @@ for(var i=0; i < length; i++) {
 		// ctx.fillStyle = barcolor;
 		// ctx.fillRect(position, bary, w, curveonly? 2 : barh);
 		ctx.beginPath();
-		ctx.arc(position, bary, 4, 0, 2*Math.PI);
+		ctx.arc(position, bary, size, 0, 2*Math.PI);
 		ctx.strokeStyle=barcolor;
 		ctx.globalAlpha=opacity;
 		ctx.stroke();
@@ -11038,7 +11045,7 @@ waitcloak=dom_create('div');
 waitcloak.style.position='absolute';
 waitcloak.style.opacity=0.5;
 waitcloak.style.zIndex=200;
-dom_create('img',waitcloak).src=(gflag.is_cors?gflag.cors_host:'')+'/images/loading.gif';
+dom_create('img',waitcloak).src=(gflag.is_cors?gflag.cors_host:'')+'/browser/images/loading.gif';
 
 /* __control__ panels
 panels that belong to the page and shared by all browser objs
@@ -11513,6 +11520,12 @@ if(param.menu_curvenoarea) {
 menu.c67=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 dom_addtext(menu.c67,'Opacity&nbsp;');
 menu.c67.slider=dom_addslider(menu.c67, 'opacity', 0, 100, 1, 50, opacityslider);
+
+// Calling card size selector
+menu.c68=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
+dom_addtext(menu.c68,'Marker size&nbsp;');
+menu.c68.size=dom_inputnumber(menu.c68,{id: "callingcard_size", width:50, value:4});
+dom_addbutt(menu.c68,'apply',qtc_setcallingcard_size);
 
 menu.c53=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 menu.c53.checkbox=dom_addcheckbox(menu.c53,'Apply to all tracks',toggle15);
@@ -13761,7 +13774,12 @@ if(min>=max) {
 menu_update_track(6);
 }
 
-
+function qtc_setcallingcard_size(event) {
+	// var size=parseFloat(menu.c68.size.value);
+	// print2console(size,2);
+	// return;
+	menu_update_track(42);
+}
 
 function menu_log_select() { menu_update_track(9);}
 function menu_qtksummary_select() {menu_update_track(32);}
@@ -23536,6 +23554,7 @@ menu.c14.style.display='block';
 menu.c14.unify.style.display='none';
 menu.c51.sharescale.style.display=tk.group!=undefined?'block':'none';
 }
+
 function config_callingcard(tk)
 {
 var q=tk.qtc;
@@ -23550,9 +23569,11 @@ menu.c14.style.display='block';
 menu.c14.unify.style.display='none';
 menu.c46.style.display='none';
 menu.c51.sharescale.style.display=tk.group!=undefined?'block':'none';
-menu.c59.style.display='none';
 menu.c67.style.display='block';
+menu.c68.style.display='block';
+menu.c59.style.display='none';
 }
+
 function config_cat(tk)
 {
 cateCfg_show(tk,false);
