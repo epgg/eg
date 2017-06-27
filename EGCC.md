@@ -43,7 +43,7 @@ Currently, only hg19 and mm10 are supported.
 
 ## Format the Data
 
-Calling card data must be stored in a tab-delimited, plain text format. This format requires a minimum of four columns and can support up to six. The four required columns are CHROM, START, STOP, and COUNT, where COUNT refers to the number of reads for that insertion. The fifth and sixth columns are optional and represent STRAND and BARCODE, respectively. Here is an example of a four-column calling card file:
+Calling card data must be stored in a tab-delimited, plain text format. This format requires a minimum of four columns and can support up to six. The four required columns are CHROM, START, STOP, and COUNT, where COUNT refers to the number of reads for that insertion. The START and STOP columns can be either 0- or 1-indexed. The fifth and sixth columns are optional and represent STRAND and BARCODE, respectively. Here is an example of a four-column calling card file:
 ```
 chr1    41954321        41954325        1
 chr1    41954321        41954325        18
@@ -75,7 +75,7 @@ chr1    61542006        61542010        1       -       CTGAGAGACTGG
 Your text file must be sorted by the first three columns. If your filename is `example.ccf`, you sort it with the following command:
 `sort -k1V -k2n -k3n example.ccf > example_sorted.ccf`
 
-Note that you can have strand information without a barcode, but you cannot put barcode information without a strand column.
+Note that you can have strand information without a barcode, but you cannot have barcode information without a strand column.
 
 The browser currently supports data upload via datahub, which will fetch your data over the Internet. Therefore, we must put the data into a web-accessible location.
 
@@ -87,13 +87,14 @@ module load htslib
 bgzip example_sorted.ccf
 tabix -p bed example_sorted.ccf.gz
 ```
+This command is for 1-indexed coordinates. If your data is 0-indexed, replace the last command with `tabix -0 -p bed example_sorted.ccf.gz`.
 
 ## Upload the Data
 
 A JSON file is need to upload data and create tracks on the browser. Here is the structure of a simple, two-track JSON file:
 ```JSON
 [
-	# this is comment
+	/* this is a comment */
 	{
 	    "type":"bedgraph",
 	    "url":"https://htcf.wustl.edu/files/vdY5b0dP/test2.bedgraph.gz",
@@ -113,9 +114,9 @@ A JSON file is need to upload data and create tracks on the browser. Here is the
 ]
 ```
 
-Note that all strings must be in quotation marks, while numerical values need not. Here, the colorpositive and height specifications are optional. To add more tracks, enclose them in braces within the brackets and separate the braces with commas. More information about supported file types and how to format them can be found at the [WashU EpiGenome Browser wiki](http://wiki.wubrowse.org).
+The "url" field should specify the bgzipped file (ends in `.gz`), not the tabix index file (which ends in `.gz.tbi`). Note that all strings must be in quotation marks, while numerical values need not. Here, the colorpositive and height specifications are optional. To add more tracks, enclose them in braces within the brackets and separate the braces with commas. More information about supported file types and how to format them can be found at the [WashU EpiGenome Browser wiki](http://wiki.wubrowse.org).
 
-Save the JSON file on your local computer. It is not necessary to save this file to the HTCF cluster. To upload data, open the appropriate reference genome in the browser (hg19 or mm10), click on "Tracks", then "Custom Tracks", then "Add new tracks". Click on the "Datahub by upload" button, then select your JSON file. If everything works perfectly, your data should now be visible on the browser!
+Save the JSON file on your local computer; it is not necessary to save this file to the HTCF cluster. To upload data, open the appropriate reference genome in the browser, click on "Tracks", then "Custom Tracks", then "Add new tracks". Click on the "Datahub by upload" button, then select your JSON file. If everything works perfectly, your data should now be visible on the browser!
 
 ## Known Issues
 
