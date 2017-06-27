@@ -43,7 +43,7 @@ Currently, only hg19 and mm10 are supported.
 
 ## Format the Data
 
-Calling card data must be stored in a tab-delimited, plain text format. This format requires a minimum of four colums and can support up to six. The four required columns are CHROM, START, STOP, and COUNT, where COUNT refers to the number of reads for that insertion. The fifth and sixth columns are optional and represent STRAND and BARCODE, respectively. Here is an example of a four-column calling card file:
+Calling card data must be stored in a tab-delimited, plain text format. This format requires a minimum of four columns and can support up to six. The four required columns are CHROM, START, STOP, and COUNT, where COUNT refers to the number of reads for that insertion. The fifth and sixth columns are optional and represent STRAND and BARCODE, respectively. Here is an example of a four-column calling card file:
 ```
 chr1    41954321        41954325        1
 chr1    41954321        41954325        18
@@ -79,7 +79,7 @@ Note that you can have strand information without a barcode, but you cannot put 
 
 The browser currently supports data upload via datahub, which will fetch your data over the Internet. Therefore, we must put the data into a web-accessible location.
 
-I have created a folder, `/scratch/rmlab/public/`, where you can store data on the cluster and retrieve it from a brower. The `address` file in this folder contains the current URL for this directory. This address is valid for 120 days and may change after that point. Always check the `address` file for the current URL. Verify access by visiting this URL with your web browser.
+I have created a folder, `/scratch/rmlab/public/`, where you can store data on the cluster and retrieve it from a browser. The `address` file in this folder contains the current URL for this directory. This address is valid for 120 days and may change after that point. Always check the `address` file for the current URL. Verify access by visiting this URL with your web browser.
 
 Place your sorted text file in the `public` folder. Since genomic data is often large, we must compress and index it for fast retrieval. Use the following commands to do so:
 ```
