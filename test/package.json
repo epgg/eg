@@ -1,0 +1,24 @@
+{
+  "name": "eg",
+  "version": "1.0.0",
+  "description": "Wash U Epigenome Browser",
+  "scripts": {
+    "test": "echo 'See README.md on how to run tests'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/epgg/eg.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/epgg/eg/issues"
+  },
+  "homepage": "https://github.com/epgg/eg#readme",
+  "devDependencies": {
+    "chai": "^4.0.2",
+    "mocha": "^3.4.2",
+    "sinon": "^2.3.5",
+    "sinon-chai": "^2.11.0"
+  }
+}

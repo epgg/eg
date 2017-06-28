@@ -7888,7 +7888,7 @@ var ajaxData = null;
 this.promisfyAjax(param+this.houseParam())
 	.then(function (data) {
 		ajaxData = data;
-		let hicPromise = Promise.all(HicInterface.getHicPromises(this.tklst, ajaxData.regionLst));
+		let hicPromise = Promise.all(HicProvider.getHicPromises(this.tklst, ajaxData.regionLst));
 		return hicPromise;
 	}.bind(this))
 
@@ -16993,7 +16993,7 @@ let ajaxData = null;
 this.promisfyAjax(url)
 	.then(function (data) {
 		ajaxData = data;
-		let hicPromise = Promise.all(HicInterface.getHicPromises(olst, this.regionLst));
+		let hicPromise = Promise.all(HicProvider.getHicPromises(olst, this.regionLst));
 		return hicPromise;
 	}.bind(this))
 
@@ -17276,7 +17276,7 @@ for(var i=0; i<lst.length; i++) {
 			if('bin_size' in lst[i]) obj.qtc.bin_size=lst[i].bin_size;
 			if('d_binsize' in lst[i]) obj.qtc.d_binsize=lst[i].d_binsize;
 			if('hasChr' in lst[i]) obj.qtc.hasChr=lst[i].hasChr;
-			if('hicInterface' in lst[i]) obj.hicInterface=lst[i].hicInterface;
+			if(HicProvider.TRACK_PROP_NAME in lst[i]) obj[HicProvider.TRACK_PROP_NAME]=lst[i][HicProvider.TRACK_PROP_NAME];
 		}
 	}
 	// work out the data

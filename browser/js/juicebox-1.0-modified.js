@@ -2051,9 +2051,19 @@ var hic = (function (hic) {
     hic.Dataset.MIN_BINS_PER_REGION = 50;
     hic.Dataset.BLOCK_CACHE_SIZE = 20;
 
+    /**
+     * Searches the internal list of chromosomes for one with a name matching the input.  Returns -1 if not found.
+     *
+     * @param {string} name - the name of the chromosome to find
+     * @return {number} the index of the found chromosome, or -1 if not found
+     */
     hic.Dataset.prototype.findChromosomeIndex = function(name) {
-        var nameToFind = name.replace("chr", "");
-        nameToFind = nameToFind.replace("M", "MT");
+        if (!name) {
+            return -1;
+        }
+
+        var nameToFind = name.replace("chrM", "MT");
+        nameToFind = nameToFind.replace("chr", "");
         let found = this.chromosomes.find(function (chromosome) {
             return chromosome.name == nameToFind;
         });
@@ -2064,9 +2074,11 @@ var hic = (function (hic) {
     }
 
     /**
-     * Returns the largest bin size for a region such that there are at least MIN_BINS_PER_REGION in the region.
+     * Returns the index of the largest bin size such at least MIN_BINS_PER_REGION fit in a region of the provided
+     * length.  If no such bin size exists, because the input was too small or invalid, returns the smallest bin size.
+     *
      * @param {number} regionLength - the length of the region
-     * @returns {number} the bin size for the region
+     * @returns {number} the index of the recommended bin size for the region
      */
     hic.Dataset.prototype.regionLengthToZoomIndex = function(regionLength) {
         for (let i = 0; i < this.bpResolutions.length; i++) { // Iterate through bin sizes, largest to smallest
@@ -2077,8 +2089,18 @@ var hic = (function (hic) {
         return this.bpResolutions.length - 1;
     }
 
-    hic.Dataset.prototype.binsizeToZoomIndex = function(targetResolution) { // findMatchingZoomIndex
-        for (let z = this.bpResolutions.length - 1; z > 0; z--) {
+    /**
+     * Returns the index of the smallest bin size that is larger than or equal to the input.  If no such bin size
+     * exists, then returns the largest bin size.
+     *
+     * @param {number} targetResolution - the bin size to find
+     * @returns {number} the index of a bin size that is "close" to the input
+     */
+    hic.Dataset.prototype.binsizeToZoomIndex = function(targetResolution) { // Based off of findMatchingZoomIndex
+        if (targetResolution == undefined) {
+            return 0;
+        }
+        for (let z = this.bpResolutions.length - 1; z > 0; z--) { // Iterate through bin sizes, smallest to largest
             if (this.bpResolutions[z] >= targetResolution) {
                 return z;
             }
@@ -2406,6 +2428,16 @@ var hic = (function (hic) {
         this.fragmentSitesCache = {};
 
     };
+
+    /**
+     * Added by Silas Hsu
+     */
+    hic.HiCReader.fromUrl = function(url) {
+        return new hic.HiCReader({
+            url: url,
+            config: {}
+        });
+    }
 
     hic.HiCReader.prototype.loadDataset = function () {
 

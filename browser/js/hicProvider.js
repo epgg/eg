@@ -1,6 +1,6 @@
 /**
- * This file contains the main interface for the epigenome browser to retrieve HiC data.  It contains HicInterface and
- * helper classes for it.
+ * This file contains the main interface for the epigenome browser to retrieve HiC data.  It contains HicProvider and
+ * helpers for it.
  *
  * @author Silas Hsu
  * @since version 43, June 2017
@@ -18,22 +18,24 @@
  *
  * @author Silas Hsu
  */
-class HicInterface {
+class HicProvider {
     /**
-     * Makes a new HicInterface, specialized to serve HiC data from the given URL
+     * Makes a new HicProvider, specialized to serve HiC data from the given HiCReader and format results in a certain
+     * way
      *
-     * @param {string} url - the URL from which to get HiC data
+     * @param {hic.HiCReader} reader - the HiCReader from which to get a dataset
+     * @param {HicFormatter} hicFormatter - used to format blocks from the HiCReader
      */
-    constructor(url) {
-        this.url = url;
-        this.reader = new hic.HiCReader({
-            url: url,
-            config: {}
-        });
-        this.datasetPromise = this.reader.loadDataset();
+    constructor(hicReader, hicFormatter) {
+        this.reader = hicReader;
+        this.datasetPromise = hicReader.loadDataset();
+        this.hicFormatter = hicFormatter;
     }
 
     /**
+     * (This function would logically be part of some HiCTrack class.  However, that doesn't exist, so I stuck the code
+     * here.)
+     *
      * Looks for HiC tracks in the given track list.  For each HiC track, retrieves data in all the input regions.  The
      * result is an array of promises for TrackData, one for each HiC track.
      *
@@ -41,15 +43,16 @@ class HicInterface {
      * - Given an empty array for any of the parameters, returns an empty array.
      * - HiC tracks can specify automatic bin size.  In this case, the choosen bin size will depend on the length of the
      *     longest region passed to the function.
-     * - For more info on bins, see the class documentation: {@link HicInterface}
+     * - For more info on bins, see the class documentation: {@link HicProvider}
      *
      * @param {Track[]} tracks - an array of Track-like objects that base.js uses
-     * @param {Region[]} regions - an array of Regions that base.js uses.  Each Region object is an Array.
+     * @param {Region[]} regions - an array of Regions
      * @return {Promise.<TrackData>[]} - an array of Promise for track data, one for each HiC track
-     * @see {@link constructTrackData} for details of TrackData
+     * @see {@link _constructTrackData} for details of TrackData
+     * @see {@link RegionWrapper} for a class that fulfills the region API
      */
     static getHicPromises(tracks, regions) {
-        if (regions.length == 0) {
+        if (!tracks || !regions || regions.length == 0) {
             return [];
         }
 
@@ -58,7 +61,7 @@ class HicInterface {
             return [];
         }
 
-        regions = regions.map(region => new RegionWrapper(region));
+        regions = RegionWrapper.wrapRegions(regions);
         let longestRegion = regions.reduce((longestLengthSoFar, currentRegion) => {
             let currentLength = currentRegion.lengthInBasePairs;
             return currentLength > longestLengthSoFar ? currentLength : longestLengthSoFar;
@@ -66,10 +69,8 @@ class HicInterface {
 
         let promisesForEachTrack = [];
         for (let hicTrack of hicTracks) {
-            let hicInterface = hicTrack.hicInterface || new HicInterface(hicTrack.url);
-            if (hicInterface.url != hicTrack.url ) { // This should never be true, but just in case...
-                hicInterface = new HicInterface(hicTrack.url);
-            }
+            let hicInstance = hicTrack[HicProvider.TRACK_PROP_NAME] ||
+                new HicProvider(hic.HiCReader.fromUrl(hicTrack.url), BrowserHicFormatter);
 
             // Each track's promise is a Promise.all for all regions.
             let promisesForEachRegion = [];
@@ -79,12 +80,12 @@ class HicInterface {
                 let endBasePair = region.endBasePair;
                 let binSizeOverride = hicTrack.qtc.bin_size == scale_auto ? // User-set bin size?
                     null : Number.parseInt(hicTrack.qtc.bin_size);
-                promisesForEachRegion.push(hicInterface.getRecords(chromosome, startBasePair, endBasePair, chromosome,
+                promisesForEachRegion.push(hicInstance.getRecords(chromosome, startBasePair, endBasePair, chromosome,
                     startBasePair, endBasePair, hicTrack.qtc.norm, longestRegion, binSizeOverride));
             }
 
             let trackPromise = Promise.all(promisesForEachRegion)
-                .then(recordsForEachRegion => hicInterface.constructTrackData(hicTrack, recordsForEachRegion));
+                .then(recordsForEachRegion => hicInstance._constructTrackData(hicTrack, recordsForEachRegion));
             promisesForEachTrack.push(trackPromise);
         }
 
@@ -92,6 +93,9 @@ class HicInterface {
     }
 
     /**
+     * (This function would logically be part of some HiCTrack class.  However, that doesn't exist, so I stuck the code
+     * here.)
+     *
      * Uses the given parameters to construct an object formatted in the way base.js expects when updating tracks.
      * Mainly copies certain properties of the parameters.  The main exception is bin size, which will be inferred from
      * the first CoordinateRecord of recordsForEachRegion.
@@ -101,7 +105,7 @@ class HicInterface {
      *     the inner arrays contain CoordinateRecords for each region
      * @return {TrackData} an object that base.js reads when updating a track
      */
-    constructTrackData(hicTrack, recordsForEachRegion) {
+    _constructTrackData(hicTrack, recordsForEachRegion) {
         // Find the first region with records
         let regionWithRecords = recordsForEachRegion.find(records => records.length > 0);
         let binSize = regionWithRecords !== undefined ? (regionWithRecords[0].stop - regionWithRecords[0].start) : 0;
@@ -113,10 +117,10 @@ class HicInterface {
             bin_size: hicTrack.qtc.bin_size || scale_auto,
             d_binsize: binSize,
             matrix: "observed",
-            hicInterface: this
         }
+        trackData[HicProvider.TRACK_PROP_NAME] = this;
         /*
-        By putting `hicInterface: this`, we expect Browser.prototype.jsonTrackdata (in base.js) to attach `this` to
+        By putting `this` in the track data, we expect Browser.prototype.jsonTrackdata (in base.js) to attach `this` to
         the HiC track, and then we can take advantage of juicebox.js's caching if the Track appears again in
         getHicPromises().
         */
@@ -129,7 +133,7 @@ class HicInterface {
      * cover the requested genomic coordinates, but there may be more records than requested.
      *
      * Automatically selects a bin size based on the longest dimension (row or column), but the last two arguments can
-     * manually adjust bin size as well.  For more info on bins, see the class documentation: {@link HicInterface}.
+     * manually adjust bin size as well.  For more info on bins, see the class documentation: {@link HicProvider}.
      *
      * Additional details:
      * - As the arguments suggest, this method can request only the contact matrix between two chromosomes or the
@@ -155,24 +159,28 @@ class HicInterface {
             .then((dataset) => {
                 let zoomIndex = targetBinSize != undefined ?
                     dataset.binsizeToZoomIndex(targetBinSize) : dataset.regionLengthToZoomIndex(regionLength);
-                let binCoors = HicInterface.toBinCoordinates(
+                let binCoors = HicProvider._toBinCoordinates(
                     dataset, chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, zoomIndex
                 );
-                return HicInterface.getBlocks(dataset, binCoors, normalization);
+                return HicProvider.getBlocks(dataset, binCoors, normalization);
+            })
+            .catch((error) => { // Catch error here because we don't want the failure of one region to fail the rest
+                print2console(error.toString(), 2);
+                return [];
             })
             .then((blocks) => {
                 if (blocks.length == 0) {
-                    print2console(`No HiC data for ${chr1}`, 0);
+                    print2console(`No HiC data for ${chr1Name}`, 0);
                     return [];
                 }
-                return HicInterface.formatAndMergeBlocks(blocks, chr1Name);
+                return this.hicFormatter.formatBlocks(blocks, chr1Name, chr2Name);
             });
         return promise;
     }
 
     /**
      * Converts matrix coordinates in base pairs to coordinates in bin numbers, and returns the results in one object.
-     * For more info on what bins are, see the class documentation: {@link HicInterface}
+     * For more info on what bins are, see the class documentation: {@link HicProvider}
      *
      * @param {hic.Dataset} dataset - used for conversion of chromosome names and looking up bin size
      * @param {string} chr1Name - chromosome for the row range of the matrix
@@ -185,11 +193,11 @@ class HicInterface {
      * @return {Object} an object containing chromosome numbers, bin coordinates, and zoom index
      * @throws {Error} if a chromosome name could not be understood
      */
-    static toBinCoordinates(dataset, chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, zoomIndex) {
+    static _toBinCoordinates(dataset, chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, zoomIndex) {
         let chr1Index = dataset.findChromosomeIndex(chr1Name);
         let chr2Index = dataset.findChromosomeIndex(chr2Name);
         if (chr1Index == -1 || chr2Index == -1) {
-            throw new Error(`Couldn't find valid chromosome indices for ${chr1} and/or ${chr2}`);
+            throw new Error(`Couldn't find valid chromosome indices for ${chr1Name} and/or ${chr2Name}`);
         }
 
         let binSize = dataset.bpResolutions[zoomIndex];
@@ -217,7 +225,7 @@ class HicInterface {
      * @param {Object} binCoors - object containing chromosome numbers, bin coordinates, and zoom index
      * @param {string} [normalization] - (optional) type of normalization to apply to the data
      * @return {Promise.<hic.Block[]>} - promise for an array of blocks containing the requested data
-     * @see {@link toBinCoordinates}
+     * @see {@link _toBinCoordinates}
      */
     static getBlocks(dataset, binCoors, normalization) { // Based on hic.ContactMatrixView.prototype.update
         return dataset.getMatrix(binCoors.chr1, binCoors.chr2).then((matrix) => {
@@ -236,7 +244,7 @@ class HicInterface {
             let promises = [];
             for (let row = rowMin; row <= rowMax; row++) {
                 for (let col = colMin; col <= colMax; col++) {
-                    let blockNumber = HicInterface.calculateBlockNumber(zoomData, row, col);
+                    let blockNumber = HicProvider._calculateBlockNumber(zoomData, row, col);
                     promises.push(dataset.getNormalizedBlock(zoomData, blockNumber, normalization));
                 }
             }
@@ -253,7 +261,7 @@ class HicInterface {
      * @param {number} column - column number of a block
      * @return {number} block number that can index a HiC file
      */
-    static calculateBlockNumber(zoomData, row, column) { // Based on hic.ContactMatrixView.prototype.getImageTile
+    static _calculateBlockNumber(zoomData, row, column) { // Based on hic.ContactMatrixView.prototype.getImageTile
         var sameChr = zoomData.chr1 === zoomData.chr2;
         var blockColumnCount = zoomData.blockColumnCount;
 
@@ -264,90 +272,43 @@ class HicInterface {
             return row * blockColumnCount + column;
         }
     }
-
-    /**
-     * Merges an array of blocks into one array of CoordinateRecord.
-     *
-     * @param {hic.Block[]} blocks - array of HiC blocks
-     * @param {string} chromosome - chromosome name used for construction of all the CoordinateRecords
-     * @return {CoordinateRecord[]} array of CoordinateRecord containing the data in all the blocks
-     */
-    static formatAndMergeBlocks(blocks, chromosome) {
-        if (!blocks) {
-            return [];
-        }
-
-        let blocksAsCoorData = blocks.map(function(block) {
-            return HicInterface.blockToCoordinateData(block, chromosome);
-        });
-
-        let combinedCoorData = [].concat.apply([], blocksAsCoorData); // Concatenate all the data into one array
-        for (let i = 0; i < combinedCoorData.length; i++) { // Make sure ids are unique
-            combinedCoorData[i].id = i;
-        }
-        return combinedCoorData;
-    }
-
-    /**
-     * Puts the data in a HiC block in an array of CoordinateRecord.
-     *
-     * @param {hic.Block[]} block - the block to convert
-     * @param {string} chromosome - chromosome name used for construction of all the CoordinateRecords
-     * @return {CoordinateRecord[]} array of CoordinateRecord containing the data in the block
-     */
-    static blockToCoordinateData(block, chromosome) {
-        if (!block) {
-            print2console(`No HiC data for block in ${chromosome}, possibly corrupt file?`, 2);
-            return [];
-        }
-        var binSize = block.zoomData.zoom.binSize;
-        var allData = [];
-        var id = 0;
-        for (let record of block.records) {
-            allData.push(new CoordinateRecord(id, chromosome, record.bin1, record.bin2, binSize, record.counts));
-            id++;
-            // Blocks only contain a triangular portion of the matrix, so for the other triangle, switch bin1 and bin2
-            allData.push(new CoordinateRecord(id, chromosome, record.bin2, record.bin1, binSize, record.counts));
-            id++;
-        }
-        return allData;
-    }
 }
 
+HicProvider.TRACK_PROP_NAME = "hicInstance";
+
 /**
- * base.js uses arrays to represent genomic regions.  This class wraps such arrays to provide named access to region
+ * base.js uses arrays to represent genomic regions.  This class extends such arrays to provide named access to region
  * info.  Otherwise, magic numbers or named consts would be needed.
  */
 class RegionWrapper {
     constructor(arrayLikeRegion) {
-        this.region = arrayLikeRegion;
+        for (let key in arrayLikeRegion) {
+            this[key] = arrayLikeRegion[key];
+        }
     }
 
-    get chromosome() { return this.region[0]; }
-    get startBasePair() { return this.region[3]; }
-    get endBasePair() { return this.region[4]; }
+    static wrapRegions(regions) {
+        return regions.map(region => new RegionWrapper(region));
+    }
+
+    /**
+     * Returns a new RegionWrapper with the underlying region's chromosome, start base pair, and end base pair set.
+     * Other indicies of the underlying region will NOT be set.
+     */
+    static make(chromosome, startBasePair, endBasePair) {
+        let wrapper = new RegionWrapper([]);
+        wrapper[RegionWrapper.CHROMOSOME_INDEX] = chromosome;
+        wrapper[RegionWrapper.START_BASE_PAIR_INDEX] = startBasePair;
+        wrapper[RegionWrapper.END_BASE_PAIR_INDEX] = endBasePair;
+        return wrapper;
+    }
+
+    get chromosome() { return this[RegionWrapper.CHROMOSOME_INDEX]; }
+    get startBasePair() { return this[RegionWrapper.START_BASE_PAIR_INDEX]; }
+    get endBasePair() { return this[RegionWrapper.END_BASE_PAIR_INDEX]; }
     get lengthInBasePairs() { return this.endBasePair - this.startBasePair; }
 }
 
-/**
- * base.js reads matrix data in a strange way.  For a specific location, row range and the value at the location are
- * stored combined in a single string, and column range is stored as numbers in two instance variables.  This class
- * makes construction of such strange records easier.
- */
-class CoordinateRecord {
-    constructor(id, chromosome, bin1, bin2, binSize, counts) {
-        let coor1Start = bin1 * binSize;
-        let coor1Stop = (bin1 + 1) * binSize;
-        let coor2Start = bin2 * binSize;
-        let coor2Stop = (bin2 + 1) * binSize;
-        let roundedCounts = counts.toFixed(CoordinateRecord.DIGITS_TO_ROUND);
-
-        this.id = id;
-        this.name = `${chromosome}:${coor1Start}-${coor1Stop},${roundedCounts}`;
-        this.start = coor2Start;
-        this.stop = coor2Stop;
-        this.strand = (bin1 < bin2) ? "<" : ">";
-    }
-}
-
-CoordinateRecord.DIGITS_TO_ROUND = 3;
+RegionWrapper.CHROMOSOME_INDEX = 0;
+RegionWrapper.START_BASE_PAIR_INDEX = 3;
+RegionWrapper.END_BASE_PAIR_INDEX = 4;
