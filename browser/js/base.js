@@ -6820,30 +6820,38 @@ if(queryUrl.length > urllenlimit) {
 var req = new XMLHttpRequest();
 
 req.onreadystatechange = function() {
-	if(req.readyState==4 && req.status==200) {
-		var t=req.responseText;
-		try {
-			var data = eval('('+t+')');
-		} catch(err) {
-			// unrecoverable??
-			gflag.badjson.push(t);
-			print2console('Unreadable response from server',3);
+	if(req.readyState==4) {
+		if (req.status == 200) {
+			var t=req.responseText;
+			try {
+				var data = eval('('+t+')');
+			} catch(err) {
+				// unrecoverable??
+				gflag.badjson.push(t);
+				print2console('Unreadable response from server', 3);
+				if (errorCallback) {
+					errorCallback(new Error('Json syntax error'));
+				} else {
+					callback(null);
+				}
+				return;
+			}
+			callback(data);
+		} else if (Math.floor(req.status/100) == 4 || Math.floor(req.status/100) == 5) { // 400 or 500 level
+			print2console(`HTTP ${req.status}`, 2);
 			if (errorCallback) {
-				errorCallback(new Error('Json syntax error'));
+				errorCallback(new Error(`HTTP ${req.status}`));
 			} else {
 				callback(null);
 			}
-			return;
 		}
-		callback(data);
 	}
 };
 
 req.onerror = function() {
-	print2console(`HTTP ${req.status} on ajax`, 3);
+	console.error(req);
 	if (errorCallback) {
-		console.log(`HTTP ${req.status} : ${req.responseText}`)
-		errorCallback(new Error(`HTTP ${req.status}`));
+		errorCallback(new Error("ajax error"));
 	} else {
 		callback(null);
 	}
@@ -7680,6 +7688,7 @@ delete this.init_bbj_param;
 
 function trackParam(_tklst,nocotton)
 {
+
 /* nocotton: no cottontk
 noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
 */
@@ -7822,12 +7831,28 @@ Browser.prototype.houseParam=function()
 /* house keeping
 */
 if(this.weaver) {
-	return trackParam(this.tklst, this.weaver.iscotton?false:true)+
-		'&dbName='+this.genome.name+
-		this.genome.customgenomeparam();
+	return trackParam(this.tklst, this.weaver.iscotton?false:true)+this.getGenomeParams();
 }
-return trackParam(this.tklst)+'&dbName='+this.genome.name+this.genome.customgenomeparam();
+return trackParam(this.tklst)+this.getGenomeParams();
 }
+
+// Added by Silas Hsu
+Browser.prototype.getParamsForTrack=function(track) {
+	if(this.weaver) {
+		return trackParam([track], this.weaver.iscotton?false:true)+this.getGenomeParams();
+	}
+	let paramValue = trackParam([track]);
+	if (paramValue.length == 0) {
+		return "";
+	} else {
+		return paramValue+this.getGenomeParams();
+	}
+}
+
+Browser.prototype.getGenomeParams=function() {
+	return '&dbName='+this.genome.name+this.genome.customgenomeparam();
+}
+
 Browser.prototype.htestParams=function()
 {
 if(!this.htest.inuse) return '';
@@ -7872,6 +7897,7 @@ default:
 
 Browser.prototype.ajaxX=function(param,norendering)
 {
+'use strict'
 /* special treatmet for following conditions
 - jumping to a gene but got multiple hits
 - gsv itemlist updating
@@ -7884,25 +7910,50 @@ if(this.main) {
 	this.shieldOn();
 }
 
-var ajaxData = null;
-this.promisfyAjax(param+this.houseParam())
-	.then(function (data) {
-		ajaxData = data;
-		let hicPromise = Promise.all(HicProvider.getHicPromises(this.tklst, ajaxData.regionLst));
-		return hicPromise;
-	}.bind(this))
-
-	.then(function (hicDataTracks) {
-		for (let hicTrackData of hicDataTracks) {
-			ajaxData.tkdatalst.push(hicTrackData);
+var browser = this;
+this.promisfyAjax(param + this.getGenomeParams())
+	.catch((error) => {
+		print2console(`While fecthing region list: ${error}`, 2);
+		return null;
+	})
+	.then((ajaxData) => { // At this point, no tracks in ajaxData.  The callback after Promise.all adds them.
+		if (!ajaxData) {
+			browser.ajaxX_cb({}, norendering);
+			return;
 		}
-		this.ajaxX_cb(ajaxData, norendering);
-	}.bind(this))
 
-	.catch(function (error) {
-		print2console(error.message, 2);
-		this.ajaxX_cb(ajaxData, norendering);
-	}.bind(this));
+		Promise.all(browser.getPromisesForEachTrack(param, ajaxData.regionLst)).then((trackDatas) => {
+			// Add each response's data to ajaxData
+			for (let trackData of trackDatas) {
+				if (trackData) {
+					ajaxData.tkdatalst.push(trackData);
+				}
+			}
+			browser.ajaxX_cb(ajaxData, norendering);
+		});
+
+	});
+}
+
+Browser.prototype.getPromisesForEachTrack=function(param, regionLst) {
+	'use strict'
+	// Initialize with HiC promises
+	let allTrackPromises = HicInterface.getHicPromises(regionLst, this.tklst);
+
+	for (let track of this.tklst) {
+		let trackParamValue = this.getParamsForTrack(track);
+		if (!trackParamValue) { // trackParamValue will be "" for a HiC track.
+			continue;
+		}
+		let trackPromise = this.promisfyAjax(param + trackParamValue)
+			.then(response => response.tkdatalst[0])
+			.catch((error) => { // Catch individual failures here so they don't affect other tracks.
+				print2console(`${track.label}: ${error}`, 2);
+				return null;
+			});
+		allTrackPromises.push(trackPromise);
+	}
+	return allTrackPromises;
 }
 
 Browser.prototype.ajaxX_cb=function(data,norendering)
