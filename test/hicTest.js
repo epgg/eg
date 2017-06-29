@@ -1,5 +1,14 @@
+/**
+ * Test specs for HicProvider, HicFormatter, and custom additions to Juicebox.js.
+ *
+ * @author Silas Hsu
+ */
 'use strict'
 
+/**
+ * In the browser, print2console prints to a little window, but we won't have that during our tests.  Instead, print to
+ * the browser console.
+ */
 print2console = function(message, level) {
     console.log(`(print2console level ${level}): ${message}`);
 }
@@ -413,7 +422,7 @@ describe("Unit tests - custom additions to Juicebox.js' Dataset", function() {
     });
 });
 
-describe("Integration test (with juicebox.js)", function() {
+describe("Integration test (HicProvider + HicFormatter + Juicebox; does NOT include base.js)", function() {
 
     let expectTrackDataMatch = function(testOutput, expectedOutput) {
         expect(testOutput.length).to.equal(expectedOutput.length);
@@ -421,7 +430,12 @@ describe("Integration test (with juicebox.js)", function() {
             let testTrack = testOutput[trackNum];
             let expectedTrack = expectedOutput[trackNum];
 
-            expect(testTrack).to.have.property(HicProvider.TRACK_PROP_NAME);
+            /*
+             * expectedTrack does not have an instance of HicProvider, because including it would also include a LOT of
+             * of Juicebox internal data.  We still expect testTrack to have the property, but then delete it before
+             * doing a comparsion.
+             */
+            expect(testTrack[HicProvider.TRACK_PROP_NAME]).to.be.an.instanceof(HicProvider);
             delete testTrack[HicProvider.TRACK_PROP_NAME];
 
             expect(testTrack).to.deep.equal(expectedTrack);

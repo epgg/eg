@@ -1,15 +1,40 @@
+/**
+ * This file contains classes to convert the data in hic.Block to other formats.
+ *
+ * @author Silas Hsu
+ * @since version 43, June 2017
+ */
+'use strict'
+
+/**
+ * Base class for a hic.Block formatter.  Provides an overridable static formatBlocks method, but one could conceivably
+ * make an instance with a formatBlocks method too.
+ */
 class HicFormatter {
+    /**
+     * Format an array of hic.Block.  Default implementation simply returns the same array without modification.
+     *
+     * @param {hic.Block[]} blocks - array of HiC blocks
+     * @param {string} chr1Name - chromosome name that may or may not be useful
+     * @param {string} chr2Name - second chromosome name that may or may not be useful
+     * @return {Object} the formatted blocks
+     */
     static formatBlocks(blocks, chr1Name, chr2Name) {
         return blocks;
     }
 }
 
+/**
+ * Formats blocks into records that our Epigenome Browser can understand.
+ */
 class BrowserHicFormatter extends HicFormatter {
     /**
      * Merges an array of blocks into one array of CoordinateRecord.
      *
+     * @override
      * @param {hic.Block[]} blocks - array of HiC blocks
-     * @param {string} chromosome - chromosome name used for construction of all the CoordinateRecords
+     * @param {string} chr1Name - chromosome name used for construction of all the CoordinateRecords
+     * @param {string} [chr2Name] - unused and ignored
      * @return {CoordinateRecord[]} array of CoordinateRecord containing the data in all the blocks
      */
     static formatBlocks(blocks, chr1Name, chr2Name) {
@@ -27,7 +52,8 @@ class BrowserHicFormatter extends HicFormatter {
     }
 
     /**
-     * Puts the data in a HiC block in an array of CoordinateRecord.
+     * Puts the data in a HiC block into an array of CoordinateRecord.  HiC blocks express only a triangular portion of
+     * the contact matrix, and this method also adds records corresponding to the other triangular half.
      *
      * @param {hic.Block[]} block - the block to convert
      * @param {string} chromosome - chromosome name used for construction of all the CoordinateRecords
