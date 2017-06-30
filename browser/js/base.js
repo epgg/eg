@@ -7845,10 +7845,11 @@ Browser.prototype.getParamsForTrack=function(track) {
 	if (paramValue.length == 0) {
 		return "";
 	} else {
-		return paramValue+this.getGenomeParams();
+		return paramValue + this.getGenomeParams();
 	}
 }
 
+// Added by Silas Hsu
 Browser.prototype.getGenomeParams=function() {
 	return '&dbName='+this.genome.name+this.genome.customgenomeparam();
 }
@@ -7911,6 +7912,7 @@ if(this.main) {
 }
 
 var browser = this;
+// Fetch region list from server first (why the visible region isn't managed by client is anyone's guess).
 this.promisfyAjax(param + this.getGenomeParams())
 	.catch((error) => {
 		print2console(`While fecthing region list: ${error}`, 2);
@@ -7922,7 +7924,7 @@ this.promisfyAjax(param + this.getGenomeParams())
 			return;
 		}
 
-		Promise.all(browser.getPromisesForEachTrack(param, ajaxData.regionLst)).then((trackDatas) => {
+		Promise.all(browser.getPromisesForEachTrack(ajaxData.regionLst, browser.tklst, param)).then((trackDatas) => {
 			// Add each response's data to ajaxData
 			for (let trackData of trackDatas) {
 				if (trackData) {
@@ -7935,23 +7937,32 @@ this.promisfyAjax(param + this.getGenomeParams())
 	});
 }
 
-Browser.prototype.getPromisesForEachTrack=function(param, regionLst) {
+/**
+ * Gets an array of Promises for track data, one for each track in the input.  This method guarantees that none of the
+ * returned promises will reject.
+ *
+ * @see {@link DataProvider.prototype.getData} for more information on "track data"
+ * @param {Region[]} regionLst - list of regions to query
+ * @param {Track[]} tkLst - list of tracks for which to get data
+ * @param {string} param - if getting data from the main server, extra query parameters in addition to track parameters
+ * @return {Promise<Object>[]} - array of Promise for track data, one for each track
+ * @author Silas Hsu
+ */
+Browser.prototype.getPromisesForEachTrack = function(regionLst, tkLst, param) {
 	'use strict'
-	// Initialize with HiC promises
-	let allTrackPromises = HicInterface.getHicPromises(regionLst, this.tklst);
+	let allTrackPromises = []
+	for (let track of tkLst) {
+		let dataProvider = track[DataProvider.TRACK_PROP_NAME] ||
+			DataProvider.makeProviderForTrack(track, this, param + this.getParamsForTrack(track));
+		let promise = dataProvider.getData(track, regionLst);
 
-	for (let track of this.tklst) {
-		let trackParamValue = this.getParamsForTrack(track);
-		if (!trackParamValue) { // trackParamValue will be "" for a HiC track.
-			continue;
-		}
-		let trackPromise = this.promisfyAjax(param + trackParamValue)
-			.then(response => response.tkdatalst[0])
-			.catch((error) => { // Catch individual failures here so they don't affect other tracks.
-				print2console(`${track.label}: ${error}`, 2);
-				return null;
-			});
-		allTrackPromises.push(trackPromise);
+		// Catch individual track failures here so they don't affect other tracks.
+		let promiseWithCatch = promise.catch((error) => {
+			print2console(`${track.label}: ${error}`, 2);
+			return null;
+		});
+
+		allTrackPromises.push(promiseWithCatch);
 	}
 	return allTrackPromises;
 }
@@ -17038,27 +17049,18 @@ this.shieldOn();
 var bbj=this;
 // allow custom genome
 
-let url = this.displayedRegionParamPrecise()+'&addtracks=on&'+
-	'dbName='+this.genome.name+this.genome.customgenomeparam()+trackParam(olst);
-let ajaxData = null;
-this.promisfyAjax(url)
-	.then(function (data) {
-		ajaxData = data;
-		let hicPromise = Promise.all(HicProvider.getHicPromises(olst, this.regionLst));
-		return hicPromise;
-	}.bind(this))
-
-	.then(function (hicDataTracks) {
-		for (let hicTrackData of hicDataTracks) {
-			ajaxData.tkdatalst.push(hicTrackData);
+// Begin modifications by Silas Hsu
+//let url = this.displayedRegionParamPrecise()+'&addtracks=on&'+this.getGenomeParams()+trackParam(olst);
+let url = this.displayedRegionParamPrecise()+'&addtracks=on&'
+Promise.all(this.getPromisesForEachTrack(this.regionLst, olst, url)).then((trackDatas) => {
+	let ajaxData = { tkdatalst: [] };
+	for (let trackData of trackDatas) {
+		if (trackData) {
+			ajaxData.tkdatalst.push(trackData);
 		}
-		this.ajax_addtracks_cb(ajaxData);
-	}.bind(this))
-
-	.catch(function (error) {
-		print2console(error.message, 2);
-		this.ajax_addtracks_cb(ajaxData);
-	}.bind(this));
+	}
+	bbj.ajax_addtracks_cb(ajaxData);
+});
 }
 
 Browser.prototype.ajax_addtracks_cb=function(data)
@@ -17304,6 +17306,10 @@ for(var i=0; i<lst.length; i++) {
 	var obj=this.findTrack(lst[i].name);
 	if(!obj) {
 		obj=this.makeTrackDisplayobj(lst[i].name, lst[i].ft);
+		// Added by Silas Hsu
+		if (lst[i][DataProvider.TRACK_PROP_NAME]) {
+			obj[DataProvider.TRACK_PROP_NAME]=lst[i][DataProvider.TRACK_PROP_NAME];
+		}
 		this.tklst.push(obj);
 		tknames.push([lst[i].name,true]);
 		hasnewtk=true;
@@ -17327,7 +17333,6 @@ for(var i=0; i<lst.length; i++) {
 			if('bin_size' in lst[i]) obj.qtc.bin_size=lst[i].bin_size;
 			if('d_binsize' in lst[i]) obj.qtc.d_binsize=lst[i].d_binsize;
 			if('hasChr' in lst[i]) obj.qtc.hasChr=lst[i].hasChr;
-			if(HicProvider.TRACK_PROP_NAME in lst[i]) obj[HicProvider.TRACK_PROP_NAME]=lst[i][HicProvider.TRACK_PROP_NAME];
 		}
 	}
 	// work out the data

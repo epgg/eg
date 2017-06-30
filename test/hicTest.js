@@ -14,12 +14,19 @@ print2console = function(message, level) {
 }
 
 describe("Unit tests - HicProvider", function() {
+    const makeRegion = function(chromosome, startBasePair, endBasePair) {
+        let region = [];
+        region[RegionWrapper.CHROMOSOME_INDEX] = chromosome;
+        region[RegionWrapper.START_BASE_PAIR_INDEX] = startBasePair;
+        region[RegionWrapper.END_BASE_PAIR_INDEX] = endBasePair;
+        return region;
+    }
     /////////////////
     // Test inputs //
     /////////////////
     const REGIONS = [
-        RegionWrapper.make("chr1", 0, 10000),
-        RegionWrapper.make("chr1", 10000, 50000)
+        makeRegion("chr1", 0, 10000),
+        makeRegion("chr2", 10000, 50000)
     ];
     const LONGEST_REGION_LENGTH = 50000-10000;
 
@@ -30,13 +37,6 @@ describe("Unit tests - HicProvider", function() {
         mode: 5,
         qtc: { bin_size: scale_auto, norm: "NONE" }
     };
-    const TRACKS = [
-        HIC_TRACK,
-        {
-            name: "Not a HiC track",
-            ft: FT_hi_c + 1 // Anything is fine, as long as it's not FT_hi_c
-        }
-    ];
 
     //////////////////////////////////
     // Mocks to give to HicProvider //
@@ -62,7 +62,8 @@ describe("Unit tests - HicProvider", function() {
     ///////////////////////////////
     // Finally - the test specs! //
     ///////////////////////////////
-    describe("getHicPromises", function() {
+    describe("getData", function() {
+        const INSTANCE = getHicProviderInstance();
         let stubs = null;
         let getRecordsStub = null;
         let _constructTrackDataStub = null;
@@ -74,41 +75,49 @@ describe("Unit tests - HicProvider", function() {
             stubs.stub(hic.HiCReader, "fromUrl").returns(MOCK_HIC_READER);
         });
 
+        beforeEach(function() {
+            stubs.reset();
+        });
+
         after(function() {
             stubs.restore();
         });
 
-        it("returns empty array when given undefined or empty parameters", function() {
-            expect(HicProvider.getHicPromises()).to.deep.equal([]);
-            expect(HicProvider.getHicPromises([])).to.deep.equal([]);
-            expect(HicProvider.getHicPromises([], [])).to.deep.equal([]);
+        it("returns empty object when the track argument is missing", function() {
+            let tests = [
+                INSTANCE.getData(),
+                INSTANCE.getData(null, REGIONS)
+            ]
+            return Promise.all(tests).then(function (results) {
+                expect(results[0]).to.deep.equal({});
+                expect(results[1]).to.deep.equal({})
+            });
         });
 
-        it("returns as many promises as HiC tracks", function() {
-            let noHicTracks = TRACKS.filter(track => track.ft != FT_hi_c);
-            expect(HicProvider.getHicPromises(noHicTracks, REGIONS)).to.deep.equal([]);
-            expect(HicProvider.getHicPromises(TRACKS, REGIONS).length).to.equal(1);
+        it("still passes the track to _constructTrackData given no regions", function() {
+            return INSTANCE.getData(HIC_TRACK, null).then(function () {
+                expect(_constructTrackDataStub).to.have.been.calledWith(HIC_TRACK, []);
+            });
         });
 
         it("passes each region's information to getRecords", function() {
-            getRecordsStub.reset();
-            HicProvider.getHicPromises(TRACKS, REGIONS);
+            INSTANCE.getData(HIC_TRACK, REGIONS);
             for (let region of REGIONS) {
-                let chromosome = region.chromosome;
-                let startBasePair = region.startBasePair;
-                let endBasePair = region.endBasePair;
+                let wrapper = new RegionWrapper(region);
+                let chromosome = wrapper.chromosome;
+                let startBasePair = wrapper.startBasePair;
+                let endBasePair = wrapper.endBasePair;
                 expect(getRecordsStub).to.have.been.calledWith(chromosome, startBasePair, endBasePair, chromosome,
                     startBasePair, endBasePair, HIC_TRACK.qtc.norm, LONGEST_REGION_LENGTH, null);
             }
         });
 
         it("passes the HiC track and retrieved records to _constructTrackData", function() {
-            _constructTrackDataStub.reset();
             const RECORDS = [];
             getRecordsStub.returns(RECORDS);
 
             let recordsForEachRegion = Array(REGIONS.length).fill(RECORDS);
-            return Promise.all(HicProvider.getHicPromises(TRACKS, REGIONS)).then(function() {
+            return INSTANCE.getData(HIC_TRACK, REGIONS).then(function() {
                 expect(_constructTrackDataStub).to.have.been.calledWith(HIC_TRACK, recordsForEachRegion);
             });
         });
@@ -423,32 +432,29 @@ describe("Unit tests - custom additions to Juicebox.js' Dataset", function() {
 });
 
 describe("Integration test (HicProvider + HicFormatter + Juicebox; does NOT include base.js)", function() {
-
-    let expectTrackDataMatch = function(testOutput, expectedOutput) {
-        expect(testOutput.length).to.equal(expectedOutput.length);
-        for (let trackNum = 0; trackNum < testOutput.length; trackNum++) {
-            let testTrack = testOutput[trackNum];
-            let expectedTrack = expectedOutput[trackNum];
-
+    it("properly retrieves real data from chr9, chr10, and chr11 at a bin size of 2.5MB", function() {
+        this.timeout(10000);
+        let track = HicIntegrationTestData.inputHicTrack;
+        let instance = new HicProvider(hic.HiCReader.fromUrl(track.url), BrowserHicFormatter);
+        let expected = HicIntegrationTestData.expectedOutput;
+        return instance.getData(track, HicIntegrationTestData.inputRegionLst).then(function(result) {
             /*
              * expectedTrack does not have an instance of HicProvider, because including it would also include a LOT of
              * of Juicebox internal data.  We still expect testTrack to have the property, but then delete it before
              * doing a comparsion.
              */
-            expect(testTrack[HicProvider.TRACK_PROP_NAME]).to.be.an.instanceof(HicProvider);
-            delete testTrack[HicProvider.TRACK_PROP_NAME];
+            expect(result[DataProvider.TRACK_PROP_NAME]).to.be.an.instanceof(HicProvider);
+            delete result[DataProvider.TRACK_PROP_NAME];
 
-            expect(testTrack).to.deep.equal(expectedTrack);
-        }
-    }
+            // Added these lines because one time, a bug resulted in a really small bin size and got TONS of records,
+            // more than the browser could handle.
+            expect(result.data.length).to.equal(expected.data.length);
+            for (let i = 0; i < result.data.length; i++) {
+                expect(result.data[i].length).to.equal(expected.data[i].length);
+            }
 
-    it("properly retrieves real data from chr9, chr10, and chr11 at a bin size of 2.5MB", function() {
-        this.timeout(10000);
-        let promises = HicProvider.getHicPromises(
-            HicIntegrationTestData.inputTklst, HicIntegrationTestData.inputRegionLst
-        );
-        return Promise.all(promises)
-            .then((results) => expectTrackDataMatch(results, HicIntegrationTestData.expectedOutput));
+            expect(result).to.deep.equal(expected);
+        });
     });
 
 });

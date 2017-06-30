@@ -1,6 +1,5 @@
 /**
- * This file contains the main interface for the epigenome browser to retrieve HiC data.  It contains HicProvider and
- * helpers for it.
+ * This file contains the main interface for the epigenome browser to retrieve HiC data.
  *
  * @author Silas Hsu
  * @since version 43, June 2017
@@ -18,78 +17,56 @@
  *
  * @author Silas Hsu
  */
-class HicProvider {
+class HicProvider extends DataProvider {
     /**
      * Makes a new HicProvider, specialized to serve HiC data from the given HiCReader and format results in a certain
-     * way
+     * way.
      *
      * @param {hic.HiCReader} reader - the HiCReader from which to get a dataset
      * @param {HicFormatter} hicFormatter - used to format blocks from the HiCReader
      */
     constructor(hicReader, hicFormatter) {
+        super();
         this.reader = hicReader;
         this.datasetPromise = hicReader.loadDataset();
         this.hicFormatter = hicFormatter;
     }
 
     /**
-     * (This function would logically be part of some HiCTrack class.  However, that doesn't exist, so I stuck the code
-     * here.)
+     * Gets HiC track data.  Uses the longest region to determine auto bin size.
      *
-     * Looks for HiC tracks in the given track list.  For each HiC track, retrieves data in all the input regions.  The
-     * result is an array of promises for TrackData, one for each HiC track.
-     *
-     * Additional details:
-     * - Given an empty array for any of the parameters, returns an empty array.
-     * - HiC tracks can specify automatic bin size.  In this case, the choosen bin size will depend on the length of the
-     *     longest region passed to the function.
-     * - For more info on bins, see the class documentation: {@link HicProvider}
-     *
-     * @param {Track[]} tracks - an array of Track-like objects that base.js uses
-     * @param {Region[]} regions - an array of Regions
-     * @return {Promise.<TrackData>[]} - an array of Promise for track data, one for each HiC track
-     * @see {@link _constructTrackData} for details of TrackData
-     * @see {@link RegionWrapper} for a class that fulfills the region API
+     * @override
+     * @param {Track} track - a HiC track
+     * @param {Region[]} regionLst - list of regions from which to get data
+     * @return {Promise<Object>} a promise for track data
      */
-    static getHicPromises(tracks, regions) {
-        if (!tracks || !regions || regions.length == 0) {
-            return [];
+    getData(hicTrack, regionLst) {
+        if (!hicTrack) {
+            return Promise.resolve({});
+        }
+        if (!regionLst || regionLst.length == 0) {
+            return Promise.resolve(this._constructTrackData(hicTrack, []));
         }
 
-        let hicTracks = tracks.filter(track => track.ft == FT_hi_c);
-        if (hicTracks.length == 0) {
-            return [];
-        }
-
-        regions = RegionWrapper.wrapRegions(regions);
+        let regions = RegionWrapper.wrapRegions(regionLst);
         let longestRegion = regions.reduce((longestLengthSoFar, currentRegion) => {
             let currentLength = currentRegion.lengthInBasePairs;
             return currentLength > longestLengthSoFar ? currentLength : longestLengthSoFar;
-        }, regions[0].lengthInBasePairs); // regions[0] ok since we checked for empty region array.
+        }, regions[0].lengthInBasePairs); // regions[0] ok since we checked for empty regionLst.
 
-        let promisesForEachTrack = [];
-        for (let hicTrack of hicTracks) {
-            let hicInstance = hicTrack[HicProvider.TRACK_PROP_NAME] ||
-                new HicProvider(hic.HiCReader.fromUrl(hicTrack.url), BrowserHicFormatter);
-
-            // Each track's promise is a Promise.all for all regions.
-            let promisesForEachRegion = [];
-            for (let region of regions) {
-                let chromosome = region.chromosome;
-                let startBasePair = region.startBasePair;
-                let endBasePair = region.endBasePair;
-                let binSizeOverride = hicTrack.qtc.bin_size == scale_auto ? // User-set bin size?
-                    null : Number.parseInt(hicTrack.qtc.bin_size);
-                promisesForEachRegion.push(hicInstance.getRecords(chromosome, startBasePair, endBasePair, chromosome,
-                    startBasePair, endBasePair, hicTrack.qtc.norm, longestRegion, binSizeOverride));
-            }
-
-            let trackPromise = Promise.all(promisesForEachRegion)
-                .then(recordsForEachRegion => hicInstance._constructTrackData(hicTrack, recordsForEachRegion));
-            promisesForEachTrack.push(trackPromise);
+        let promisesForEachRegion = [];
+        for (let region of regions) {
+            let chromosome = region.chromosome;
+            let startBasePair = region.startBasePair;
+            let endBasePair = region.endBasePair;
+            let binSizeOverride = hicTrack.qtc.bin_size == scale_auto ? // User-set bin size?
+                null : Number.parseInt(hicTrack.qtc.bin_size);
+            promisesForEachRegion.push(this.getRecords(chromosome, startBasePair, endBasePair, chromosome,
+                startBasePair, endBasePair, hicTrack.qtc.norm, longestRegion, binSizeOverride));
         }
-
-        return promisesForEachTrack;
+        let trackPromise = Promise.all(promisesForEachRegion)
+            .then(recordsForEachRegion => this._constructTrackData(hicTrack, recordsForEachRegion));
+        return trackPromise;
     }
 
     /**
@@ -118,7 +95,7 @@ class HicProvider {
             d_binsize: binSize,
             matrix: "observed",
         }
-        trackData[HicProvider.TRACK_PROP_NAME] = this;
+        trackData[DataProvider.TRACK_PROP_NAME] = this;
         /*
         By putting `this` in the track data, we expect Browser.prototype.jsonTrackdata (in base.js) to attach `this` to
         the HiC track, and then we can take advantage of juicebox.js's caching if the Track appears again in
@@ -273,42 +250,3 @@ class HicProvider {
         }
     }
 }
-
-HicProvider.TRACK_PROP_NAME = "hicInstance";
-
-/**
- * base.js uses arrays to represent genomic regions.  This class extends such arrays to provide named access to region
- * info.  Otherwise, magic numbers or named consts would be needed.
- */
-class RegionWrapper {
-    constructor(arrayLikeRegion) {
-        for (let key in arrayLikeRegion) {
-            this[key] = arrayLikeRegion[key];
-        }
-    }
-
-    static wrapRegions(regions) {
-        return regions.map(region => new RegionWrapper(region));
-    }
-
-    /**
-     * Returns a new RegionWrapper with the underlying region's chromosome, start base pair, and end base pair set.
-     * Other indicies of the underlying region will NOT be set.
-     */
-    static make(chromosome, startBasePair, endBasePair) {
-        let wrapper = new RegionWrapper([]);
-        wrapper[RegionWrapper.CHROMOSOME_INDEX] = chromosome;
-        wrapper[RegionWrapper.START_BASE_PAIR_INDEX] = startBasePair;
-        wrapper[RegionWrapper.END_BASE_PAIR_INDEX] = endBasePair;
-        return wrapper;
-    }
-
-    get chromosome() { return this[RegionWrapper.CHROMOSOME_INDEX]; }
-    get startBasePair() { return this[RegionWrapper.START_BASE_PAIR_INDEX]; }
-    get endBasePair() { return this[RegionWrapper.END_BASE_PAIR_INDEX]; }
-    get lengthInBasePairs() { return this.endBasePair - this.startBasePair; }
-}
-
-RegionWrapper.CHROMOSOME_INDEX = 0;
-RegionWrapper.START_BASE_PAIR_INDEX = 3;
-RegionWrapper.END_BASE_PAIR_INDEX = 4;
