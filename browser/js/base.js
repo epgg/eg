@@ -17923,10 +17923,12 @@ for(var i=0; i<lst.length; i++) {
 	var dj=lst[i].data; // data from json
 	var xdj=lst[i].xdata; // calling card data
 	var ydj=lst[i].ydata; // calling card data
+	var sdj=lst[i].strand; // calling card bata
+	var bdj=lst[i].barcode; // calling card data
 	if(obj.ft == FT_callingcard_n || obj.ft == FT_callingcard_c) {
 		// numerical or cat
 		var smooth=(obj.qtc && obj.qtc.smooth);
-		// if(!this.move.direction) {
+		if(!this.move.direction) {
 			if(smooth) {
 				obj.data_raw=ydj;
 				if(!obj.ydata) {
@@ -17935,32 +17937,54 @@ for(var i=0; i<lst.length; i++) {
 			} else {
 				obj.xdata=xdj;
 				obj.ydata=ydj;
+				obj.strand=sdj;
+				obj.barcode=bdj;
 			}
-		// } else {
-		// 	var v=smooth?obj.data_raw:obj.ydata;
-		// 	if(this.move.direction == 'l') {
-		// 		if(this.move.merge) {
-		// 			v[0] = dj[dj.length-1].concat(v[0]);
-		// 			dj.pop();
-		// 		}
-		// 		v = dj.concat(v);
-		// 	} else {
-		// 		if(this.move.merge) {
-		// 			var idx=v.length-1;
-		// 			v[idx] = v[idx].concat(dj[0]);
-		// 			dj.shift();
-		// 		}
-		// 		v = v.concat(dj);
-		// 	}
-		// 	if(smooth) {
-		// 		obj.data_raw=v;
-		// 	} else {
-		// 		obj.ydata=v;
-		// 	}
-		// }
+		} else {
+			var y=smooth?obj.data_raw:obj.ydata;
+			var x=smooth?obj.data_raw:obj.xdata;
+			var s=obj.strand;
+			var b=obj.barcode;
+			// Need to alter this code to properly shift xdata coords
+			if(this.move.direction == 'l') {
+				if(this.move.merge) {
+					y[0] = ydj[ydj.length-1].concat(y[0]);
+					ydj.pop();
+					// Shift xdata values
+					for (var j=0; j < x.length; j++) {
+						for (var k=0; k < x[j].length; k++) {
+							x[j][k] += this.move.offsetShift;
+						}
+					}
+					x[0] = xdj[xdj.length-1].concat(x[0]);
+					xdj.pop();
+					s[0] = sdj[sdj.length-1].concat(s[0]);
+					sdj.pop();
+					b[0] = bdj[bdj.length-1].concat(b[0]);
+					bdj.pop();
+				}
+				y = ydj.concat(y);
+				x = xdj.concat(x);
+				s = sdj.concat(s);
+				b = bdj.concat(b);
+			} else {
+				if(this.move.merge) {
+					var idx=v.length-1;
+					v[idx] = v[idx].concat(dj[0]);
+					dj.shift();
+				}
+				v = v.concat(dj);
+			}
+			if(smooth) {
+				obj.data_raw=v;
+			} else {
+				obj.ydata=y;
+				obj.xdata=x;
+				obj.strand=s;
+				obj.barcode=b;
+			}
+		}
 		obj.skipped=undefined;
-		obj.strand=lst[i].strand;
-		obj.barcode=lst[i].barcode;
 	} else if(isNumerical(obj) || isHmtk(obj.ft) || obj.ft==FT_catmat || obj.ft==FT_qcats) {
 		// numerical or cat
 		var smooth=(obj.qtc && obj.qtc.smooth);

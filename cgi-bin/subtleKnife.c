@@ -1593,7 +1593,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	// fprintf(stderr, "ti_read return: %d\n", x);
 	// if (x == 0) break;
 	tmpstr=strdup(row);
-	fprintf(stderr, "%s\n", tmpstr);
+	// fprintf(stderr, "%s\n", tmpstr);
 	if(tmpstr==NULL)
 		{
 		fprintf(stderr, "%s: mem\n", __FUNCTION__);
@@ -1605,7 +1605,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	cc->strand = NULL;
 	cc->barcode = NULL;
 	// chr
-	fputs("chr\n", stderr);
+	// fputs("chr\n", stderr);
 	tok = strtok(tmpstr, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1614,7 +1614,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 		cc->chrom = strdup(tok);
 	}
 	// start
-	fputs("start\n", stderr);
+	// fputs("start\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1628,7 +1628,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->start = l;
 	}
 	// stop
-	fputs("stop\n", stderr);
+	// fputs("stop\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1642,7 +1642,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->stop = l;
 	}
 	// read count
-	fputs("count\n", stderr);
+	// fputs("count\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1656,7 +1656,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->count = l;
 	}
 	// strand, if present
-	fputs("strand\n", stderr);
+	// fputs("strand\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		// End of line, no barcode and strand information present
@@ -1664,7 +1664,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	} else {
 		cc->strand = strdup(tok)[0];
 		// barcode, if present
-		fputs("barcode\n", stderr);
+		// fputs("barcode\n", stderr);
 		tok = strtok(NULL, delim);
 		if (tok == NULL) {
 			// End of line, strand present but not barcode
@@ -1673,7 +1673,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->barcode = strdup(tok);
 		}
 	}
-	fputs("1623\n", stderr);
+	// fputs("1623\n", stderr);
 	// if (count < 10) fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
 	if (sl == NULL) {
 		sl = cc;
@@ -2442,14 +2442,14 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		{
 		return NULL;
 		}
-		fputs("2428\n", stderr);
-	int i, dspStart;
+	fputs("2428\n", stderr);
+	int i, dspStart, offset = 0;
 	float width;
 	struct region *r;
-		fputs("2432\n", stderr);
+	fputs("2432\n", stderr);
 	struct callingCard *cclist=NULL, *tmp=NULL;
 	struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
-		fputs("2435\n", stderr);
+	fputs("2435\n", stderr);
 	boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
 	fputs("2437\n", stderr);
 	// returnData->length = 0;
@@ -2462,9 +2462,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 	for(r=dsp->head; r!=NULL; r=r->next) {
 	    if(r->summarySize > 0) {
 			if (!move) {start = r->dstart; stop = r->dstop;}
-			fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, start, stop);
+			fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
 			// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
-			tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, start, stop);
+			tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
 			if (tmp == NULL)
 				fprintf(stderr, "No calling cards in view\n");
 			else
@@ -2479,30 +2479,30 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 				// The following is a hack necessary to render calling card positions appropriately
 				// Will probably need to improve it
 				if (!atbplevel) {
-					if (move) {
-						if (move[0] == 'r') {
-							// fprintf(stderr, "FOUND IT!\n");
-							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
-						} else {
-							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
-						}
-					} else {
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
-					}
+					// if (move) {
+					// 	if (move[0] == 'r') {
+					// 		// fprintf(stderr, "FOUND IT!\n");
+					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+					// 	} else {
+					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+					// 	}
+					// } else {
+						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset)/width;
+					// }
 				} else {
-					if (move) {
-						if (move[0] == 'r') {
-							// fprintf(stderr, "FOUND IT!\n");
-							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
-						} else {
-							tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
-						}
-					} else {
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
-					}
+					// if (move) {
+					// 	if (move[0] == 'r') {
+					// 		// fprintf(stderr, "FOUND IT!\n");
+					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
+					// 	} else {
+					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
+					// 	}
+					// } else {
+						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset) * width;
+					// }
 				}
 			}
-		
+			offset += (r->dstop - r->dstart);
 			fputs("2491\n", stderr);
 			if (returnData==NULL) { // This is the first region we are processing
 				returnData = tmpData;
@@ -10953,7 +10953,7 @@ if(hm.trackSl!=NULL)
 								printf("[");
 								fputs("10940\n", stderr);
 								for (i = 0; i < current->length; i++) {
-									fputs("10942\n", stderr);
+									// fputs("10942\n", stderr);
 									if (current->strand[i] != '\0')
 										{fputs("10944\n", stderr); printf("'%c',", current->strand[i]);}
 									else
