@@ -17969,11 +17969,20 @@ for(var i=0; i<lst.length; i++) {
 				b = bdj.concat(b);
 			} else {
 				if(this.move.merge) {
-					var idx=v.length-1;
-					v[idx] = v[idx].concat(dj[0]);
-					dj.shift();
+					var idx=y.length-1;
+					y[idx] = y[idx].concat(ydj[0]);
+					ydj.shift();
+					x[idx] = x[idx].concat(xdj[0]);
+					xdj.shift();
+					s[idx] = s[idx].concat(sdj[0]);
+					sdj.shift();
+					b[idx] = b[idx].concat(bdj[0]);
+					bdj.shift();
 				}
-				v = v.concat(dj);
+				y = y.concat(ydj);
+				x = x.concat(xdj);
+				s = s.concat(sdj);
+				b = b.concat(bdj);
 			}
 			if(smooth) {
 				obj.data_raw=v;
