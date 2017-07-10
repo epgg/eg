@@ -2456,8 +2456,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 	fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 	fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 	fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-	if(!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
-	else width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+	if (!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+	else if (move) width = 1.0;
+	else width = round((float) dsp->hmspan / (float) dsp->entireLength);
 	fprintf(stderr, "width: %f\n", width);
 	for(r=dsp->head; r!=NULL; r=r->next) {
 	    if(r->summarySize > 0) {
