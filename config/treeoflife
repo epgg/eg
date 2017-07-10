@@ -41,6 +41,7 @@
 "Other" : [
 	{"assembly":"spombe201203","commonname":"Fission yeast","scientificname":"Schizosaccharomyces pombe","ismajor":true,"logofontcolor":"white"},
 	{"assembly":"AcNPV","commonname":"Autographa californica NPV","scientificname":"Autographa californica NPV","ismajor":true,"logofontcolor":"white"},
-	{"assembly":"Pfalciparum3D7","commonname":"Pfalciparum","scientificname":"Plasmodium falciparum","ismajor":true,"logofontcolor":"black"}
+	{"assembly":"Pfalciparum3D7","commonname":"Pfalciparum","scientificname":"Plasmodium falciparum","ismajor":true,"logofontcolor":"black"},
+	{"assembly":"sacCer3","commonname":"Yeast","scientificname":"Saccharomyces cerevisiae","ismajor":true,"logofontcolor":"black"}
 	]
 }
