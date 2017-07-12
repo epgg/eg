@@ -4,7 +4,7 @@ Genes : [
 	{name:'sgdGene',label:'SGD genes',
 		filetype:'hammock',
 		url:'http://egg.wustl.edu/d/sacCer3/sgdGene.gz',
-		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		queryUrl:'http://yeastmine.yeastgenome.org/yeastmine/keywordSearchResults.do?searchTerm=',
 		boxcolor:'#002EB8',
 		details:{
 			source:'UCSC Genome Browser',
