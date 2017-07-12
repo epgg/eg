@@ -26,7 +26,7 @@ insert into config values(
 "{}",
 "chrII,137772,chrII,382866",
 "sgdGene",
-"chrI,chrII,chrIII,chrIV,chrIX,chrV,chrVI,chrVII,chrVIII,chrX,chrXI,chrXII,chrXIII,chrXIV,chrXV,chrXVI,chrM",
+"chrI,chrII,chrIII,chrIV,chrV,chrVI,chrVII,chrVIII,chrIX,chrX,chrXI,chrXII,chrXIII,chrXIV,chrXV,chrXVI,chrM",
 true,
 true,
 "sce",
