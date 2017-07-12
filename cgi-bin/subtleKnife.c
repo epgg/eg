@@ -2478,8 +2478,6 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		
 			for (i = 0; i < tmpData->length; i++) {
 				// fprintf(stderr, "%lu,", tmpData->xdata[i]);
-				// The following is a hack necessary to render calling card positions appropriately
-				// Will probably need to improve it
 				if (!atbplevel) {
 					// if (move) {
 					// 	if (move[0] == 'r') {
