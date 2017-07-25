@@ -9680,34 +9680,34 @@ for(var i=0; i < length; i++) {
 			svgdata.push({type:svgt_rect,x:svgx,y:bary,w:svgw,h:barh,fill:barcolor});
 		}
 	}
-	if(tipy) {
-		ctx.fillStyle = tipcolor;
-		ctx.fillRect(x, tipy, w, 2);
-		if(tosvg) {
-			svgdata.push({type:svgt_rect,x:svgx,y:tipy,w:svgw,h:2,fill:tipcolor});
-		}
-	}
-	x+=w;
-	if(insertlookup) {
-		// consider gap
-		if(this.entire.atbplevel) {
-			initcoord+=1;
-			if(initcoord in insertlookup) {
-				// negative w for reverse
-				x+= insertlookup[initcoord]*this.entire.bpwidth * (w>0?1:-1);
-			}
-		} else {
-			initcoord+=thisregion[7];
-			for(var j=0; j<=parseInt(thisregion[7]); j++) {
-				var thisbp=parseInt(initcoord+j);
-				if(thisbp in insertlookup) {
-					// negative w for reverse
-					x+= insertlookup[thisbp]/thisregion[7] * (w>0?1:-1);
-					delete insertlookup[thisbp];
-				}
-			}
-		}
-	}
+	// if(tipy) {
+	// 	ctx.fillStyle = tipcolor;
+	// 	ctx.fillRect(x, tipy, w, 2);
+	// 	if(tosvg) {
+	// 		svgdata.push({type:svgt_rect,x:svgx,y:tipy,w:svgw,h:2,fill:tipcolor});
+	// 	}
+	// }
+	// x+=w;
+	// if(insertlookup) {
+	// 	// consider gap
+	// 	if(this.entire.atbplevel) {
+	// 		initcoord+=1;
+	// 		if(initcoord in insertlookup) {
+	// 			// negative w for reverse
+	// 			x+= insertlookup[initcoord]*this.entire.bpwidth * (w>0?1:-1);
+	// 		}
+	// 	} else {
+	// 		initcoord+=thisregion[7];
+	// 		for(var j=0; j<=parseInt(thisregion[7]); j++) {
+	// 			var thisbp=parseInt(initcoord+j);
+	// 			if(thisbp in insertlookup) {
+	// 				// negative w for reverse
+	// 				x+= insertlookup[thisbp]/thisregion[7] * (w>0?1:-1);
+	// 				delete insertlookup[thisbp];
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
 if(tosvg) return svgdata;
 }
@@ -18008,7 +18008,7 @@ for(var i=0; i<lst.length; i++) {
 				if(this.move.merge) {
 					y[0] = ydj[ydj.length-1].concat(y[0]);
 					ydj.pop();
-					// Shift xdata values
+					// Shift xdata values by a constant value
 					for (var j=0; j < x.length; j++) {
 						for (var k=0; k < x[j].length; k++) {
 							x[j][k] += this.move.offsetShift;
@@ -18030,6 +18030,16 @@ for(var i=0; i<lst.length; i++) {
 					var idx=y.length-1;
 					y[idx] = y[idx].concat(ydj[0]);
 					ydj.shift();
+					// Shift xdata values; need to add a
+					// constant value to all elements of xdj.
+					// In this case, it is the current width of
+					// canvas in pixels
+					var xOffsetShift = obj.canvas.scrollWidth;
+					for (var j=0; j < xdj.length; j++) {
+						for (var k=0; k < xdj[j].length; k++) {
+							xdj[j][k] += xOffsetShift;
+						}
+					}
 					x[idx] = x[idx].concat(xdj[0]);
 					xdj.shift();
 					s[idx] = s[idx].concat(sdj[0]);
