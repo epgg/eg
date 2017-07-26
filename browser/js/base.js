@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='43';
+var washUver='43.2';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -7768,7 +7768,7 @@ for(var i=0; i<_tklst.length; i++) {
 		lst[FT_lr_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore);
 		break;
 	case FT_hi_c:
-		//lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size+','+t.qtc.hasChr);
+		lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size+','+t.qtc.hasChr);
 		break;
 	case FT_ld_c:
 		lst[FT_ld_c].push(name+','+label+','+url);
@@ -13134,7 +13134,7 @@ if(tk.ft==FT_cm_c) {
 	td.innerHTML='Member tracks:';
 	for(var k in tk.cm.set) {
 		// this is registry obj, value is tkname
-		var x=this.findTrack(tk.cm.set[k]);
+		var x=this.findTrack(tk.cm.set[k].name); //dli fix #29
 		if(!x) continue;
 		var tr=t.insertRow(-1);
 		tr.insertCell(0).innerHTML=x.label;
