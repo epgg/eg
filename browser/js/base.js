@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='43.2';
+var washUver='43.3';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -384,7 +384,7 @@ var defaultQtcStyle = {
                 norm:'KR', //KR
                 unit_res:'BP',
                 bin_size:0,
-                hasChr:0,
+                hasChr:0, //for hic track, Silas add a way to auto detect if chr in chromosome or not
 	},
 	// categorical
 	ft12:{height:15},
@@ -16174,8 +16174,8 @@ make doms for display
 
 TODO pwc, htest, bev?
 */
-console.log(name);
-console.log(ft);
+//console.log(name);
+//console.log(ft);
 var oobj=this.genome.getTkregistryobj(name,ft);
 if(!oobj) {
 	print2console('Cannot make track, no registry object found for '+name,2);
@@ -24675,7 +24675,7 @@ case FT_hi_c:
 		print2console('Negative threshold value must be <=0',2);
 		return;
 	}
-	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value,hasChr:c.hasChr.checked?1:0};
+	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};//,hasChr:c.hasChr.checked?1:0};
 	break;
 case FT_bam_c:
 	c=bbj.genome.custtk.ui_bam;
@@ -24947,11 +24947,11 @@ if(ft==FT_lr_c||ft==FT_hi_c) {
 	dom_addtext(td,' only applies to negatively-scored items','#858585');
 }
 if(ft==FT_hi_c) {
-        tr=table.insertRow(-1);
-        td=tr.insertCell(0);
-        td.align='right';
-        td=tr.insertCell(1);
-        d.hasChr=dom_addcheckbox(td,"Chromosome has 'chr'",null);
+        //tr=table.insertRow(-1);
+        //td=tr.insertCell(0);
+        //td.align='right';
+        //td=tr.insertCell(1);
+        //d.hasChr=dom_addcheckbox(td,"Chromosome has 'chr'",null);
         tr=table.insertRow(-1);
         td=tr.insertCell(0);
         td.align='right';
