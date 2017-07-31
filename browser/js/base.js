@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='43.3';
+var washUver='43.4';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -127,6 +127,7 @@ FT_qdecor_n=8, // not in use
 FT_lr_n=9,
 FT_lr_c=10,
 FT_hi_c=30, // the hic format from juicebox
+FT_cool_c=34, // the cool format from cooler
 FT_tkgrp=11,
 FT_cat_n=12, // categorical hmtk
 FT_cat_c=13,
@@ -181,7 +182,8 @@ var FT2verbal = ['bed', 'bed', 'bedgraph', 'bedgraph', 'sam', 'sam', 'pwc', 'hte
 'quantitativecategoryseries', //27
 'unknown', //28
 'hic','hic',    //29,30
-'bigbed','bigbed' //31, 32
+'bigbed','bigbed', //31, 32
+'cool','cool'  //33, 34 the cool format used by cooler
 ];
 
 var M_hide=0,
@@ -368,6 +370,25 @@ var defaultQtcStyle = {
 		anglescale:1,
 	},
 	hic:{ textcolor:'#000000',
+		thtype:scale_auto,
+		fontsize:'8pt',
+		fontfamily:'sans-serif',
+		fontbold:false,
+		pr:184,pg:0,pb:138,
+		nr:0,ng:99,nb:133,
+		pcolorscore:10,
+		ncolorscore:-10,
+		pfilterscore:0,
+		nfilterscore:0,
+		height:50, // for density mode
+		anglescale:1,
+                matrix:'observed', // matrix
+                norm:'KR', //KR
+                unit_res:'BP',
+                bin_size:0,
+                hasChr:0, //for hic track, Silas add a way to auto detect if chr in chromosome or not
+	},
+	cool:{ textcolor:'#000000',
 		thtype:scale_auto,
 		fontsize:'8pt',
 		fontfamily:'sans-serif',
@@ -970,7 +991,7 @@ if(param.custom_track) {
 	d.style.position='relative';
 	this.custtk.main=d;
 	// launch buttons
-	var d2=dom_create('div',d,'display:block;position:absolute;left:0px;top:0px;width:800px;');
+	var d2=dom_create('div',d,'display:block;position:absolute;left:0px;top:0px;width:1000px;');
 	dom_create('div',d2,'margin:15px 0px;color:white;').innerHTML='Tracks need to be hosted on a web server that is accessible by this browser server.';
 	this.custtk.buttdiv=d2;
 	var d3=dom_create('div',d2);
@@ -1008,6 +1029,13 @@ if(param.custom_track) {
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_hi_c);},false);
 	d3.innerHTML='Hi-C<div style="color:inherit;font-weight:normal;font-size:70%;">Hi-C format interaction</div>';
+        
+        d3=dom_create('div',d2);
+	d3.className='largebutt';
+	d3.addEventListener('click',function(){custtkpanel_show(FT_cool_c);},false);
+	d3.innerHTML='Cool<div style="color:inherit;font-weight:normal;font-size:70%;">Cool format interaction</div>';
+	
+        dom_create('br',d2);
 
 	d3=dom_create('div',d2);
 	d3.className='largebutt';
@@ -1047,6 +1075,7 @@ if(param.custom_track) {
 	this.custtk.ui_bigbed=this.custtk_makeui(FT_bigbed_c,d2);
 	this.custtk.ui_lr=this.custtk_makeui(FT_lr_c,d2);
 	this.custtk.ui_hi=this.custtk_makeui(FT_hi_c,d2);
+	this.custtk.ui_cool=this.custtk_makeui(FT_cool_c,d2);
 	this.custtk.ui_bigwig=this.custtk_makeui(FT_bigwighmtk_c,d2);
 	this.custtk.ui_cat=this.custtk_makeui(FT_cat_c,d2);
 	this.custcate_idnum_change(5);
@@ -1142,6 +1171,7 @@ if(this.custtk) {
 		if(!(FT_huburl in v)) this.custtk.ui_hub.examplebutt.style.display='none';
 		if(!(FT_lr_c in v)) this.custtk.ui_lr.examplebutt.style.display='none';
 		if(!(FT_hi_c in v)) this.custtk.ui_hi.examplebutt.style.display='none';
+		if(!(FT_cool_c in v)) this.custtk.ui_cool.examplebutt.style.display='none';
 		if(FT_weaver_c in v) {
 			var g=this;
 			for(var qn in v[FT_weaver_c]) {
@@ -1547,6 +1577,7 @@ case FT_sam_c:
 case FT_bam_c:
 case FT_lr_c:
 case FT_hi_c:
+case FT_cool_c:
 case FT_cm_c:
 case FT_ld_c:
 case FT_anno_c:
@@ -3246,7 +3277,7 @@ if(tkobj.skipped>0) {
 
 
 //add data label to hic
-if(tkobj.ft == FT_hi_c){
+if(tkobj.ft == FT_hi_c||tkobj.ft == FT_cool_c){
     var b=densitydecorpaddingtop+1+tkobj.qtc.height-25;
     var m = 'matrix: '+tkobj.qtc.matrix;
     ctx.fillText(m, 1, b);
@@ -3678,7 +3709,7 @@ if(tkobj.ft==FT_matplot) {
 	var drawTriheatmap = tkobj.mode==M_trihm;
 	var drawArc = tkobj.mode==M_arc;
 	var isSam = (tkobj.ft==FT_bam_c||tkobj.ft==FT_bam_n);
-	var isChiapet = (tkobj.ft==FT_lr_n||tkobj.ft==FT_lr_c||tkobj.ft==FT_hi_c);
+	var isChiapet = (tkobj.ft==FT_lr_n||tkobj.ft==FT_lr_c||tkobj.ft==FT_hi_c||tkobj.ft==FT_cool_c);
 
 	var isThin = tkobj.mode==M_thin;
 	var stackHeight = tkobj.qtc.stackheight?tkobj.qtc.stackheight : (isThin ? thinStackHeight : fullStackHeight);
@@ -3714,7 +3745,7 @@ if(tkobj.ft==FT_matplot) {
 	*/
 	var pcolorscore=ncolorscore= // lr
 		colorscore_min=colorscore_max=null; // hammock
-	if(tkobj.ft==FT_lr_c||tkobj.ft==FT_lr_n||tkobj.ft==FT_hi_c) {
+	if(tkobj.ft==FT_lr_c||tkobj.ft==FT_lr_n||tkobj.ft==FT_hi_c||tkobj.ft==FT_cool_c) {
 		pcolorscore=tkobj.qtc.pcolorscore;
 		ncolorscore=tkobj.qtc.ncolorscore;
 		if(tkobj.qtc.thtype==scale_auto) {
@@ -4444,7 +4475,7 @@ if(tkobj.ft==FT_matplot) {
 		}
 	}
 	if(viewrangeblank) {
-                if (tkobj.ft==FT_hi_c){
+                if (tkobj.ft==FT_hi_c||tkobj.ft==FT_cool_c){
                     //tc.height = 80;
                     print2console('NO DATA IN VIEW RANGE, please change configurations',2);
                     var m = 'current configuration:';
@@ -4791,7 +4822,7 @@ if(ft==FT_ld_c || ft==FT_ld_n) {
 var Data=[]; // stack data of all tracks
 var Data2=[]; // only for arc or trihm
 
-var isChiapet = (ft==FT_lr_n||ft==FT_lr_c||tkobj.ft==FT_hi_c);
+var isChiapet = (ft==FT_lr_n||ft==FT_lr_c||tkobj.ft==FT_hi_c||tkobj.ft==FT_cool_c);
 var isSam = (ft==FT_sam_c||ft==FT_sam_n||ft==FT_bam_c||ft==FT_bam_n);
 var drawTriheatmap = tkobj.mode==M_trihm;
 var drawArc = tkobj.mode==M_arc;
@@ -7709,6 +7740,7 @@ lst[FT_cat_n]=[];
 lst[FT_lr_n]=[];
 lst[FT_lr_c]=[];
 lst[FT_hi_c]=[];
+lst[FT_cool_c]=[];
 lst[FT_qdecor_n]=[];
 lst[FT_weaver_c]=[];
 lst[FT_ld_c]=[];
@@ -7770,6 +7802,9 @@ for(var i=0; i<_tklst.length; i++) {
 	case FT_hi_c:
 		lst[FT_hi_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size+','+t.qtc.hasChr);
 		break;
+	case FT_cool_c:
+		lst[FT_cool_c].push(name+','+label+','+url+','+mode+','+t.qtc.pfilterscore+','+t.qtc.nfilterscore+','+t.qtc.matrix+','+t.qtc.norm+','+t.qtc.unit_res+','+t.qtc.bin_size);
+		break;
 	case FT_ld_c:
 		lst[FT_ld_c].push(name+','+label+','+url);
 		break;
@@ -7811,6 +7846,7 @@ return ''+
 	(lst[FT_lr_n].length>0 ? '&decor9='+lst[FT_lr_n].join(',') : '') +
 	(lst[FT_lr_c].length>0 ? '&decor10='+lst[FT_lr_c].join(',') : '') +
 	(lst[FT_hi_c].length>0 ? '&decor30='+lst[FT_hi_c].join(',') : '') +
+	(lst[FT_cool_c].length>0 ? '&decor34='+lst[FT_cool_c].join(',') : '') +
 	(lst[FT_qdecor_n].length>0 ? '&decor8='+lst[FT_qdecor_n].join(',') : '') +
 	(lst[FT_sam_n].length>0 ? '&decor4='+lst[FT_sam_n].join(',') : '') +
 	(lst[FT_sam_c].length>0 ? '&decor5='+lst[FT_sam_c].join(',') : '')+
@@ -10491,6 +10527,7 @@ if(getmdidx_internal()==-1) {
 		FT2verbal[FT_bam_c],
 		FT2verbal[FT_lr_c],
 		FT2verbal[FT_hi_c],
+		FT2verbal[FT_cool_c],
 		FT2verbal[FT_cat_c],
 		FT2verbal[FT_matplot],
 		FT2verbal[FT_weaver_c],
@@ -11315,6 +11352,9 @@ if(param.cp_custtk) {
 	fn=function(){custtk_shortcut(FT_hi_c);};
 	apps.custtk.shortcut[FT_hi_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'hic',clc:fn});
 	gflag.applst.push({name:'Hi-C interaction',toggle:fn});
+	fn=function(){custtk_shortcut(FT_cool_c);};
+	apps.custtk.shortcut[FT_cool_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'hic',clc:fn});
+	gflag.applst.push({name:'Cool interaction',toggle:fn});
 	fn=function(){custtk_shortcut(FT_bed_c);};
 	apps.custtk.shortcut[FT_bed_c]=dom_create('div',d2,'display:none;',{c:'header_b ilcell',t:'bed',clc:fn});
 	gflag.applst.push({name:'Bed track',toggle:fn});
@@ -15509,6 +15549,7 @@ case FT_bigbed_c:
 case FT_lr_n:
 case FT_lr_c:
 case FT_hi_c:
+case FT_cool_c:
 case FT_weaver_c:
 	if(tk.ft==FT_weaver_c && tk.weaver.mode==W_rough) {
 		if(y>=tk.canvas.height-fullStackHeight) {
@@ -15547,7 +15588,7 @@ case FT_weaver_c:
 		var stkh = tk.mode==M_full ? fullStackHeight+1 : thinStackHeight+1;
 		clickstack = parseInt(y / (stkh));
 	}
-	var _data=(tk.ft==FT_lr_n||tk.ft==FT_lr_c||tk.ft==FT_hi_c) ? tk.data_chiapet : tk.data;
+	var _data=(tk.ft==FT_lr_n||tk.ft==FT_lr_c||tk.ft==FT_hi_c||tk.ft==FT_cool_c) ? tk.data_chiapet : tk.data;
 	for(var i=0; i<_data.length; i++) {
 		for(var j=0; j<_data[i].length; j++) {
 			var item = _data[i][j];
@@ -16136,6 +16177,7 @@ case FT_qdecor_n:
 case FT_lr_c:
 case FT_ld_c:
 case FT_hi_c:
+case FT_cool_c:
 	qtc_paramCopy(defaultQtcStyle.interaction, tk.qtc);
 	break;
 case FT_cat_n:
@@ -16630,7 +16672,7 @@ if(tk.ft==FT_ld_c||tk.ft==FT_ld_n) {
 		'&stopCoord='+(_rs2.coord+1)+trackParam([tk.querytrack]),function(data){sbj.lditemclick_gotdata(data,tk,rs1,rs2);});
 	return;
 }
-if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c) {
+if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c||tk.ft==FT_cool_c) {
 	var item;
 	switch(tk.mode) {
 	case M_arc:
@@ -17324,7 +17366,7 @@ for(var i=0; i<lst.length; i++) {
 	if(!isHmtk(obj.ft)) {
 		// decor track's stuff
 		if('mode' in lst[i]) obj.mode=lst[i].mode;
-		if(obj.ft==FT_lr_c||obj.ft==FT_hi_c) {
+		if(obj.ft==FT_lr_c||obj.ft==FT_hi_c||obj.ft==FT_cool_c) {
 			if('pfilterscore' in lst[i]) obj.qtc.pfilterscore=lst[i].pfilterscore;
 			if('nfilterscore' in lst[i]) obj.qtc.nfilterscore=lst[i].nfilterscore;
 			if('matrix' in lst[i]) obj.qtc.matrix=lst[i].matrix;
@@ -22108,7 +22150,7 @@ Browser.prototype.mayShowDsp=function()
 var show=false;
 for(var i=0; i<this.tklst.length; i++) {
 	var t=this.tklst[i];
-	if((t.ft==FT_lr_c||t.ft==FT_lr_n||t.ft==FT_hi_c) && (t.mode==M_trihm||t.mode==M_arc)) {
+	if((t.ft==FT_lr_c||t.ft==FT_lr_n||t.ft==FT_hi_c||t.ft==FT_cool_c) && (t.mode==M_trihm||t.mode==M_arc)) {
 		show=true;break;
 	}
 }
@@ -23079,7 +23121,7 @@ if(tk.mode==M_full) {
 }
     //console.log(tk.ft);
     //console.log(tk.qtc.matrix);
-if(tk.ft == FT_hi_c){
+if(tk.ft == FT_hi_c||tk.ft == FT_cool_c){
     menu.lr.hicControl.style.display='block';
     changeSelectByValue(menu.lr.matrix,tk.qtc.matrix);
     changeSelectByValue(menu.lr.norm,tk.qtc.norm);
@@ -23490,6 +23532,7 @@ case FT_bam_c:
 case FT_lr_n:
 case FT_lr_c:
 case FT_hi_c:
+case FT_cool_c:
 	if(menu.c3) {
 		menu.c3.style.display=tk.mode==M_den?'none':'block';
 	}
@@ -23546,7 +23589,7 @@ return false;
 function menu_showmodebutt(tk)
 {
 menu.c22.style.display='block';
-if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c) {
+if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c||tk.ft==FT_cool_c) {
 	menu.c10.style.display=tk.mode==M_trihm?'none':'table-cell';
 	menu.c11.style.display=tk.mode==M_arc?'none':'table-cell';
 } else {
@@ -24163,15 +24206,30 @@ _g.custcate_idnum_change(num);
 
 function cust_hic_unit_change(){
 var _g=apps.custtk.bbj.genome;
-var value=_g.custtk.ui_hi.unit_res.value;
+var ui=_g.custtk.ui_hi;
+var value=ui.unit_res.value;
 var options = [];
 if (value == 'FRAG'){
     options = hicUnitRes.options_frag;
 }else{
     options = hicUnitRes.options_bp;
 }
-_g.custtk.ui_hi.resoptionstd.innerHTML='';
-_g.custtk.ui_hi.resoptions = dom_addselect(_g.custtk.ui_hi.resoptionstd,null,options);
+ui.resoptionstd.innerHTML='';
+ui.resoptions = dom_addselect(ui.resoptionstd,null,options);
+}
+
+function cust_cool_unit_change(){
+var _g=apps.custtk.bbj.genome;
+var ui=_g.custtk.ui_cool;
+var value=ui.unit_res.value;
+var options = [];
+if (value == 'FRAG'){
+    options = hicUnitRes.options_frag;
+}else{
+    options = hicUnitRes.options_bp;
+}
+ui.resoptionstd.innerHTML='';
+ui.resoptions = dom_addselect(ui.resoptionstd,null,options);
 }
 
 function changeUnitMenu(){
@@ -24301,6 +24359,10 @@ case FT_hi_c:
 	c.ui_hi.input_url.value=info[ft].url;
 	c.ui_hi.input_name.value=info[ft].name;
 	return;
+case FT_cool_c:
+	c.ui_cool.input_url.value=info[ft].url;
+	c.ui_cool.input_name.value=info[ft].name;
+	return;
 case FT_bigwighmtk_c:
 	c.ui_bigwig.input_url.value=info[ft].url;
 	c.ui_bigwig.input_name.value=info[ft].name;
@@ -24338,6 +24400,7 @@ c.ui_cat.style.display=ft==FT_cat_c?'block':'none';
 c.ui_bam.style.display=ft==FT_bam_c?'block':'none';
 c.ui_lr.style.display=ft==FT_lr_c?'block':'none';
 c.ui_hi.style.display=ft==FT_hi_c?'block':'none';
+c.ui_cool.style.display=ft==FT_cool_c?'block':'none';
 c.ui_bigwig.style.display=ft==FT_bigwighmtk_c?'block':'none';
 c.ui_hammock.style.display=ft==FT_anno_c?'block':'none';
 c.ui_weaver.style.display=ft==FT_weaver_c?'block':'none';
@@ -24677,6 +24740,31 @@ case FT_hi_c:
 	}
 	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};//,hasChr:c.hasChr.checked?1:0};
 	break;
+case FT_cool_c:
+	c=bbj.genome.custtk.ui_cool;
+	_tmp.url=c.input_url.value.trim();
+	_tmp.label=c.input_name.value;
+	_tmp.mode=parseInt(c.mode.options[c.mode.selectedIndex].value);
+	var score1=parseFloat(c.input_pscore.value);
+	if(isNaN(score1)) {
+		print2console('Invalid positive threshold value',2);
+		return;
+	}
+	if(score1<0) {
+		print2console('Positive threshold value must be >=0',2);
+		return;
+	}
+	var score2=parseFloat(c.input_nscore.value);
+	if(isNaN(score2)) {
+		print2console('Invalid negative threshold value',2);
+		return;
+	}
+	if(score2>0) {
+		print2console('Negative threshold value must be <=0',2);
+		return;
+	}
+	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};//,hasChr:c.hasChr.checked?1:0};
+	break;
 case FT_bam_c:
 	c=bbj.genome.custtk.ui_bam;
 	_tmp.url=c.input_url.value.trim();
@@ -24742,7 +24830,7 @@ ui.submit_butt.disabled=false;
 this.unveil();
 if(!data || data.brokenbeads) {
 	print2console('Something about this track is broken. Please check your input.',2);
-        if(tk.ft !== FT_hi_c){
+        if(tk.ft !== FT_hi_c || tk.ft !== FT_cool_c){
 	menu_blank();
 	dom_create('div',menu.c32,'margin:10px;width:200px;').innerHTML='Failed to add this track.<br><br>If this is an updated version of a previously used track, you need to refresh cache.';
 	var d=dom_create('div',menu.c32,'margin:20px;');
@@ -24834,6 +24922,10 @@ case FT_hi_c:
 	d._h.innerHTML='Hi-C interaction track <a href=http://wiki.wubrowse.org/HiC target=_blank>help</a>';
 	ftname='Hi-C interaction';
 	break;
+case FT_cool_c:
+	d._h.innerHTML='Cool interaction track <a href=http://wiki.wubrowse.org/Cool target=_blank>help</a>';
+	ftname='Cool interaction';
+	break;
 //case FT_sam_c:
 //	d._h.innerHTML='<a href=http://washugb.blogspot.com/2012/09/generate-tabix-file-from-bam-file.html target=_blank>help</a>';
 //	ftname='SAM';
@@ -24892,7 +24984,7 @@ if(ft==FT_huburl) {
 }
 dom_addbutt(td,'Clear',function(){d.input_url.value='';if(d.input_name) d.input_name.value='';});
 // row 3
-if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_bigbed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c||ft==FT_hi_c) {
+if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_bigbed_c||ft==FT_lr_c||ft==FT_sam_c||ft==FT_bam_c||ft==FT_hi_c||ft==FT_cool_c) {
 	tr=table.insertRow(-1);
 	td=tr.insertCell(0);
 	td.align='right';
@@ -24904,7 +24996,7 @@ if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_bigbed_c||ft==FT_lr_c||ft==FT_sam_c||ft==
 		];
 	if(ft==FT_anno_c||ft==FT_bed_c||ft==FT_bigbed_c||ft==FT_sam_c||ft==FT_bam_c) {
 		options.push({value:M_den,text:'density'});
-	} else if(ft==FT_lr_c||ft==FT_hi_c) {
+	} else if(ft==FT_lr_c||ft==FT_hi_c||ft==FT_cool_c) {
 		options.unshift({value:M_trihm,text:'heatmap'});
 		options.unshift({value:M_arc,text:'arc'});
 	}
@@ -24922,7 +25014,7 @@ if(ft==FT_anno_c) {
 	inp.cols=20;
 	d.input_json=inp;
 }
-if(ft==FT_lr_c||ft==FT_hi_c) {
+if(ft==FT_lr_c||ft==FT_hi_c||ft==FT_cool_c) {
 	tr=table.insertRow(-1);
 	td=tr.insertCell(0);
 	td.align='right';
@@ -24970,6 +25062,34 @@ if(ft==FT_hi_c) {
         td.innerHTML="Unit of Resolution";
         td=tr.insertCell(1);
 	d.unit_res=dom_addselect(td,cust_hic_unit_change,hicUnitOptions);
+	dom_addtext(td,' BP is base-pair delimited resolution and FRAG is fragment delimited','#858585');
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Bin Size";
+        td=tr.insertCell(1);
+        d.resoptions = dom_addselect(td,null,hicUnitRes.options_bp);;
+        d.resoptionstd = td;
+}
+if(ft==FT_cool_c) {
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Matrix";
+        td=tr.insertCell(1);
+	d.matrix=dom_addselect(td,null,hicMatrixOptions);
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Normalization";
+        td=tr.insertCell(1);
+	d.norm=dom_addselect(td,null,hicNormOptions);
+        tr=table.insertRow(-1);
+        td=tr.insertCell(0);
+        td.align='right';
+        td.innerHTML="Unit of Resolution";
+        td=tr.insertCell(1);
+	d.unit_res=dom_addselect(td,cust_cool_unit_change,hicUnitOptions);
 	dom_addtext(td,' BP is base-pair delimited resolution and FRAG is fragment delimited','#858585');
         tr=table.insertRow(-1);
         td=tr.insertCell(0);
@@ -25446,6 +25566,12 @@ case 'interaction':
 	break;
 case 'hic':
 	obj.ft=FT_hi_c;
+	if(m==M_show) {
+		m=M_arc;
+	}
+	break;
+case 'cool':
+	obj.ft=FT_cool_c;
 	if(m==M_show) {
 		m=M_arc;
 	}
@@ -26509,6 +26635,7 @@ case FT_weaver_c:
 case FT_lr_c:
 case FT_lr_n:
 case FT_hi_c:
+case FT_cool_c:
 	return M_arc;
 case FT_sam_c:
 case FT_sam_n:
