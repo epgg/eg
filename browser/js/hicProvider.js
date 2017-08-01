@@ -139,7 +139,7 @@ class HicProvider extends DataProvider {
                 let binCoors = HicProvider._toBinCoordinates(
                     dataset, chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, zoomIndex
                 );
-                return HicProvider.getBlocks(dataset, binCoors, normalization);
+                return HicProvider._getBlocks(dataset, binCoors, normalization);
             })
             .catch((error) => { // Catch error here because we don't want the failure of one region to fail the rest
                 print2console(error.toString(), 2);
@@ -204,7 +204,7 @@ class HicProvider extends DataProvider {
      * @return {Promise.<hic.Block[]>} - promise for an array of blocks containing the requested data
      * @see {@link _toBinCoordinates}
      */
-    static getBlocks(dataset, binCoors, normalization) { // Based on hic.ContactMatrixView.prototype.update
+    static _getBlocks(dataset, binCoors, normalization) { // Based on hic.ContactMatrixView.prototype.update
         return dataset.getMatrix(binCoors.chr1, binCoors.chr2).then((matrix) => {
             if (!matrix) {
                 return [];

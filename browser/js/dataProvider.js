@@ -1,7 +1,10 @@
 'use strict'
 
 /**
- * An abstract class for objects that get track data.
+ * An abstract class for objects that get track data.  How to modify a track type's endpoint from the default:
+ *   1.  Make a new class that extends this class
+ *   2.  Modify DataProvider.makeProviderForTrack() so it actually uses your new class
+ *   3.  Done!
  *
  * @see {@link DataProvider.prototype.getData} for more information on "track data"
  * @author Silas Hsu
@@ -22,8 +25,8 @@ class DataProvider {
      *
      * TODO
      * In an ideal world, Tracks would have the responsibility of constructing their own metadata (never mind that
-     * Tracks don't render themselves; instead give the data to the Browser).  Unfortunately, since Tracks are plain
-     * objects, it's difficult to implement polymorphism.  So, I have delegated constructing track metadata to the
+     * Tracks don't render themselves; instead they give the data to the Browser).  Unfortunately, since Tracks are
+     * plain objects, it's difficult to implement polymorphism.  So, I have delegated constructing track metadata to the
      * DataProviders.  That is why getData()'s first argument is a Track object.
      *
      * Note: we can persist DataProvider objects by adding the DataProvider.TRACK_PROP_NAME property to the return
@@ -50,6 +53,8 @@ class DataProvider {
         switch (track.ft) {
             case FT_hi_c:
                 return new HicProvider(hic.HiCReader.fromUrl(track.url), BrowserHicFormatter);
+            case FT_cool_c:
+                return new CoolerProvider(track.url);
             case FT_bigwighmtk_n:
             case FT_bigwighmtk_c:
                 //return new BigWigProvider(new igv.BWSource({url:track.url}), BrowserBigWigFormatter);
