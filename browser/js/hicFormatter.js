@@ -7,8 +7,7 @@
 'use strict'
 
 /**
- * Base class for a hic.Block formatter.  Provides an overridable static formatBlocks method, but one could conceivably
- * make an instance with a formatBlocks method too.
+ * Base class for a hic.Block formatter.  Provides an overridable static formatBlocks method.
  */
 class HicFormatter {
     /**
@@ -71,8 +70,10 @@ class BrowserHicFormatter extends HicFormatter {
             allData.push(new CoordinateRecord(id, chromosome, record.bin1, record.bin2, binSize, record.counts));
             id++;
             // Blocks only contain a triangular portion of the matrix, so for the other triangle, switch bin1 and bin2
-            allData.push(new CoordinateRecord(id, chromosome, record.bin2, record.bin1, binSize, record.counts));
-            id++;
+            if (record.bin1 != record.bin2) {
+                allData.push(new CoordinateRecord(id, chromosome, record.bin2, record.bin1, binSize, record.counts));
+                id++;
+            }
         }
         return allData;
     }

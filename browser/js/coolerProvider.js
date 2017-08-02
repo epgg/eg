@@ -4,27 +4,35 @@ class CoolerProvider extends HicProvider {
     constructor(fileName) {
         super({loadDataset: () => null}, null);
         this.fileName = fileName;
+        let apiUrlForBinSizes = "/cgi-bin/cooler/getResolutions.py?" + $.param({fileName: fileName});
+        this.binSizesPromise = this._makeJsonRequest(apiUrlForBinSizes).then(json => json.binSizes);
     }
 
     /**
      * @override
      */
     getRecords(chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, normalization, regionLengthOverride, targetBinSize) {
-        let binsize = targetBinSize || CoolerProvider._regionLengthToBinSize(regionLengthOverride);
-        let params = {
-            fileName: this.fileName,
-            chromosome: chr1Name,
-            startBase: bpX,
-            endBase: bpXMax,
-            binsize: binsize
-        }
-        let apiURL = "/cgi-bin/dumpCooler.py?" + $.param(params);
-        let promise = this._makeAjaxRequest(apiURL)
+        let getBinSize = targetBinSize == null ?
+            this._regionLengthToBinSize(regionLengthOverride) : Promise.resolve(targetBinSize)
+
+        let promise = getBinSize
+            .then((binSize) => {
+                let params = {
+                    fileName: this.fileName,
+                    chromosome: chr1Name,
+                    startBase: bpX,
+                    endBase: bpXMax,
+                    binSize: binSize
+                }
+                let apiURL = "/cgi-bin/cooler/dump.py?" + $.param(params);
+                return this._makeJsonRequest(apiURL);
+            })
             .then(parsedJSON => CoolerProvider._toCoordinateRecords(parsedJSON, chr1Name));
+
         return promise;
     }
 
-    _makeAjaxRequest(apiURL) {
+    _makeJsonRequest(apiURL) {
         let ajaxPromise = new Promise((resolve, reject) => {
             let request = new XMLHttpRequest();
 
@@ -48,8 +56,23 @@ class CoolerProvider extends HicProvider {
         return ajaxPromise;
     }
 
-    static _regionLengthToBinSize(regionLength) {
-        return 100000;
+    _regionLengthToBinSize(regionLength) {
+        let promise = this.binSizesPromise.then((binSizes) => {
+            binSizes.sort().reverse();
+            for (let i = 0; i < binSizes.length; i++) { // Iterate through bin sizes, largest to smallest
+                if (regionLength > CoolerProvider.MIN_BINS_PER_REGION * binSizes[i]) {
+                    return binSizes[i];
+                }
+            }
+            return binSizes[binSizes.length - 1];
+        });
+        return promise;
+    }
+
+    _constructTrackData(hicTrack, recordsForEachRegion) {
+        let trackData = super._constructTrackData(hicTrack, recordsForEachRegion);
+        trackData.label = this.fileName;
+        return trackData;
     }
 
     static _toCoordinateRecords(parsedJSON, chromosome) {
@@ -63,3 +86,5 @@ class CoolerProvider extends HicProvider {
         return allData;
     }
 }
+
+CoolerProvider.MIN_BINS_PER_REGION = 50;

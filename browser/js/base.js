@@ -23181,6 +23181,7 @@ case FT_anno_c:
 case FT_lr_n:
 case FT_lr_c:
 case FT_hi_c:
+case FT_cool_c:
 	config_lr(tk);
 	break;
 case FT_bam_c:
