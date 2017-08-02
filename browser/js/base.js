@@ -1029,12 +1029,12 @@ if(param.custom_track) {
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_hi_c);},false);
 	d3.innerHTML='Hi-C<div style="color:inherit;font-weight:normal;font-size:70%;">Hi-C format interaction</div>';
-        
+
         d3=dom_create('div',d2);
 	d3.className='largebutt';
 	d3.addEventListener('click',function(){custtkpanel_show(FT_cool_c);},false);
 	d3.innerHTML='Cool<div style="color:inherit;font-weight:normal;font-size:70%;">Cool format interaction</div>';
-	
+
         dom_create('br',d2);
 
 	d3=dom_create('div',d2);
@@ -24820,7 +24820,8 @@ c.submit_butt.disabled=true;
 bbj.cloak();
 bbj.genome.pending_custtkhash[_tmp.name]=_tmp;
 print2console("Adding custom track...", 0);
-bbj.ajax('addtracks=on&dbName='+bbj.genome.name+'&'+bbj.displayedRegionParamPrecise()+trackParam([_tmp]),function(data){bbj.submitCustomtrack_cb(data,_tmp,c);});
+bbj.getPromisesForEachTrack(bbj.regionLst, [_tmp], bbj.displayedRegionParamPrecise()+'&addtracks=on&')[0]
+	.then(trackData => bbj.submitCustomtrack_cb( {tkdatalst: [trackData]}, _tmp, c));
 }
 
 
@@ -24830,14 +24831,14 @@ ui.submit_butt.disabled=false;
 this.unveil();
 if(!data || data.brokenbeads) {
 	print2console('Something about this track is broken. Please check your input.',2);
-        if(tk.ft !== FT_hi_c || tk.ft !== FT_cool_c){
-	menu_blank();
-	dom_create('div',menu.c32,'margin:10px;width:200px;').innerHTML='Failed to add this track.<br><br>If this is an updated version of a previously used track, you need to refresh cache.';
-	var d=dom_create('div',menu.c32,'margin:20px;');
-	this.refreshcache_maketkhandle(d,tk);
-	menu_show_beneathdom(0,ui.submit_butt);
-	gflag.menu.bbj=apps.custtk.bbj;
-        }
+	if(tk.ft !== FT_hi_c || tk.ft !== FT_cool_c){
+		menu_blank();
+		dom_create('div',menu.c32,'margin:10px;width:200px;').innerHTML='Failed to add this track.<br><br>If this is an updated version of a previously used track, you need to refresh cache.';
+		var d=dom_create('div',menu.c32,'margin:20px;');
+		this.refreshcache_maketkhandle(d,tk);
+		menu_show_beneathdom(0,ui.submit_butt);
+		gflag.menu.bbj=apps.custtk.bbj;
+	}
 	return;
 }
 this.jsonAddtracks(data);

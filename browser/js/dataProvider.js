@@ -54,7 +54,7 @@ class DataProvider {
             case FT_hi_c:
                 return new HicProvider(hic.HiCReader.fromUrl(track.url), BrowserHicFormatter);
             case FT_cool_c:
-                return new CoolerProvider(track.url);
+                return new CoolerProvider(track.label);
             case FT_bigwighmtk_n:
             case FT_bigwighmtk_c:
                 //return new BigWigProvider(new igv.BWSource({url:track.url}), BrowserBigWigFormatter);

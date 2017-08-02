@@ -5,6 +5,7 @@ import cooler
 import json
 import urlparse
 import math
+import cgi
 
 """
 Quick Cooler API reference:
@@ -14,24 +15,27 @@ cool_file.chromnames - list
 cool_file.chromsizes - pandas.core.series
 """
 
-FILE_NAME = "../juiceboxVsCooler/mac.cool"
-#FILE_NAME = "../juiceboxVsCooler/dixon2012-h1hesc-hindiii-allreps-filtered.1000kb.multires.cool"
+COOL_DIR = "???"
 
 def main():
     query_params = cgi.FieldStorage()
+    file_name = query_params.getfirst("fileName")
     chromosome = query_params.getfirst("chromosome")
     start_base = query_params.getfirst("startBase")
     end_base = query_params.getfirst("endBase")
     desired_binsize = query_params.getfirst("binsize")
-    if None in [chromosome, start_base, end_base, desired_binsize]:
-        respond_with_400("Missing required parameter(s)")
+    if None in [file_name, chromosome, start_base, end_base, desired_binsize]:
+        respond_with_text(400, "Missing required parameter(s)")
         return
 
     try:
-        cool_file = select_cool_resolution(FILE_NAME, int(desired_binsize))
+        cool_file = select_cool_resolution(COOL_DIR + file_name, int(desired_binsize))
         jsonBody = get_JSON_response(cool_file, chromosome, int(start_base), int(end_base))
+    except IOError:
+        respond_with_text(404, "No such .cool file stored on this server")
+        return
     except ValueError:
-        respond_with_400("Malformed or unknown genomic region specified")
+        respond_with_text(400, "Malformed or unknown genomic region specified")
         return
 
     print "Content-Type: application/json"
@@ -39,11 +43,16 @@ def main():
     print ""
     print jsonBody
 
-def respond_with_400(reason):
-    print "Status: 400 Bad Request"
+def respond_with_text(code, text):
+    more_description = ""
+    if code == 400:
+        more_description = "Bad Request"
+    if code == 404:
+        more_description = "Not Found"
+    print "Status:", code, more_description
     print "Content-Type: text/plain"
     print ""
-    print reason
+    print text
 
 def get_JSON_response(cool_file, chromosome, start_base, end_base):
     start_bin = start_base // cool_file.binsize
@@ -80,7 +89,7 @@ def isBadFloat(number):
     return math.isnan(number) or math.isinf(number)
 
 if __name__ == "__main__":
-    import cgi
-    import cgitb
-    cgitb.enable()
+    # Uncomment the lines below to have this script respond with tracebacks on uncaught exceptions
+    #import cgitb
+    #cgitb.enable()
     main()

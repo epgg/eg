@@ -1,9 +1,9 @@
 "use strict"
 
 class CoolerProvider extends HicProvider {
-    constructor(coolerURL) {
+    constructor(fileName) {
         super({loadDataset: () => null}, null);
-        this.coolerURL = coolerURL;
+        this.fileName = fileName;
     }
 
     /**
@@ -12,6 +12,7 @@ class CoolerProvider extends HicProvider {
     getRecords(chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, normalization, regionLengthOverride, targetBinSize) {
         let binsize = targetBinSize || CoolerProvider._regionLengthToBinSize(regionLengthOverride);
         let params = {
+            fileName: this.fileName,
             chromosome: chr1Name,
             startBase: bpX,
             endBase: bpXMax,
