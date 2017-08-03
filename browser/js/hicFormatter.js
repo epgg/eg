@@ -41,7 +41,7 @@ class BrowserHicFormatter extends HicFormatter {
             return [];
         }
 
-        let blocksAsCoorData = blocks.map(block => BrowserHicFormatter._toCoordinateRecords(block, chr1Name));
+        let blocksAsCoorData = blocks.map(block => this._toCoordinateRecords(block, chr1Name));
 
         let combinedCoorData = [].concat.apply([], blocksAsCoorData); // Concatenate all the data into one array
         for (let i = 0; i < combinedCoorData.length; i++) { // Make sure ids are unique

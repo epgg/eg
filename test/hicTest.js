@@ -3,7 +3,7 @@
  *
  * @author Silas Hsu
  */
-'use strict'
+"use strict"
 
 /**
  * In the browser, print2console prints to a little window, but we won't have that during our tests.  Instead, print to
@@ -228,7 +228,7 @@ describe("Unit tests - HicProvider", function() {
         });
     });
 
-    describe("getBlocks", function() {
+    describe("_getBlocks", function() {
         const ZOOM_INDEX = 0;
         const BIN_COORS = {
             xBin: 0,
@@ -242,7 +242,7 @@ describe("Unit tests - HicProvider", function() {
 
         it("returns empty array if there is no contact matrix for the chromosomes", function() {
             mockDataset.getMatrix.resolves(null);
-            return HicProvider.getBlocks(mockDataset, BIN_COORS, null).then(function (blocks) {
+            return HicProvider._getBlocks(mockDataset, BIN_COORS, null).then(function (blocks) {
                 expect(blocks).to.deep.equal([]);
             });
         });
@@ -256,8 +256,8 @@ describe("Unit tests - HicProvider", function() {
             }
             mockDataset.getMatrix.resolves(mockMatrix);
 
-            return HicProvider.getBlocks(mockDataset, BIN_COORS, null).then(function (blocks) {
-                expect(blocks.length).to.equal(9);
+            return HicProvider._getBlocks(mockDataset, BIN_COORS, null).then(function (blocks) {
+                expect(blocks).to.have.lengthOf(9);
             });
         });
     });
@@ -288,8 +288,16 @@ describe("Unit tests - HicProvider", function() {
 describe("Unit tests - BrowserHicFormatter", function() {
     const ZOOM_DATA = {zoom: {binSize: 1}};
     const BLOCKS = [
-        new hic.Block(null, ZOOM_DATA, [{}, {}]),
-        new hic.Block(null, ZOOM_DATA, [{}, {}])
+        new hic.Block(null, ZOOM_DATA, [
+            new hic.ContactRecord(0, 0, 0),
+            new hic.ContactRecord(0, 1, 0), // Missing (1, 0) since it's the other triangle of the matrix
+            new hic.ContactRecord(1, 1, 0)
+        ]),
+        new hic.Block(null, ZOOM_DATA, [
+            new hic.ContactRecord(0, 0, 0),
+            new hic.ContactRecord(1, 0, 0), // Ditto, except for (0, 1)
+            new hic.ContactRecord(1, 1, 0)
+        ]),
     ];
 
     describe("formatBlocks", function() {
@@ -298,8 +306,8 @@ describe("Unit tests - BrowserHicFormatter", function() {
             expect(BrowserHicFormatter.formatBlocks(undefined, undefined)).to.deep.equal([]);
         });
 
-        it("merges blocks into one array, and returns 2 records per input record", function() {
-            expect(BrowserHicFormatter.formatBlocks(BLOCKS, "chr").length).to.equal(8);
+        it("merges blocks into one array, and infers the other half of the triangular matrix", function() {
+            expect(BrowserHicFormatter.formatBlocks(BLOCKS, "chr")).to.have.lengthOf(8);
         });
 
         it("does not error if some blocks are null", function() {
@@ -448,9 +456,9 @@ describe("Integration test (HicProvider + HicFormatter + Juicebox; does NOT incl
 
             // Added these lines because one time, a bug resulted in a really small bin size and got TONS of records,
             // more than the browser could handle.
-            expect(result.data.length).to.equal(expected.data.length);
+            expect(result.data).to.have.lengthOf(expected.data.length);
             for (let i = 0; i < result.data.length; i++) {
-                expect(result.data[i].length).to.equal(expected.data[i].length);
+                expect(result.data[i]).to.have.lengthOf(expected.data[i].length);
             }
 
             expect(result).to.deep.equal(expected);

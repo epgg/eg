@@ -1,37 +1,42 @@
+/**
+ * This file contains the main interface for the epigenome browser to retrieve Cooler data.  The classes in this file
+ * depend on jQuery, hicProvider.js and hicFormatter.js.
+ *
+ * @author Silas Hsu
+ * @since version 43.4, August 2017
+ */
 "use strict"
 
+/**
+ * Class that retrieves Cooler data from the main server's Python CGI scripts.
+ *
+ * @extends HicProvider
+ * @author Silas Hsu
+ */
 class CoolerProvider extends HicProvider {
+    /**
+     * Makes a new CoolerProvider, specialized to request data from a certain .cool file on the server and format
+     * results according to the given HicFormatter.
+     *
+     * @param {string} fileName - the name of the .cool file stored on the server
+     * @param {HicFormatter} hicFormatter - used to format results
+     */
     constructor(fileName, formatter) {
         super({loadDataset: () => null}, null);
 
         this.fileName = fileName;
         this.formatter = formatter;
-        let apiUrlForMetadata = "/cgi-bin/cooler/getMetadata.py?" + $.param({fileName: fileName});
-        this.metadataPromise = this._requestJson(apiUrlForMetadata).then(jsonObj => new _CoolerMetadata(jsonObj));
+        let apiUrl = CoolerProvider.METADATA_URL + $.param({fileName: fileName});
+        this.metadataPromise = CoolerProvider._requestJson(apiUrl).then(jsonObj => new _CoolerMetadata(jsonObj));
     }
 
     /**
-     * @inheritdoc
+     * Makes an AJAX call to the main server and parses the response as JSON.
+     *
+     * @param {string} apiURL - the URL which to send the request
+     * @return {Promise.<Object>} A promise for the server response parsed as JSON
      */
-    getRecords(chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, normalization, regionLengthOverride, targetBinSize) {
-        let promise = this.metadataPromise
-            .then((metadataObj) => {
-                let binSize = targetBinSize || metadataObj.regionLengthToBinSize(regionLengthOverride);
-                let chromosomeLength = metadataObj.chromosomeLength(chr1Name);
-                if (chromosomeLength == -1) {
-                    throw new Error(`Could not find chromosome ${chr1Name} in data set`);
-                }
-                return Promise.all(this._getBlocks2(chr1Name, bpX, bpXMax, binSize, chromosomeLength));
-            })
-            .catch((error) => { // Catch error here because we don't want the failure of one region to fail the rest
-                print2console(error.toString(), 2);
-                return [];
-            })
-            .then(jsonBlobs => this.formatter.formatBlocks(jsonBlobs, chr1Name, bpX));
-        return promise;
-    }
-
-    _requestJson(apiURL) {
+    static _requestJson(apiURL) {
         let ajaxPromise = new Promise((resolve, reject) => {
             let request = new XMLHttpRequest();
 
@@ -57,8 +62,42 @@ class CoolerProvider extends HicProvider {
     }
 
     /**
-     * Named _getBlocks2() because _getBlocks() is already a method of HicProvider.  We split the data into blocks to
-     * take advantage of HTTP caching.
+     * @inheritdoc
+     */
+    getRecords(chr1Name, bpX, bpXMax, chr2Name, bpY, bpYMax, normalization, regionLengthOverride, targetBinSize) {
+        if (targetBinSize == 0) {
+            throw new RangeError("Bin size cannot be 0");
+        }
+        let regionLength = regionLengthOverride || Math.max(bpXMax - bpX, bpYMax - bpY);
+        let promise = this.metadataPromise
+            .then((metadataObj) => {
+                let binSize = targetBinSize || metadataObj.regionLengthToBinSize(regionLength);
+                let chromosomeLength = metadataObj.chromosomeLength(chr1Name);
+                if (chromosomeLength == -1) {
+                    throw new Error(`Could not find chromosome ${chr1Name} in data set`);
+                }
+                return this._getBlocks2(chr1Name, bpX, bpXMax, binSize, chromosomeLength);
+            })
+            .catch((error) => { // Catch error here because we don't want the failure of one region to fail the rest
+                print2console(error.toString(), 2);
+                return [];
+            })
+            .then(jsonBlobs => this.formatter.formatBlocks(jsonBlobs, chr1Name));
+        return promise;
+    }
+
+    /**
+     * Named _getBlocks2() because _getBlocks() is already a static method of HicProvider.  Does a very similar
+     * function, but uses different parameters.  We split the data into consistent blocks of data to take advantage of
+     * HTTP caching.  The size of the blocks depends on CoolerProvider.BINS_PER_BLOCK.
+     *
+     * @borrows {@link HicProvider._getBlocks}
+     * @param {string} chromosome - the name of the chromosome from which to get data
+     * @param {number} startBase - start of base pair range from which to get data
+     * @param {number} endBase - end of base pair range from which to get data
+     * @param {number} binSize - requested resolution of data
+     * @param {number} chromosomeLength - limit of endBase, to ensure genomic coordinates stay in bounds
+     * @return {Promise.<Object[]>} - Promise for array of parsed JSON
      */
     _getBlocks2(chromosome, startBase, endBase, binSize, chromosomeLength) {
         let startBin = Math.floor(startBase / binSize);
@@ -68,17 +107,22 @@ class CoolerProvider extends HicProvider {
 
         let blockPromises = [];
         for (let blockNum = startBlock; blockNum <= endBlock; blockNum++) {
+            let blockStartBase = blockNum * CoolerProvider.BINS_PER_BLOCK * binSize;
+            if (blockStartBase > chromosomeLength) {
+                break;
+            }
+
             let params = {
                 fileName: this.fileName,
                 chromosome: chromosome,
-                startBase: blockNum * CoolerProvider.BINS_PER_BLOCK * binSize,
+                startBase: blockStartBase,
                 endBase: Math.min((blockNum + 1) * CoolerProvider.BINS_PER_BLOCK * binSize - 1, chromosomeLength),
                 binSize: binSize
             }
-            let apiURL = "/cgi-bin/cooler/dump.py?" + $.param(params);
-            blockPromises.push(this._requestJson(apiURL));
+            let apiURL = CoolerProvider.DATA_URL + $.param(params);
+            blockPromises.push(CoolerProvider._requestJson(apiURL));
         }
-        return blockPromises;
+        return Promise.all(blockPromises);
     }
 
     /**
@@ -92,8 +136,18 @@ class CoolerProvider extends HicProvider {
 }
 
 CoolerProvider.BINS_PER_BLOCK = 150;
+CoolerProvider.METADATA_URL = "/cgi-bin/cooler/getMetadata.py?";
+CoolerProvider.DATA_URL = "/cgi-bin/cooler/dump.py?";
 
+/**
+ * Wrapper object for the JSON blob that represents a .cool file's metadata.  Has some of the interface of hic.Dataset.
+ */
 class _CoolerMetadata {
+    /**
+     * Wraps the provided JSON blob, and makes it sort of look like a hic.Dataset.
+     *
+     * @param {Object} parsedJson - parsed JSON to wrap
+     */
     constructor(parsedJson) {
         this.binSizes = parsedJson.binSizes.slice();
         this.binSizes.sort().reverse();
@@ -105,39 +159,43 @@ class _CoolerMetadata {
         }
     }
 
-    regionLengthToBinSize(regionLength) {
-        let index = hic.Dataset.prototype.regionLengthToZoomIndex.call(this, regionLength);
-        return this.binSizes[index];
-    }
-
+    /**
+     * @borrows {@link hic.Dataset.prototype.findChromosomeIndex}
+     */
     chromosomeLength(name) {
         let index = hic.Dataset.prototype.findChromosomeIndex.call(this, name);
         return index == -1 ? -1 : this.chromosomes[index].numBasePairs;
     }
+
+    /**
+     * @borrows {@link hic.Dataset.prototype.regionLengthToZoomIndex}
+     */
+    regionLengthToBinSize(regionLength) {
+        let index = hic.Dataset.prototype.regionLengthToZoomIndex.call(this, regionLength);
+        return this.binSizes[index];
+    }
 }
 
-class CoolerFormatter extends HicFormatter {
-    static formatBlocks(blocks, chromosome, startBase) {
-        if (!blocks) {
-            return [];
-        }
-
-        let blocksAsCoorData = blocks.map(block => CoolerFormatter._toCoordinateRecords(block, chromosome, startBase));
-
-        let combinedCoorData = [].concat.apply([], blocksAsCoorData); // Concatenate all the data into one array
-        for (let i = 0; i < combinedCoorData.length; i++) { // Make sure ids are unique
-            combinedCoorData[i].id = i;
-        }
-        return combinedCoorData;
-    }
-
-    static _toCoordinateRecords(parsedJSON, chromosome, startBase) {
-        let binSize = parsedJSON.binSize;
+/**
+ * Formats JSON blobs of Cooler data.  This class would extend HicFormatter, but the API is just a little bit different.
+ */
+class CoolerFormatter extends BrowserHicFormatter {
+    /**
+     * Puts the data of one JSON blob into an array of CoordinateRecord.
+     *
+     * @override
+     * @param {Object} parsedJson - the JSON blob to convert
+     * @param {string} chromosome - chromosome name used for construction of all the CoordinateRecords
+     * @return {CoordinateRecord[]} array of CoordinateRecord containing the data in the block
+     */
+    static _toCoordinateRecords(parsedJson, chromosome) {
+        let binSize = parsedJson.binSize;
+        let startBase = parsedJson.startBase;
         let startBinNum = Math.floor(startBase / binSize);
 
         var id = 0;
         let allData = [];
-        let records = parsedJSON.records;
+        let records = parsedJson.records;
         for (let i = 0; i < records.length; i++) {
             for (let j = 0; j < records[i].length; j++) {
                 allData.push(

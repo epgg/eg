@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+API endpoint for getting metadata of Cooler files.  Currently responds with resolutions and chromosome data.
+
+:author: Silas Hsu
+:since: version 43.4, August 2017
+"""
 
 import cgi
 import cooler
@@ -9,6 +15,9 @@ import coolUtils
 DEBUG = False # Enabling makes main() reply with text/html containing a stack trace if there is an uncaught exception
 
 def main():
+    """
+    Entry point for CGI script.  Expects a HTTP GET, parses query parameters, and prints the response to stdout.
+    """
     if DEBUG:
         import cgitb
         cgitb.enable()
@@ -28,12 +37,18 @@ def main():
     jsonText = get_json_response(subfiles)
     coolUtils.respond_with_json(jsonText)
 
-def get_json_response(subfiles):
+def get_json_response(subfile_list):
+    """
+    Gets the body of the HTTP response.
+
+    :param subfile_list: (cooler.Cooler[]) list of cooler files
+    :returns: string of JSON-compliant data
+    """
     obj = {
-        "binSizes": [subfile.binsize for subfile in subfiles],
+        "binSizes": [subfile.binsize for subfile in subfile_list],
         "chromosomes": [
             {"name": name, "numBasePairs": int(length)}
-                for (name, length) in zip(subfiles[0].chromnames, subfiles[0].chromsizes)
+                for (name, length) in zip(subfile_list[0].chromnames, subfile_list[0].chromsizes)
         ]
     }
     return json.dumps(obj)
