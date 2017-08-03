@@ -4,6 +4,7 @@ import cgi
 import cooler
 import json
 import math
+import numpy
 import sys
 
 import coolUtils
@@ -50,20 +51,13 @@ def get_json_response(cool_file, chromosome, start_base, end_base):
 
     # matrix() by default applies balance=True, normalizing the entries
     matrix = cool_file.matrix().fetch("%s:%d-%d" % (chromosome, start_base, end_base))
-    (num_rows, num_cols) = matrix.shape
+    numpy.nan_to_num(matrix, copy=False)
+    records = matrix.tolist()
 
-    records = []
-    for row in range(num_rows):
-        for col in range(num_cols):
-            counts = matrix[row, col]
-            record = {
-                "bin1": start_bin + row,
-                "bin2": start_bin + col,
-                "counts": 0 if is_bad_float(counts) else counts
-            }
-            records.append(record)
-
-    return json.dumps({"binSize": cool_file.binsize, "records": records})
+    return json.dumps({
+        "binSize": cool_file.binsize,
+        "records": records
+    })
 
 def get_subfile_matching_binsize(cool_file_path, desired):
     subfiles = coolUtils.get_subfiles(cool_file_path)
@@ -75,9 +69,6 @@ def get_subfile_matching_binsize(cool_file_path, desired):
             break
 
     return subfiles[found_index]
-
-def is_bad_float(number):
-    return math.isnan(number) or math.isinf(number)
 
 if __name__ == "__main__":
     main()

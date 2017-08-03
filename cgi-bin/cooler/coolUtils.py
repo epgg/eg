@@ -19,5 +19,6 @@ def respond_with_text(code, text):
 def respond_with_json(jsonText):
     print "Content-Type: application/json"
     print "Content-Length:", len(jsonText)
+    print "Cache-Control: max-age=%d" % (60 * 30) # One half hour
     print ""
     print jsonText

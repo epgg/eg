@@ -25,8 +25,18 @@ def main():
         coolUtils.respond_with_text(404, "No such .cool file stored on this server")
         return
 
-    jsonText = json.dumps({"binSizes": [subfile.binsize for subfile in subfiles]})
+    jsonText = get_json_response(subfiles)
     coolUtils.respond_with_json(jsonText)
+
+def get_json_response(subfiles):
+    obj = {
+        "binSizes": [subfile.binsize for subfile in subfiles],
+        "chromosomes": [
+            {"name": name, "numBasePairs": int(length)}
+                for (name, length) in zip(subfiles[0].chromnames, subfiles[0].chromsizes)
+        ]
+    }
+    return json.dumps(obj)
 
 if __name__ == "__main__":
     main()
