@@ -289,9 +289,16 @@ var b=sp.submit_butt;
 b.disabled=true;
 b.innerHTML='Running...';
 var bbj=sp.bbj;
-bbj.ajax('addtracks=on&dbName='+bbj.genome.name+'&runmode='+RM_genome+'&regionLst='+lst.join(',')+
-	'&startCoord='+_start+'&stopCoord='+_stop+
-	trackParam([sp.tk1,sp.tk2]),function(data){bbj.scatterplot_submit_cb(data);});
+let paramsObj = {
+	addtracks: "on",
+	dbName: bbj.genome.name,
+	runmode: RM_genome,
+	regionLst: lst.join(','),
+	startCoord: _start,
+	stopCoord: _stop
+}
+paramsObj = Object.assign(paramsObj, trackParam([sp.tk1,sp.tk2]));
+bbj.ajax(paramsObj,function(data){bbj.scatterplot_submit_cb(data);});
 }
 Browser.prototype.scatterplot_submit_cb=function(data)
 {

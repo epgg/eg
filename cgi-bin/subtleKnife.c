@@ -812,21 +812,18 @@ t->next=cgiparamsl;
 cgiparamsl=t;
 }
 
-void strDecode(char *in, char *out, int inLength)
+void strDecode(const char *in, char *out, int inLength)
 {
 char c;
 int i;
 for (i=0; i<inLength;++i)
 	{    
 	c = *in++;
-        /* add support when url has '+'
 	if (c == '+') 
 		{
 		*out++ = ' '; 
 		}
-	else if (c == '%') 
-        */
-	if (c == '%') 
+	else if (c == '%')
 		{
 		int code;
 		if (sscanf(in, "%2x", &code) != 1)
@@ -5779,7 +5776,7 @@ int main()
 clock_t cpuTimeStart, cpuTimeTemp;
 if(CHECKCPUTIME) cpuTimeStart = clock();
 
-if(SQUAWK) fputs(">>>>>\n", Squawk);
+if(SQUAWK) fputs("subtileKnife starting... >>>>>\n", Squawk);
 
 
 {
@@ -5788,21 +5785,12 @@ if(SQUAWK) fputs(">>>>>\n", Squawk);
 	all parameters passed via cgi must be escaped and be decoded here
 	** no empty value allowed, e.g. k1=v1&k2=&k3=v3&...
 	as =& will be used to chop up things...
-	TODO use singly linked list instead of gnu hash to get rid of entry limit
 	*/
 	char *tmp=getenv("QUERY_STRING");
 	if(tmp==NULL)
 		{
 		if(SQUAWK) fputs("cgi got no param\n", stderr);
 		return 1;
-		}
-	if(strstr(tmp, "NODECODE")!=tmp)
-		{
-		int len=strlen(tmp);
-		// decode
-		char *tmp2 = malloc(sizeof(char) * (len+1));
-		strDecode(tmp, tmp2, len);
-		tmp=tmp2;
 		}
 	char delim[]="=&";
 	struct tnode *t;
@@ -5811,18 +5799,28 @@ if(SQUAWK) fputs(">>>>>\n", Squawk);
 	while(tok!=NULL)
 		{
 		t=malloc(sizeof(struct tnode));
-		t->t1=strdup(tok); // name
+		int len = strlen(tok); // name
+		char* decoded_name = malloc(sizeof(char) * (len + 1));
+		strDecode(tok, decoded_name, len);
+		t->t1 = decoded_name;
+
 		tok=strtok(NULL,delim); // value
 		if(tok==NULL)
 			{
 			fprintf(stderr,"!! param '%s' has no value\n", t->t1);
 			return 1;
 			}
-		t->t2=strdup(tok); // value
+		len = strlen(tok);
+		char* decoded_value = malloc(sizeof(char) * (len + 1));
+		strDecode(tok, decoded_value, len);
+		t->t2 = decoded_value;
+
 		tok=strtok(NULL,delim);
 		t->next=cgiparamsl;
 		cgiparamsl=t;
+		//fprintf(stderr, "got %s:%s, ", t->t1, t->t2);
 		}
+
 	if(SQUAWK) fputs("cgi param parsed\n", stderr);
 	if(0)
 		{

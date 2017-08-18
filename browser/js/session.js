@@ -102,9 +102,15 @@ if(apps.session.main.style.display=='none') {
 Browser.prototype.validatesession=function(session,statusId,callback)
 {
 var bbj=this;
-this.ajax('validatesession=on&oldsession='+session+'&dbName='+this.genome.name+
-	(statusId!=undefined?'&oldstatus='+statusId:''),
-	function(data){bbj.validatesession_cb(data,callback);});
+let paramsObj = {
+	validatesession: "on",
+	oldsession: session,
+	dbName: this.genome.name,
+}
+if (statusId != undefined) {
+	paramsObj.oldstatus = statusId;
+}
+this.ajax(paramsObj,function(data){bbj.validatesession_cb(data,callback);});
 }
 Browser.prototype.validatesession_cb=function(data,callback)
 {
@@ -354,7 +360,16 @@ if(apps.session) {
 	note=note.replace('"','');
 }
 var bbj=this;
-this.ajax('saveSession=on&key='+key+(note.length>0?'&note='+note:'')+'&tkcount='+tkcount+'&dbName='+this.genome.name,function(data){bbj.cgiSavesession(data);});
+let paramsObj = {
+	saveSession: "on",
+	key: key,
+	tkcount: tkcount,
+	dbName: this.genome.name,
+}
+if (note.length > 0) {
+	paramsObj.note = note;
+}
+this.ajax(paramsObj,function(data){bbj.cgiSavesession(data);});
 }
 
 Browser.prototype.cgiSavesession=function(data)
@@ -388,7 +403,11 @@ handles urlparam and normal case
 apps.session.busy=true;
 apps.session.retrieve_butt.innerHTML='Retrieving...';
 var bbj=this;
-this.ajax('pastSession='+querysession+'&dbName='+this.genome.name, function(data) {bbj.retrieveSession_cb(data);});
+let paramsObj = {
+	pastSession: querysession,
+	dbName: this.genome.name
+}
+this.ajax(paramsObj, function(data) {bbj.retrieveSession_cb(data);});
 }
 Browser.prototype.retrieveSession_cb=function(data)
 {
@@ -415,8 +434,13 @@ this.cleanuphtmlholder();
 this.shieldOn();
 print2console('Restoring session...', 0);
 var bbj=this;
-this.ajaxText('restoreSession=on&session='+this.sessionId+'&statusId='+this.statusId+'&dbName='+this.genome.name,
-	function(text) {bbj.restoreSession_cb(text);});
+let paramsObj = {
+	restoreSession: "on",
+	session: this.sessionId,
+	statusId: this.statusId,
+	dbName: this.genome.name,
+}
+this.ajaxText(paramsObj, function(text) {bbj.restoreSession_cb(text);});
 }
 Browser.prototype.restoreSession_cb=function(text)
 {
@@ -564,7 +588,13 @@ for(var i=0; i<apps.session.holder.childNodes.length; i++) {
 	}
 }
 var bbj=apps.session.bbj;
-bbj.ajax('deleteSession=on&thissession='+s+'&thisstatus='+id+'&dbName='+bbj.genome.name, function(data){});
+let paramsObj = {
+	deleteSession: "on",
+	thissession: s,
+	thisstatus: id,
+	dbName: bbj.genome.name,
+}
+bbj.ajax(paramsObj, function(data){});
 }
 function session_download_status(event)
 {

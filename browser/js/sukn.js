@@ -466,7 +466,10 @@ function __tklst() {
 function on_unknown_genome(_w)
 {
 var what=_w;
-browser.ajax('load_dblst=on',function(data){
+let paramsObj = {
+	load_dblst: "on"
+}
+browser.ajax(paramsObj,function(data){
 	if(!data) fatalError('Server crashed while trying to load dblst.');
 	gflag.dblst=data.dblst;
 	oneshotDialog(1, 'Unknown genome name: '+what);
@@ -875,5 +878,8 @@ msgconsole = document.getElementById("msgconsole");
 simulateEvent(document.getElementById('geneplotrender'),'change');
 
 var bbj=browser;
-browser.ajax('load_dblst=on',function(data){bbj.sukn_init(data, uph, re);});
+let paramsObj = {
+	load_dblst: "on"
+}
+browser.ajax(paramsObj,function(data){bbj.sukn_init(data, uph, re);});
 }

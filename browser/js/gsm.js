@@ -826,9 +826,18 @@ gflag.bbj_x_updating[this.horcrux]=1;
 var bbj=this;
 this.shieldOn();
 this.cloak();
-this.ajax('new=on&itemlist='+gstring+this.houseParam()+
-	(viewrange?'&startChr='+viewrange[0]+'&startCoord='+viewrange[1]+'&stopChr='+viewrange[2]+'&stopCoord='+viewrange[3]:''), 
-	function(data){bbj.ajax_rungsv_cb(data);});
+let paramObj = {
+	new: "on",
+	itemlist: gstring,
+}
+if (viewrange) {
+	paramObj.startChr = viewrange[0];
+	paramObj.startCoord = viewrange[1];
+	paramObj.stopChr = viewrange[2];
+	paramObj.stopCoord = viewrange[3];
+}
+paramObj = Object.assign(paramObj, this.houseParam());
+this.ajax(paramObj, function(data){bbj.ajax_rungsv_cb(data);});
 }
 Browser.prototype.ajax_rungsv_cb=function(data)
 {
@@ -941,7 +950,11 @@ if(w.length==0 || w=="enter keywords") {
 bbj.genome.geneset.keggkwsearchbutt.disabled=true;
 // get entire list of pathways
 var b2=bbj;
-bbj.ajax('listkeggpathway=on&speciescode='+bbj.genome.keggSpeciesCode,function(data){b2.search_kegg_cb(data);});
+let paramObj = {
+	listkeggpathway: "on",
+	speciescode: bbj.genome.keggSpeciesCode
+}
+bbj.ajax(paramObj,function(data){b2.search_kegg_cb(data);});
 }
 Browser.prototype.search_kegg_cb=function(data)
 {
@@ -1014,7 +1027,13 @@ bbj.shieldOn();
 var b2=bbj;
 var name=event.target.wayname;
 var desc=event.target.desc;
-bbj.ajax('getgenesbykeggpathway=on&dbName='+bbj.genome.name+'&speciescode='+bbj.genome.keggSpeciesCode+'&pathway='+name,function(data){b2.addnewgeneset_querykegg_cb(data,name,desc);});
+let paramObj = {
+	getgenesbykeggpathway: "on",
+	dbName: bbj.genome.name,
+	speciescode: bbj.genome.keggSpeciesCode,
+	pathway: name
+}
+bbj.ajax(paramObj,function(data){b2.addnewgeneset_querykegg_cb(data,name,desc);});
 }
 Browser.prototype.addnewgeneset_querykegg_cb=function(data,pathwayname,pathwaydesc)
 {

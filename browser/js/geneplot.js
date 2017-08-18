@@ -426,20 +426,32 @@ document.getElementById("geneplot_dataplaintext").style.display = "none";
 document.getElementById("geneplotgetdatabuttons").style.display = "none";
 
 // plot-type specific params
-var param = '';
+var param = {};
 if(type == "s4") {
-	param = "&clustmethod="+getSelectValueById("geneplot_s4_m")+"&kmeanscnum="+getSelectValueById("geneplot_s4_cnum")+"&clustdist="+getSelectValueById("geneplot_s4_dist")+"&clustaglm="+getSelectValueById("geneplot_s4_aglm");
+	param = {
+		clustmethod: getSelectValueById("geneplot_s4_m"),
+		kmeanscnum: getSelectValueById("geneplot_s4_cnum"),
+		clustdist: getSelectValueById("geneplot_s4_dist"),
+		clustaglm: getSelectValueById("geneplot_s4_aglm")
+	}
 } else if(rendering=='r') {
 	// R rendering params
-	param = "&usingR=on&width="+getSelectValueById("geneplot_"+type+"_iw")+"&height="+getSelectValueById("geneplot_"+type+"_ih")+"&lw="+getSelectValueById("geneplot_"+type+"_lw");
+	param = {
+		usingR: "on",
+		width: getSelectValueById("geneplot_"+type+"_iw"),
+		height: getSelectValueById("geneplot_"+type+"_ih"),
+		lw: getSelectValueById("geneplot_"+type+"_lw")
+	}
 	if(type == 's1') {
 		// s1 specific R params
 		var c = document.getElementById("geneplot_"+type+"_lc").style.backgroundColor;
-		param += '&range='+getSelectValueById('geneplot_s1_wrange')+
-			'&lc='+c+
-		'&averagelc='+darkencolor(colorstr2int(c), 0.4)+
-		'&outlier='+getSelectValueById('geneplot_s1_outlier')+
-		(document.getElementById('geneplot_s1_average').checked?'&average=on':'');
+		param.range = getSelectValueById('geneplot_s1_wrange');
+		param.lc = c;
+		param.averagelc = darkencolor(colorstr2int(c), 0.4);
+		param.outlier = getSelectValueById('geneplot_s1_outlier');
+		if (document.getElementById('geneplot_s1_average').checked) {
+			param.average = "on";
+		}
 	} else if(type=='s2') {
 		// s2 specific R params
 		//param += "&lc="+document.getElementById("geneplot_s2_lc").style.backgroundColor;
@@ -450,19 +462,23 @@ if(type == "s4") {
 		var uc3 = document.getElementById("geneplot_"+type+"_utr3c").style.backgroundColor;
 		var ec = document.getElementById("geneplot_"+type+"_exonsc").style.backgroundColor;
 		var ic = document.getElementById("geneplot_"+type+"_intronsc").style.backgroundColor;
-		param += "&promoterc="+pc+
-				  "&utr5c="+uc5+
-				  "&utr3c="+uc3+
-				  "&exonsc="+ec+
-				  "&intronsc="+ic+
-			  '&average_promoterc='+darkencolor(colorstr2int(pc), 0.4)+
-			  '&average_utr5c='+darkencolor(colorstr2int(uc5), 0.4)+
-			  '&average_utr3c='+darkencolor(colorstr2int(uc3), 0.4)+
-			  '&average_exonsc='+darkencolor(colorstr2int(ec), 0.4)+
-			  '&average_intronsc='+darkencolor(colorstr2int(ic), 0.4)+
-				  '&range='+getSelectValueById('geneplot_s3_wrange')+
-			  '&outlier='+getSelectValueById('geneplot_s3_outlier')+
-			  (document.getElementById('geneplot_s3_average').checked?'&average=on':'');
+		param = Object.assign(param, {
+			promoterc: pc,
+			utr5c: uc5,
+			utr3c: uc3,
+			exonsc: ec,
+			intronsc: ic,
+			average_promoterc: darkencolor(colorstr2int(pc), 0.4),
+			average_utr5c: darkencolor(colorstr2int(uc5), 0.4),
+			average_utr3c: darkencolor(colorstr2int(uc3), 0.4),
+			average_exonsc: darkencolor(colorstr2int(ec), 0.4),
+			average_intronsc: darkencolor(colorstr2int(ic), 0.4),
+			range: getSelectValueById('geneplot_s3_wrange'),
+			outlier: getSelectValueById('geneplot_s3_outlier'),
+		});
+		if (document.getElementById('geneplot_s3_average').checked) {
+			param.average = "on"
+		}
 	}
 }
 
@@ -486,18 +502,24 @@ if(G.graphtype=='s3') {
 		lst.push(e.name+','+e.c+','+e.a1+','+e.b1+','+e.strand);
 	}
 }
-param+='&lst='+lst.join(',');
+param.lst = lst.join(',');
 
 G.submit_butt.innerHTML = 'Running...';
 G.submit_butt.removeEventListener('click', makeGeneplot, false);
 
 // context parameter is removed
 var bbj=G.bbj;
-bbj.ajax("makegeneplot=on&plottype="+type+
-	'&searchgenetknames='+bbj.genome.searchgenetknames.join(',')+
-	"&spnum="+getSelectValueById("geneplot_"+type+"_spnum")+
-	'&datatk='+G.datatk.url+
-	'&datatkft='+G.datatk.ft+'&dbName='+bbj.genome.name+param, function(data){bbj.makeGeneplot_cb(data);});
+let paramsObj = {
+	makegeneplot: "on",
+	plottype: type,
+	searchgenetknames: bbj.genome.searchgenetknames.join(','),
+	spnum: getSelectValueById("geneplot_"+type+"_spnum"),
+	datatk: G.datatk.url,
+	datatkft: G.datatk.ft,
+	dbName: bbj.genome.name
+}
+paramsObj = Object.assign(paramsObj, param);
+bbj.ajax(paramsObj, function(data){bbj.makeGeneplot_cb(data);});
 }
 var NA=0;
 
