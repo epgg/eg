@@ -40,7 +40,7 @@ if(t.length==0) {
 apps.vh.submit.disabled=true;
 apps.vh.runtype=2; // refresh
 var b=apps.vh.bbj;
-b.ajaxText('loaddatahub=on&url='+t,function(text){b.vh_parsetext(text);});
+b.ajaxText({loaddatahub: "on", url: t},function(text){b.vh_parsetext(text);});
 }
 
 function vh_submiturl_md(event) {if(event.keyCode==13) {vh_submiturl();}}
@@ -55,7 +55,7 @@ if(t.length==0) {
 apps.vh.submit.disabled=true;
 apps.vh.runtype=1; // validate
 var b=apps.vh.bbj;
-b.ajaxText('loaddatahub=on&url='+t,function(text){b.vh_parsetext(text);});
+b.ajaxText({loaddatahub: "on", url: t},function(text){b.vh_parsetext(text);});
 }
 
 Browser.prototype.vh_parsetext=function(text)
@@ -136,7 +136,16 @@ if(tk.ft==FT_cm_c) {
 var b=apps.vh.bbj;
 var chr=b.genome.scaffold.current[0];
 if(apps.vh.runtype==1) {
-	b.ajax('addtracks=on&dbName='+b.genome.name+'&runmode='+RM_genome+'&regionLst='+chr+',0,10,1&startCoord=0&stopCoord=10&'+trackParam([tk]),function(data){
+	let paramsObj = {
+		addtracks: "on",
+		dbName: b.genome.name,
+		runmode: RM_genome,
+		regionLst: chr + ",0,10,1",
+		startCoord: 0,
+		stopCoord: 10,
+	}
+	paramsObj = Object.assign(paramsObj, trackParam([tk]))
+	b.ajax(paramsObj,function(data){
 		var cell=apps.vh.cells[apps.vh.tklst[idx].name];
 		if(data && data.tkdatalst && data.tkdatalst.length>0) {
 			cell.innerHTML='<span class=g>&#10004;</span>';

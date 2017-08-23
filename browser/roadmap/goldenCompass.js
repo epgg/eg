@@ -189,7 +189,7 @@ if(!this.hub.url) {
 	return;
 }
 var b2=this;
-this.ajaxText('loaddatahub=on&url='+this.hub.url, function(text){b2.compass_load_clusterhub(text,callback);});
+this.ajaxText({loaddatahub: "on", url: this.hub.url}, function(text){b2.compass_load_clusterhub(text,callback);});
 }
 
 Browser.prototype.compass_load_clusterhub=function(text,callback)
@@ -857,7 +857,7 @@ for(var i=0; i<hc.flatlst.length; i++) {
 ajaxPost('dot\ngraph ER {node[shape=box]; '+nodegrp.join('\n')+edges.join('\n')+'}\n',function(text) {
 	if(!text||text.substr(0,5)=='ERROR') fatalError('Error making network: cannot deposit file');
 	// broken
-	mulch.ajaxText('graphviz=on&key='+text,function(txt) {
+	mulch.ajaxText({graphviz: "on", key: text},function(txt) {
 		if(!txt) fatalError('Cannot make network: no data returned');
 		if(txt.substr(0,5)=='ERROR') fatalError('Error making network: '+txt.split(':')[1]);
 		var d=hc.network.holder;
@@ -948,7 +948,7 @@ ajaxPost('pca\nmat=matrix(c('+lst.join(',')+'),nrow='+hnum+')\nrownames(mat)<-c(
 	're<-prcomp(df2,scale=TRUE)\n'+
 	'write.table(re$x,file="rrrr",quote=FALSE,sep="\\t")\n',function(text) {
 	if(!text||text.substr(0,5)=='ERROR') fatalError('Error with PCA: cannot deposit file');
-	mulch.ajaxText('runpca=on&key='+text,function(txt){
+	mulch.ajaxText({runpca: "on", key: text},function(txt){
 		if(!txt) {
 			stripChild(apps.pca.dotholder,0);
 			pca_busy('No result');
@@ -1244,7 +1244,11 @@ if(!key) {
 	return;
 }
 var cmp=this;
-golden.genomes[this.genome].sentry.ajax('runhclust=on&key='+key,function(data){cmp.tree_receivedata(data);});
+let paramsObj = {
+	runhclust: "on",
+	key: key
+}
+golden.genomes[this.genome].sentry.ajax(paramsObj,function(data){cmp.tree_receivedata(data);});
 }
 Compass.prototype.tree_receivedata=function(data)
 {
@@ -2715,7 +2719,7 @@ if(u.length==0) {
 	print2console('Please enter URL',2);
 	return;
 }
-mulch.ajaxText('loaddatahub=on&url='+u, function(text){compass_pin_recover(text);});
+mulch.ajaxText({loaddatahub: "on", url: u}, function(text){compass_pin_recover(text);});
 }
 
 function compass_pin_choosefile(event)
@@ -3428,7 +3432,7 @@ function genomeinit_recursive()
 {
 for(var gn in golden.genomes) {
 	if(gn in genome) continue;
-	mulch.ajax('loadgenome=on&dbName='+gn,function(data){
+	mulch.ajax({loadgenome: "on", dbName: gn},function(data){
 		if(!data) {
 			alert('cannot load genome '+gn);
 			return;
@@ -3449,7 +3453,7 @@ for(var gn in golden.genomes) {
 			alert('hubcluster missing for '+gn);
 			return;
 		}
-		mulch.ajaxText('loaddatahub=on&url='+url,function(text){
+		mulch.ajaxText({loaddatahub: "on", url: url},function(text){
 			var j=parse_jsontext(text);
 			if(!j) {
 				alert('invalid JSON content for '+g.name+' hubcluster');
@@ -3470,7 +3474,7 @@ if(re==-1) {
 	alert('Garbled URL paramter');
 } else if(uph.pin) {
 	// TODO genome
-	mulch.ajaxText('loaddatahub=on&url='+uph.pin, function(text){compass_pin_recover(text);});
+	mulch.ajaxText({loaddatahub: "on", url: uph.pin}, function(text){compass_pin_recover(text);});
 	return;
 }
 golden_choosegenome();

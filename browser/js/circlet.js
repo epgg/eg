@@ -188,7 +188,13 @@ as the data in track object is dsp-filtered and incomplete
 do not allow regions to overlap, as the arcs won't know where to go
 */
 var bbj=this;
-this.ajax('lrtk_nodspfilter=on&dbName='+this.genome.name+this.displayedRegionParam_narrow()+trackParam([callingtkobj]),function(data){bbj.hengeview_lrtk_cb(data,viewobj);});
+let paramsObj = {
+	lrtk_nodspfilter: "on",
+	dbName: this.genome.name
+};
+paramsObj = Object.assign(paramsObj, this.displayedRegionParam_narrow());
+paramsObj = Object.assign(paramsObj, trackParam([callingtkobj]));
+this.ajax(paramsObj,function(data){bbj.hengeview_lrtk_cb(data,viewobj);});
 }
 
 Browser.prototype.hengeview_lrtk_cb=function(data,viewobj)
@@ -942,8 +948,16 @@ if(regionparam.length==0) {
 }
 loading_cloak(hvobj.main);
 var bbj=hvobj.bbj;
-bbj.ajax('addtracks=on&dbName='+bbj.genome.name+'&runmode='+RM_genome+'&regionLst='+regionparam.join(',')+
-'&startCoord='+a+'&stopCoord='+b+trackParam(_tklst),function(data){bbj.hengeview_ajaxwreath_cb(data,hvobj);});
+let paramsObj = {
+	addtracks: "on",
+	dbName: bbj.genome.name,
+	runmode: RM_genome,
+	regionLst: regionparam.join(','),
+	startCoord: a,
+	stopCoord: b
+};
+paramsObj = Object.assign(paramsObj, trackParam(_tklst));
+bbj.ajax(paramsObj,function(data){bbj.hengeview_ajaxwreath_cb(data,hvobj);});
 }
 Browser.prototype.hengeview_ajaxwreath_cb=function(data,hvobj)
 {

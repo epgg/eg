@@ -869,7 +869,11 @@ if(!key) {
 print2console('Making track...',0);
 // no need to tell cgi the ft, all will be processed in the same way
 var bbj=this;
-this.ajax('maketrack=on&key='+key,function(data){bbj.fud_maketrack_cb(data,key,tk)});
+let paramsObj = {
+	maketrack: "on",
+	key: key
+}
+this.ajax(paramsObj,function(data){bbj.fud_maketrack_cb(data,key,tk)});
 }
 Browser.prototype.fud_maketrack_cb=function(data,key,tk)
 {

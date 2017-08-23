@@ -74,7 +74,7 @@ class DefaultDataProvider extends DataProvider {
      * Sets up the query parameters with which Browser.prototype.ajax() will be called.
      *
      * @param {Browser} browser - Browser object with ajax function
-     * @param {params} params - query parameters to send to ajax
+     * @param {Object} params - query parameters object to send to ajax
      */
     constructor(browser, params) {
         super();

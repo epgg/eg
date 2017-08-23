@@ -6590,8 +6590,13 @@ case 15:
                 hvobj.callingtk.qtc.bin_size = menu.lr.binsize.value;
                 //trying to issue another ajax query, this is window currently
                 console.log(hvobj.callingtk);
-                //hvobj.callingtk.ft=FT_hi_c;
-                this.browser.ajax('lrtk_nodspfilter=on&dbName='+this.browser.genome.name+this.browser.displayedRegionParam_narrow()+trackParam([hvobj.callingtk]),function(data){bbj.hengeview_lrtk_cb(data,hvobj);});
+				//hvobj.callingtk.ft=FT_hi_c;
+				let paramObj = {
+					lrtk_nodspfilter: "on",
+					dbName: this.browser.genome.name,
+				};
+				paramObj = Object.assign(paramObj, this.browser.displayedRegionParam_narrow(), trackParam([hvobj.callingtk]));
+                this.browser.ajax(paramObj,function(data){bbj.hengeview_lrtk_cb(data,hvobj);});
 	        break;
 	default: fatalError('circlet callingtk: unknown update context');
 	}
@@ -6797,9 +6802,9 @@ function loading_done() { waitcloak.style.display='none'; }
 
 /*** __ajax__ ***/
 
-Browser.prototype.promisfyAjax=function(url) {
+Browser.prototype.promisfyAjax=function(queryParams) {
 	return new Promise(function(resolve, reject) {
-		this.ajax(url, resolve, reject);
+		this.ajax(queryParams, resolve, reject);
 	}.bind(this));
 }
 
@@ -6808,7 +6813,7 @@ Browser.prototype.ajaxSaveUrlpiece=function(callback)
 var url=this.cached_url;
 if(this.urloffset >= url.length) {
 	// entire URL has been saved, run it with callback
-	this.ajax('reviveURL=on&dbName='+this.genome.name, callback);
+	this.ajax({reviveURL: "on", dbName: this.genome.name}, callback);
 	return;
 }
 var req=new XMLHttpRequest();
@@ -6825,11 +6830,18 @@ req.onreadystatechange= function() {
 		bbj.ajaxSaveUrlpiece(callback);
 	}
 };
-req.open("POST", gflag.cors_host+"/cgi-bin/subtleKnife?NODECODE=on&offset="+this.urloffset+"&saveURLpiece="+encodeURIComponent(url.substr(this.urloffset, urllenlimit))+"&session="+this.sessionId+"&dbName="+this.genome.name, true);
+
+let params = {
+	saveURLpiece: url.substr(this.urloffset, urllenlimit),
+	offset: this.urloffset,
+	session: this.sessionId,
+	dbName: this.genomeName,
+}
+req.open("POST", gflag.cors_host+"/cgi-bin/subtleKnife?" + $.param(params), true); // This is not technically correct...
 req.send();
 }
 
-Browser.prototype.ajax=function(queryUrl, callback, errorCallback)
+Browser.prototype.ajax=function(paramsObj, callback, errorCallback)
 {
 /* in case of too long url, need to send it in small pieces one at a time
 to get rid of "Request Entity Too Large" error on server
@@ -6842,9 +6854,10 @@ won't process abort directive from returned json packet
 
 tell from the head of queryUrl if it is saving status
 */
-if(queryUrl.length > urllenlimit) {
+let paramsStr = $.param(paramsObj);
+if(paramsStr.length > urllenlimit) {
 	this.urloffset = 0;
-	this.cached_url=queryUrl;
+	this.cached_url=paramsStr;
 	this.ajaxSaveUrlpiece(callback);
 	return;
 }
@@ -6888,8 +6901,12 @@ req.onerror = function() {
 	}
 }
 
-req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+escape(queryUrl)+'&session='+this.sessionId+'&statusId='+this.statusId+'&hmspan='+this.hmSpan+
-	(this.ajax_phrase?this.ajax_phrase:''), true);
+let moreParams = {
+	session: this.sessionId,
+	statusId: this.statusId,
+	hmspan: this.hmSpan,
+}
+req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?' + paramsStr + "&" + $.param(moreParams), true);
 req.send();
 }
 
@@ -6912,10 +6929,9 @@ req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
 req.send(data2post);
 }
 
-Browser.prototype.ajaxText=function(url, callback)
+Browser.prototype.ajaxText=function(queryParams, callback)
 {
 // don't use with long url
-console.log(url);
 var req= new XMLHttpRequest();
 req.onreadystatechange= function() {
 	if(req.readyState==4 && req.status==200) {
@@ -6928,7 +6944,7 @@ req.onreadystatechange= function() {
 		}
 	}
 };
-req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+encodeURIComponent(url),true);
+req.open("GET", gflag.cors_host+'/cgi-bin/subtleKnife?'+$.param(queryParams),true);
 req.send();
 }
 
@@ -6968,7 +6984,14 @@ this.init_genome_param=p;
 this.onunknowngenome=param.onunknowngenome;
 /*** load genome info ***/
 var bbj=this;
-this.ajax('loadgenome=on&dbName='+param.dbname+(param.serverload?'&serverload=on':''),function(data){bbj.loadgenome_gotdata(data);});
+let paramsObj = {
+	loadgenome: "on",
+	dbName: param.dbname,
+};
+if (param.serverload) {
+	paramsObj.serverload = "on";
+}
+this.ajax(paramsObj,function(data){bbj.loadgenome_gotdata(data);});
 }
 
 Browser.prototype.loadgenome_gotdata=function(data)
@@ -7182,7 +7205,14 @@ if(param.geneset_rawstring) {
 		}
 		delete param.coord_rawstring;
 	}
-	var paramstring='changeGF=on&dbName='+this.genome.name+'&startChr='+startchr+'&startCoord='+startcoord+'&stopChr='+stopchr+'&stopCoord='+stopcoord;
+	var paramObj= {
+		changeGF: "on",
+		dbName: this.genome.name,
+		startChr: startchr,
+		startCoord: startcoord,
+		stopChr: stopchr,
+		stopCoord: stopcoord,
+	};
 	if(param.juxtapose_rawstring) {
 		var bbf = param.juxtapose_rawstring;
 		if(param.juxtaposecustom) {
@@ -7190,7 +7220,8 @@ if(param.geneset_rawstring) {
 			this.juxtaposition.type = RM_jux_c;
 			this.juxtaposition.note = "custom bed track";
 			this.juxtaposition.what = bbf;
-			paramstring += '&runmode='+RM_jux_c+'&juxtaposeTk='+bbf;
+			paramObj.runmode = RM_jux_c;
+			paramObj.juxtaposeTk = bbf;
 			print2console('Running juxtaposition...',0);
 			delete param.juxtaposecustom;
 		} else {
@@ -7200,19 +7231,20 @@ if(param.geneset_rawstring) {
 				this.juxtaposition.type = RM_jux_n;
 				this.juxtaposition.note = tk.label;
 				this.juxtaposition.what = bbf;
-				paramstring += '&runmode='+RM_jux_n+'&juxtaposeTk='+bbf;
+				paramObj.runmode = RM_jux_n;
+				paramObj.juxtaposeTk = bbf;
 				print2console('Running juxtaposition...',0);
 			} else {
 				print2console('Not running juxtapose: unknown native bed/annotation track name', 2);
-				paramstring += '&runmode='+this.genome.defaultStuff.runmode;
+				paramObj.runmode = this.genome.defaultStuff.runmode;
 			}
 		}
 		delete param.juxtapose_rawstring;
 	} else {
-		paramstring+='&runmode='+this.genome.defaultStuff.runmode;
+		paramObj.runmode = this.genome.defaultStuff.runmode;
 	}
 	print2console('Setting view range...',0);
-	this.ajaxX(paramstring,true);
+	this.ajaxX(paramObj,true);
 	return;
 }
 /* tracks
@@ -7833,32 +7865,33 @@ for(var i=0; i<_tklst.length; i++) {
 	default: fatalError('trackParam: unknown ft '+t.ft);
 	}
 }
-return ''+
-	(lst[FT_bedgraph_n].length>0 ? '&hmtk2='+lst[FT_bedgraph_n].join(',') : '')+
-	(lst[FT_bedgraph_c].length>0 ? '&hmtk3='+lst[FT_bedgraph_c].join(",") : '')+
-	(lst[FT_bigwighmtk_n].length>0 ? '&hmtk14='+lst[FT_bigwighmtk_n].join(',') : '')+
-	(lst[FT_bigwighmtk_c].length>0 ? '&hmtk15='+lst[FT_bigwighmtk_c].join(',') : '')+
-	(lst[FT_cat_n].length>0 ? '&hmtk12='+lst[FT_cat_n].join(',') : '')+
-	(lst[FT_cat_c].length>0 ? '&hmtk13='+lst[FT_cat_c].join(",") : '')+
-	(lst[FT_bed_n].length>0 ? '&decor0='+lst[FT_bed_n].join(',') : '') +
-	(lst[FT_bed_c].length>0 ? '&decor1='+lst[FT_bed_c].join(',') : '') +
-	(lst[FT_bigbed_c].length>0 ? '&decor32='+lst[FT_bigbed_c].join(',') : '') +
-	(lst[FT_lr_n].length>0 ? '&decor9='+lst[FT_lr_n].join(',') : '') +
-	(lst[FT_lr_c].length>0 ? '&decor10='+lst[FT_lr_c].join(',') : '') +
-	(lst[FT_hi_c].length>0 ? '&decor30='+lst[FT_hi_c].join(',') : '') +
-	(lst[FT_cool_c].length>0 ? '&decor34='+lst[FT_cool_c].join(',') : '') +
-	(lst[FT_qdecor_n].length>0 ? '&decor8='+lst[FT_qdecor_n].join(',') : '') +
-	(lst[FT_sam_n].length>0 ? '&decor4='+lst[FT_sam_n].join(',') : '') +
-	(lst[FT_sam_c].length>0 ? '&decor5='+lst[FT_sam_c].join(',') : '')+
-	(lst[FT_bam_n].length>0 ? '&decor17='+lst[FT_bam_n].join(',') : '') +
-	(lst[FT_bam_c].length>0 ? '&decor18='+lst[FT_bam_c].join(',') : '')+
-	(lst[FT_ld_c].length>0 ? '&track23='+lst[FT_ld_c].join(',') : '')+
-	(lst[FT_ld_n].length>0 ? '&track26='+lst[FT_ld_n].join(',') : '')+
-	(lst[FT_weaver_c].length>0 ? '&track21='+lst[FT_weaver_c].join(',') : '')+
-	(lst[FT_anno_n].length>0 ? '&track24='+lst[FT_anno_n].join(',') : '') +
-	(lst[FT_anno_c].length>0 ? '&track25='+lst[FT_anno_c].join(',') : '')+
-	(lst[FT_catmat].length>0 ? '&track20='+lst[FT_catmat].join(',') : '')+
-	(lst[FT_qcats].length>0 ? '&track27='+lst[FT_qcats].join(',') : '');
+paramsObj = {};
+if (lst[FT_bedgraph_n].length>0) {paramsObj.hmtk2 = lst[FT_bedgraph_n].join(',');}
+if (lst[FT_bedgraph_c].length>0) {paramsObj.hmtk3 = lst[FT_bedgraph_c].join(",");}
+if (lst[FT_bigwighmtk_n].length>0) {paramsObj.hmtk14 = lst[FT_bigwighmtk_n].join(',');}
+if (lst[FT_bigwighmtk_c].length>0) {paramsObj.hmtk15 = lst[FT_bigwighmtk_c].join(',');}
+if (lst[FT_cat_n].length>0) {paramsObj.hmtk12 = lst[FT_cat_n].join(',');}
+if (lst[FT_cat_c].length>0) {paramsObj.hmtk13 = lst[FT_cat_c].join(",");}
+if (lst[FT_bed_n].length>0) {paramsObj.decor0 = lst[FT_bed_n].join(',');}
+if (lst[FT_bed_c].length>0) {paramsObj.decor1 = lst[FT_bed_c].join(',');}
+if (lst[FT_bigbed_c].length>0) {paramsObj.decor32 = lst[FT_bigbed_c].join(',');}
+if (lst[FT_lr_n].length>0) {paramsObj.decor9 = lst[FT_lr_n].join(',');}
+if (lst[FT_lr_c].length>0) {paramsObj.decor10 = lst[FT_lr_c].join(',');}
+if (lst[FT_hi_c].length>0) {paramsObj.decor30 = lst[FT_hi_c].join(',');}
+if (lst[FT_cool_c].length>0) {paramsObj.decor34 = lst[FT_cool_c].join(',');}
+if (lst[FT_qdecor_n].length>0) {paramsObj.decor8 = lst[FT_qdecor_n].join(',');}
+if (lst[FT_sam_n].length>0) {paramsObj.decor4 = lst[FT_sam_n].join(',');}
+if (lst[FT_sam_c].length>0) {paramsObj.decor5 = lst[FT_sam_c].join(',');}
+if (lst[FT_bam_n].length>0) {paramsObj.decor17 = lst[FT_bam_n].join(',');}
+if (lst[FT_bam_c].length>0) {paramsObj.decor18 = lst[FT_bam_c].join(',');}
+if (lst[FT_ld_c].length>0) {paramsObj.track23 = lst[FT_ld_c].join(',');}
+if (lst[FT_ld_n].length>0) {paramsObj.track26 = lst[FT_ld_n].join(',');}
+if (lst[FT_weaver_c].length>0) {paramsObj.track21 = lst[FT_weaver_c].join(',');}
+if (lst[FT_anno_n].length>0) {paramsObj.track24 = lst[FT_anno_n].join(',');}
+if (lst[FT_anno_c].length>0) {paramsObj.track25 = lst[FT_anno_c].join(',');}
+if (lst[FT_catmat].length>0) {paramsObj.track20 = lst[FT_catmat].join(',');}
+if (lst[FT_qcats].length>0) {paramsObj.track27 = lst[FT_qcats].join(',');}
+return paramsObj;
 }
 
 
@@ -7867,39 +7900,42 @@ Browser.prototype.houseParam=function()
 /* house keeping
 */
 if(this.weaver) {
-	return trackParam(this.tklst, this.weaver.iscotton?false:true)+this.getGenomeParams();
+	return Object.assign(trackParam(this.tklst, this.weaver.iscotton?false:true), this.getGenomeParams());
 }
-return trackParam(this.tklst)+this.getGenomeParams();
+return Object.assign(trackParam(this.tklst), this.getGenomeParams());
 }
 
 // Added by Silas Hsu
 Browser.prototype.getParamsForTrack=function(track) {
 	if(this.weaver) {
-		return trackParam([track], this.weaver.iscotton?false:true)+this.getGenomeParams();
+		return Object.assign(trackParam([track], this.weaver.iscotton ? false:true), this.getGenomeParams());
 	}
-	let paramValue = trackParam([track]);
-	if (paramValue.length == 0) {
-		return "";
-	} else {
-		return paramValue + this.getGenomeParams();
-	}
+	return Object.assign(trackParam([track]), this.getGenomeParams())
 }
 
 // Added by Silas Hsu
 Browser.prototype.getGenomeParams=function() {
-	return '&dbName='+this.genome.name+this.genome.customgenomeparam();
+	return Object.assign({dbName: this.genome.name}, this.genome.customgenomeparam());
 }
 
+/* Oddly enough, no one seems to use this? */
 Browser.prototype.htestParams=function()
 {
 if(!this.htest.inuse) return '';
-var lst = [];
+var paramsObj = {}
 for(var i=1; i<=this.htest.grpnum; i++) {
-	lst.push("&htestgrp"+i+"="+this.htest["gtn"+i].join(","));
+	paramsObj["htestgrp"+i] = this.htest["gtn"+i].join(",");
 }
 var v = getSelectValueById("htestc"); // correction
-return "&htest=on&htestgrpnum="+this.htest.grpnum+lst.join("")+(v=="no" ? "" : "&htestc="+v);
+paramsObj.htset = "on";
+paramsObj.htestgrpnum = this.htest.grpnum;
+if (v!="no") {
+	paramsObj.htestc = v;
 }
+return paramsObj;
+}
+
+/* Oddly enough, no one seems to use this? */
 Browser.prototype.corrParam=function()
 {
 /* if doing inter-track correlation, no need to interact with CGI,
@@ -7949,7 +7985,8 @@ if(this.main) {
 
 var browser = this;
 // Fetch region list from server first (why the visible region isn't managed by client is anyone's guess).
-this.promisfyAjax(param + this.getGenomeParams())
+
+this.promisfyAjax(Object.assign(param, this.getGenomeParams()))
 	.catch((error) => {
 		print2console(`While fecthing region list: ${error}`, 2);
 		return null;
@@ -7989,7 +8026,7 @@ Browser.prototype.getPromisesForEachTrack = function(regionLst, tkLst, param) {
 	let allTrackPromises = []
 	for (let track of tkLst) {
 		let dataProvider = track[DataProvider.TRACK_PROP_NAME] ||
-			DataProvider.makeProviderForTrack(track, this, param + this.getParamsForTrack(track));
+			DataProvider.makeProviderForTrack(track, this, Object.assign({}, param, this.getParamsForTrack(track)));
 		let promise = dataProvider.getData(track, regionLst);
 
 		// Catch individual track failures here so they don't affect other tracks.
@@ -9590,11 +9627,17 @@ if(this.entire.atbplevel) {
 		this.drawATCGlegend(true);
 	}
 	var bbj=this;
-	if(this.genome.scaffold.fileurl) {
-		this.ajax('getChromseq=on&url='+this.genome.scaffold.fileurl+'&regionlst='+lst.join(',')+this.genome.customgenomeparam(), function(data){bbj.seq2ideogram(data);});
-	} else if(!this.genome.iscustom && !this.genome.noblastdb) {
-		this.ajax('getChromseq=on&regionlst='+lst.join(',')+'&dbName='+this.genome.name, function(data){bbj.seq2ideogram(data);});
+	let paramsObj = {
+		getChromseq: "on",
+		regionlst: lst.join(','),
 	}
+	if(this.genome.scaffold.fileurl) {
+		paramsObj.url = this.genome.scaffold.fileurl;
+		paramsObj = Object.assign(paramsObj, this.genome.customgenomeparam());
+	} else if(!this.genome.iscustom && !this.genome.noblastdb) {
+		paramsObj.dbName = this.genome.name;
+	}
+	this.ajax(paramsObj, function(data){bbj.seq2ideogram(data);});
 	return;
 }
 if(this.is_gsv()) {
@@ -12562,20 +12605,35 @@ if(n.bbj.is_gsv()) {
 		}
 	}
 	n.bbj.cloak();
-	var samestring = "itemlist=on&imgAreaSelect=on&statusId="+n.bbj.statusId+
-		"&startChr="+coord1[0]+"&startCoord="+coord1[1]+
-		"&stopChr="+coord2[0]+"&stopCoord="+coord2[1]+
-		(n.bbj.entire.atbplevel?'&atbplevel=on':'');
-	n.bbj.ajaxX(samestring);
+	var paramsObj = {
+		itemlist: "on",
+		imgAreaSelect: "on",
+		statusId: n.bbj.statusId,
+		startChr: coord1[0],
+		startCoord: coord1[1],
+		stopChr: coord2[0],
+		stopCoord: coord2[1],
+	}
+	if (n.bbj.entire.atbplevel) {
+		paramsObj.atbplevel = "on";
+	}
+	n.bbj.ajaxX(paramsObj);
 	return;
 }
 n.bbj.weavertoggle(n.bbj.navigator.totalbp*w/n.bbj.navigator.canvas.width);
-var param='imgAreaSelect=on&'+n.bbj.runmode_param()+'&startChr='+coord1[0]+'&startCoord='+coord1[1]+'&stopChr='+coord2[0]+'&stopCoord='+coord2[1];
+var paramsObj = {
+	imgAreaSelect: "on",
+	startChr: coord1[0],
+	startCoord: coord1[1],
+	stopChr: coord2[0],
+	stopCoord: coord2[1],
+}
+paramsObj = Object.assign(paramsObj, n.bbj.runmode_param());
 n.bbj.cloak();
-n.bbj.ajaxX(param);
+n.bbj.ajaxX(paramsObj);
 if(gflag.syncviewrange) {
 	for(var i=0; i<gflag.syncviewrange.lst.length; i++) {
-		gflag.syncviewrange.lst[i].ajaxX(param);
+		gflag.syncviewrange.lst[i].ajaxX(paramsObj);
 	}
 }
 }
@@ -13133,7 +13191,10 @@ var reg=this.genome.getTkregistryobj(tk.name);
 if(reg && reg.detail_url) {
 	var d9=dom_create('div',d,'margin-bottom:15px;width:480px;');
 	d9.innerHTML='loading...';
-	this.ajaxText('loaddatahub=on&url='+reg.detail_url, function(text){
+	this.ajaxText({
+		loaddatahub: "on",
+		url: reg.detail_url
+	}, function(text){
 		var j=parse_jsontext(text);
 		if(!j) {
 			d9.innerHTML='Cannot read file at '+reg.detail_url;
@@ -14423,18 +14484,25 @@ optional arg: start coord of first region, stop coord of last region to cope wit
  */
 var t=this.getDspStat();
 var jt=this.juxtaposition.type;
-var param='&runmode='+jt;
+var param={
+	runmode: jt,
+	startChr: t[0],
+	stopChr: t[2],
+};
 if(this.is_gsv()) {
 	// TODO remove itemlist parameter
-	param += '&itemlist=on&startChr='+t[0]+'&stopChr='+t[2];
+	param.itemlist = "on";
 } else {
-	param += '&juxtaposeTk='+this.juxtaposition.what+'&startChr='+t[0]+'&stopChr='+t[2];
+	param.juxtaposeTk = this.juxtaposition.what;
 }
 if(arguments[0]!=undefined && arguments[1]!=undefined) {
-	return param + "&startCoord=" + arguments[0] + "&stopCoord=" + arguments[1];
+	param.startCoord = arguments[0];
+	param.stopCoord = arguments[1];
 } else {
-	return param + "&startCoord="+ t[1]+ "&stopCoord="+t[3];
+	param.startCoord = t[1];
+	param.stopCoord = t[3];
 }
+return param;
 }
 
 Browser.prototype.displayedRegionParamMove=function()
@@ -14443,18 +14511,24 @@ var r1=this.regionLst[0];
 var r2=this.regionLst[this.regionLst.length-1];
 var jt = this.juxtaposition.type;
 if(this.is_gsv()) {
-	return "itemlist=on&startChr="+r1[6]+
-		"&startCoord="+r1[3]+
-		"&stopChr="+r2[6]+
-		"&stopCoord="+r2[4]+
-		"&sptotalnum="+(this.entire.spnum-this.regionLst.length+1);
+	return {
+		itemlist: "on",
+		startChr: r1[6],
+		startCoord: r1[3],
+		stopChr: r2[6],
+		stopCoord: r2[4],
+		sptotalnum: this.entire.spnum-this.regionLst.length+1
+	}
 }
-return 'runmode='+jt+'&juxtaposeTk='+this.juxtaposition.what+
-"&startChr=" + r1[0] +
-"&startCoord=" + r1[3] +
-"&stopChr=" + r2[0] +
-"&stopCoord=" + r2[4] +
-"&sptotalnum="+ (this.entire.spnum-this.regionLst.length+1);
+return {
+	runmode: jt,
+	juxtaposeTk: this.juxtaposition.what,
+	startChr: r1[0],
+	startCoord: r1[3],
+	stopChr: r2[0],
+	stopCoord: r2[4],
+	sptotalnum: (this.entire.spnum-this.regionLst.length+1)
+}
 }
 
 
@@ -14476,12 +14550,15 @@ if(this.is_gsv()) {
 		sizelst.push(this.regionLst[i][5]);
 	}
 	var lastr = this.regionLst[this.regionLst.length - 1];
-	return "itemlist=on&startChr="+this.regionLst[0][6]+
-		"&startCoord="+this.regionLst[0][3]+
-		"&stopChr="+lastr[6]+
-		"&stopCoord="+lastr[4]+
-		"&sptotalnum="+ (this.entire.atbplevel?this.entire.length:(this.entire.spnum-i)) +
-		"&allrss=" + sizelst.join(',');
+	return {
+		itemlist: "on",
+		startChr: this.regionLst[0][6],
+		startCoord: this.regionLst[0][3],
+		stopChr: lastr[6],
+		stopCoord: lastr[4],
+		sptotalnum:  (this.entire.atbplevel?this.entire.length:(this.entire.spnum-i)),
+		allrss: sizelst.join(',')
+	}
 }
 // by passing exact information on each region in collation mode (chr, start/stop, spnum)
 // it saves a lot of computing on server side, so it's necessary
@@ -14490,10 +14567,11 @@ for(var i=0; i<this.regionLst.length; i++) {
 	var r = this.regionLst[i];
 	lst.push(r[0]+','+r[1]+','+r[2]+','+(this.entire.atbplevel ? (r[4]-r[3]) : r[5]));
 }
-return this.runmode_param()+
-   "&regionLst=" + lst.join(',') +
-   "&startCoord=" + this.regionLst[0][3] +
-   "&stopCoord=" + this.regionLst[this.regionLst.length-1][4];
+let paramsObj = this.runmode_param();
+paramsObj.regionLst = lst.join(',');
+paramsObj.startCoord = this.regionLst[0][3];
+paramsObj.stopCoord = this.regionLst[this.regionLst.length-1][4];
+return paramsObj;
 }
 
 Browser.prototype.displayedRegionParam_narrow=function()
@@ -14511,11 +14589,12 @@ for(var i=this.dspBoundary.vstartr;i<=this.dspBoundary.vstopr;i++) {
 }
 //console.log(lst);
 var t=this.getDspStat();
-return '&runmode='+this.genome.defaultStuff.runmode+'&regionLst='+lst.join(',')+
-	'&startCoord='+lst[1]+
-	'&stopCoord='+lst[2];
-	//'&startCoord='+t[1]+
-	//'&stopCoord='+t[3];
+return {
+	runmode: this.genome.defaultStuff.runmode,
+	regionLst: lst.join(','),
+	startCoord: lst[1],
+	stopCoord: lst[2]
+}
 }
 
 
@@ -14819,7 +14898,8 @@ if(isCustom(tk.ft)) {
 }
 bbj.cloak();
 print2console("juxtaposing "+bbj.juxtaposition.note+"...", 0);
-var param=bbj.displayedRegionParam()+"&changeGF=on";
+var param=bbj.displayedRegionParam();
+param.changeGF = "on";
 bbj.ajaxX(param);
 menu_hide();
 var synclst=null;
@@ -14868,7 +14948,9 @@ this.runmode_set2default();
 if(oldjt==RM_jux_n || oldjt==RM_jux_c) {
 	if(doajax) {
 		this.cloak();
-		this.ajaxX(this.displayedRegionParam()+"&changeGF=on");
+		var param=bbj.displayedRegionParam();
+		param.changeGF = "on";
+		this.ajaxX(param);
 	}
 } else if(oldjt==RM_gsv_c || oldjt==RM_gsv_kegg || oldjt==RM_protein) {
 	/* in case of gsv, border must be changed back!
@@ -14883,7 +14965,13 @@ if(oldjt==RM_jux_n || oldjt==RM_jux_c) {
 	if(doajax) {
 		this.cloak();
 		var c=this.defaultposition();
-		this.ajaxX(this.runmode_param()+'&imgAreaSelect=on&startChr='+c[0]+'&startCoord='+c[1]+'&stopChr='+c[2]+'&stopCoord='+c[3]);
+		let paramsObj = this.runmode_param();
+		paramsObj.imgAreaSelect = "on";
+		paramsObj.startChr = c[0];
+		paramsObj.startCoord = c[1];
+		paramsObj.stopChr = c[2];
+		paramsObj.stopCoord = c[3];
+		this.ajaxX(paramsObj);
 	}
 } else {
 	fatalError('turnoffJuxtapose: unknown juxtaposition.type '+oldjt);
@@ -14978,10 +15066,10 @@ if(this.is_gsv()) {
 }
 var rm=this.juxtaposition.type;
 if(rm==RM_yearmonthday)
-	return 'runmode='+rm;
+	return {runmode: rm};
 if(rm==RM_genome)
-	return 'runmode='+rm;
-return 'runmode='+rm+'&juxtaposeTk='+this.juxtaposition.what;
+	return {runmode: rm};
+return {runmode: rm, juxtaposeTk: this.juxtaposition.what};
 }
 
 function browser_ruler_mover(event)
@@ -15083,7 +15171,9 @@ Browser.prototype.sethmspan_refresh=function(val)
 this.hmSpan=val;
 this.applyHmspan2holders();
 this.cloak();
-this.ajaxX(this.displayedRegionParam()+'&imgAreaSelect=on');
+var param=this.displayedRegionParam();
+param.imgAreaSelect = "on";
+this.ajaxX(param);
 }
 
 function menu_changeleftwidth(event)
@@ -16664,12 +16754,15 @@ if(tk.ft==FT_ld_c||tk.ft==FT_ld_n) {
 	bubble.sayajax.style.display='block';
 	bubble.sayajax.innerHTML='Loading SNP info...';
 	bubble.sayajax.style.maxHeight=30;
-	sbj.ajax('dbName='+sbj.genome.name+'&runmode='+sbj.genome.defaultStuff.runmode+
-		'&regionLst='+
-		sbj.regionLst[_rs1.rid][0]+','+(_rs1.coord-1)+','+(_rs1.coord+1)+',1,'+
-		sbj.regionLst[_rs2.rid][0]+','+(_rs2.coord-1)+','+(_rs2.coord+1)+',1'+
-		'&startCoord='+(_rs1.coord-1)+
-		'&stopCoord='+(_rs2.coord+1)+trackParam([tk.querytrack]),function(data){sbj.lditemclick_gotdata(data,tk,rs1,rs2);});
+	let paramsObj = {
+		dbName: sbj.genome.name,
+		runmode: sbj.genome.defaultStuff.runmode,
+		regionLst: sbj.regionLst[_rs1.rid][0]+','+(_rs1.coord-1)+','+(_rs1.coord+1)+',1,'+ sbj.regionLst[_rs2.rid][0]+','+(_rs2.coord-1)+','+(_rs2.coord+1)+',1',
+		startCoord: _rs1.coord-1,
+		stopCoord: (_rs2.coord+1)
+	};
+	paramsObj = Object.assign(paramsObj, trackParam([tk.querytrack]));
+	sbj.ajax(paramsObj,function(data){sbj.lditemclick_gotdata(data,tk,rs1,rs2);});
 	return;
 }
 if(tk.ft==FT_lr_c||tk.ft==FT_lr_n||tk.ft==FT_hi_c||tk.ft==FT_cool_c) {
@@ -16893,8 +16986,11 @@ if(tk.ft==FT_bam_n||tk.ft==FT_bam_c) {
 			rlst.push(sbj.regionLst[hitpoint.rid][0]+','+c[i][0]+','+c[i][1]);
 		}
 	}
-	sbj.ajax('getChromseq=on&dbName='+sbj.genome.name+
-		'&regionlst='+rlst.join(','),function(data){sbj.bamread2bubble(data,item);});
+	sbj.ajax({
+		getChromseq: "on",
+		dbName: sbj.genome.name,
+		regionlst: rlst.join(',')
+	}, function(data){sbj.bamread2bubble(data,item);});
 	return;
 }
 if(tk.ft==FT_cat_c||tk.ft==FT_cat_n) {
@@ -17008,13 +17104,16 @@ if(isnew) {
 
 Genome.prototype.customgenomeparam=function()
 {
-if(!this.iscustom) return '';
+if(!this.iscustom) return {};
 var lst=[];
 for(var n in this.scaffold.len) {
 	lst.push(n);
 	lst.push(this.scaffold.len[n]);
 }
-return '&iscustomgenome=on&scaffoldlen='+lst.join(',');
+return {
+	iscustomgenome: "on",
+	scaffoldlen: lst.join(',')
+};
 }
 
 
@@ -17092,9 +17191,9 @@ var bbj=this;
 // allow custom genome
 
 // Begin modifications by Silas Hsu
-//let url = this.displayedRegionParamPrecise()+'&addtracks=on&'+this.getGenomeParams()+trackParam(olst);
-let url = this.displayedRegionParamPrecise()+'&addtracks=on&'
-Promise.all(this.getPromisesForEachTrack(this.regionLst, olst, url)).then((trackDatas) => {
+let paramsObj = this.displayedRegionParamPrecise();
+paramsObj.addtracks = "on";
+Promise.all(this.getPromisesForEachTrack(this.regionLst, olst, paramsObj)).then((trackDatas) => {
 	let ajaxData = { tkdatalst: [] };
 	for (let trackData of trackDatas) {
 		if (trackData) {
@@ -18089,9 +18188,13 @@ if(bbj.init_bbj_param) {
 		ctx.fillStyle=colorCentral.foreground;
 		ctx.fillText(t,x+20,y+4);
 	}
-	bbj.ajaxX('&runmode='+RM_genome+
-		'&regionLst='+param.join(',')+
-		'&startCoord='+a+'&stopCoord='+b);
+	let paramsObj = {
+		runmode: RM_genome,
+		regionLst: param.join(','),
+		startCoord: a,
+		stopCoord: b
+	}
+	bbj.ajaxX(paramsObj);
 }
 }
 
@@ -18670,10 +18773,16 @@ for(var i=0; i<rlst.length; i++) {
 	if(i==0) {a=e.start;}
 	if(i==rlst.length-1) {b=e.stop;}
 }
-var param='dbName='+this.genome.name+'&runmode='+RM_genome+'&regionLst='+lst.join(',')+
-	'&startCoord='+a+'&stopCoord='+b;
+let paramsObj = {
+	dbName: this.genome.name,
+	runmode: RM_genome,
+	regionLst: lst.join(','),
+	startCoord: a,
+	stopCoord: b,
+};
+paramsObj = Object.assign(paramsObj, trackParam(wtks));
 var bbj=this;
-this.ajax(param+'&'+trackParam(wtks),function(data){bbj.wvfind_run_cb(data,rlst,wtks,callback);});
+this.ajax(paramsObj,function(data){bbj.wvfind_run_cb(data,rlst,wtks,callback);});
 }
 
 Browser.prototype.wvfind_run_cb=function(data,rlst,wtks,callback)
@@ -18801,8 +18910,15 @@ for(var qgn in geneiter) {
 		var bbj=this;
 		var tk2=duplicateTkobj(tk);
 		tk2.mode=M_full;
-		this.ajax('dbName='+qgn+'&runmode='+RM_genome+'&regionLst='+lst.join(',')+
-			'&startCoord='+a+'&stopCoord='+b+'&'+trackParam([tk2]),
+		let paramsObj = {
+			dbName: qgn,
+			runmode: RM_genome,
+			regionLst: lst.join(','),
+			startCoord: a,
+			stopCoord: b,
+		};
+		paramsObj = Object.assign(paramsObj, trackParam([tk2]));
+		this.ajax(paramsObj,
 			function(data){bbj.wvfind_itergene_cb(data,geneiter,qgn,idlst,rlst,callback);});
 		return;
 	}
@@ -19698,7 +19814,7 @@ Browser.prototype.load_metadata_url=function(url)
 {
 // currently internal, not called from user action on ui
 var bbj=this;
-this.ajaxText('loaddatahub=on&url='+url,function(text){bbj.loadmetadata_jsontext(text,url);});
+this.ajaxText({loaddatahub:"on", url: url},function(text){bbj.loadmetadata_jsontext(text,url);});
 }
 
 Browser.prototype.loadmetadata_jsontext=function(text,url)
@@ -20643,7 +20759,12 @@ if(ip.value.length==0) {
 	return;
 }
 stripChild(menu.c47.table,0);
-bbj.ajax('searchtable='+gflag.menu.tklst[0].name+'&text='+ip.value+'&dbName='+bbj.genome.name,function(data){bbj.tkitemkwsearch_cb(data);});
+let paramsObj = {
+	searchtable: gflag.menu.tklst[0].name,
+	text: ip.value,
+	dbName: bbj.genome.name,
+}
+bbj.ajax(paramsObj,function(data){bbj.tkitemkwsearch_cb(data);});
 }
 Browser.prototype.tkitemkwsearch_cb=function(data)
 {
@@ -22061,7 +22182,14 @@ if(bbj.atLeftBorder() && bbj.atRightBorder()) {
 			} else {
 				moveDist = parseInt(moveSize * bbj.entire.summarySize);
 			}
-			var param=bbj.displayedRegionParamMove()+'&summarySize='+moveSize+'&distance='+moveDist+'&move='+bbj.move.direction+(bbj.entire.atbplevel?'&atbplevel=on':'')+bbj.mayShowDsp();
+			var param = bbj.displayedRegionParamMove();
+			param.summarySize = moveSize;
+			param.distance = moveDist;
+			param.move = bbj.move.direction;
+			if (bbj.entire.atbplevel) {
+				param.atbplevel = "on"
+			}
+			param = Object.assign(param, bbj.mayShowDsp());
 			bbj.cloak();
 			bbj.ajaxX(param);
 			if(sylst) {
@@ -22104,7 +22232,15 @@ if(bbj.atLeftBorder() && bbj.atRightBorder()) {
 				moveDist = parseInt(moveSize/bbj.entire.bpwidth);
 			else
 				moveDist = parseInt(moveSize*bbj.entire.summarySize);
-			var param=bbj.displayedRegionParamMove()+'&summarySize='+moveSize+'&distance='+moveDist+'&move='+bbj.move.direction+(bbj.entire.atbplevel?'&atbplevel=on':'')+bbj.mayShowDsp();
+
+			var param = bbj.displayedRegionParamMove();
+			param.summarySize = moveSize;
+			param.distance = moveDist;
+			param.move = bbj.move.direction;
+			if (bbj.entire.atbplevel) {
+				param.atbplevel = "on"
+			}
+			param = Object.assign(param, bbj.mayShowDsp());
 			bbj.cloak();
 			bbj.ajaxX(param);
 			if(sylst) {
@@ -22162,7 +22298,7 @@ for(i=this.dspBoundary.vstartr; i<=this.dspBoundary.vstopr; i++) {
 	lst.push(r[3]);
 	lst.push(r[4]);
 }
-return '&existingDsp='+lst.join(',');
+return {existingDsp: lst.join(',')};
 }
 
 Browser.prototype.arrowPan=function(direction, fold)
@@ -22489,7 +22625,8 @@ if(animate) {
 	};
 	start_animate_zoom(this.horcrux);
 }
-var param= this.displayedRegionParam(rl.coord,rr.coord)+'&imgAreaSelect=on';
+var param = this.displayedRegionParam(rl.coord,rr.coord);
+param.imgAreaSelect = "on";
 this.ajaxX(param);
 if(gflag.syncviewrange) {
 	var lst=gflag.syncviewrange.lst;
@@ -22552,7 +22689,8 @@ gflag.animate_zoom[this.horcrux]={
 	x2:(this.hmSpan+w)/2,
 	zoomin:false,};
 start_animate_zoom(this.horcrux);
-var param=this.displayedRegionParam()+"&zoom="+(howmuch/2);
+var param=this.displayedRegionParam();
+param.zoom = howmuch/2;
 this.ajaxX(param);
 // for golden
 if(gflag.syncviewrange) {
@@ -24811,7 +24949,11 @@ if(ft==FT_weaver_c) {
 		must refresh all other tracks especially the existing weavertk
 		or else eerie things happen
 		*/
-		bbj.onloadend_once=function(){bbj.ajaxX(bbj.displayedRegionParam()+'&changeGF=on');};
+		bbj.onloadend_once=function(){
+			let paramsObj = bbj.displayedRegionParam();
+			paramsObj.changeGF = "on";
+			bbj.ajaxX(paramsObj);
+		};
 	}
 	bbj.init_bbj_param={tklst:[_tmp]};
 	bbj.ajax_loadbbjdata(bbj.init_bbj_param);
@@ -24821,7 +24963,9 @@ c.submit_butt.disabled=true;
 bbj.cloak();
 bbj.genome.pending_custtkhash[_tmp.name]=_tmp;
 print2console("Adding custom track...", 0);
-bbj.getPromisesForEachTrack(bbj.regionLst, [_tmp], bbj.displayedRegionParamPrecise()+'&addtracks=on&')[0]
+let paramsObj = bbj.displayedRegionParamPrecise();
+paramsObj.addtracks = "on";
+bbj.getPromisesForEachTrack(bbj.regionLst, [_tmp], paramsObj)[0]
 	.then(trackData => bbj.submitCustomtrack_cb( {tkdatalst: [trackData]}, _tmp, c));
 }
 
@@ -25246,10 +25390,20 @@ default:
 }
 var bbj=this;
 var r=this.regionLst[0];
-this.ajax('refreshcusttkcache=on&url='+tk.url+'&ft='+tk.ft+
-	(files?'&filelst='+files.join(','):'')+
-	(dirs?'&dirlst='+dirs.join(','):'')+
-	'&chrom='+r[0]+'&start='+r[3],function(data){bbj.refreshcache_done(data,tk,handle,callback);});
+let paramsObj = {
+	refreshcusttkcache: "on",
+	url: tk.url,
+	ft: tk.ft,
+	chrom: r[0],
+	start: r[3],
+}
+if (files) {
+	paramsObj.filelst = files.join(',')
+}
+if (dirs) {
+	paramsObj.dirlst = dirs.join(',')
+}
+this.ajax(paramsObj,function(data){bbj.refreshcache_done(data,tk,handle,callback);});
 }
 Browser.prototype.refreshcache_done=function(data,tk,handle,callback)
 {
@@ -25418,7 +25572,7 @@ reader.readAsText(event.target.files[0]);
 }
 
 
-
+// I'm going to HOPE that @param {string} url is really only just a URL.  -Silas
 Browser.prototype.loadhub_urljson=function(url,callback)
 {
 /* load datahub from json text file by url
@@ -25427,7 +25581,7 @@ oh, must use trunk please..
 var bbj=this.trunk?this.trunk:this;
 bbj.shieldOn();
 bbj.cloak();
-bbj.ajaxText('loaddatahub=on&url='+url, function(text){bbj.loadhub_urljson_cb(text,url,callback);}
+bbj.ajaxText({loaddatahub: "on", url: url}, function(text){bbj.loadhub_urljson_cb(text,url,callback);}
 );
 }
 
@@ -27025,7 +27179,7 @@ Browser.prototype.loaddatahub_ucsc=function(url)
 {
 var bbj=this;
 this.cloak();
-this.ajax('loaducschub=on&url='+url,function(data){bbj.loadhub_ucsc_cb(data,url);});
+this.ajax({loaducschub: "on", url: url},function(data){bbj.loadhub_ucsc_cb(data,url);});
 }
 Browser.prototype.loadhub_ucsc_cb=function(data,url)
 {
@@ -27240,17 +27394,29 @@ if(this.is_gsv()){
 		var t=this.genesetview.lst[i];
 		if(t.chrom==a && Math.max(t.start,b)<Math.min(t.stop,c)) {
 			this.cloak();
-			this.ajaxX("itemlist=on&imgAreaSelect=on&statusId="+this.statusId+
-				"&startChr="+t.name+"&startCoord="+Math.max(t.start,b)+
-				"&stopChr="+t.name+"&stopCoord="+Math.min(t.stop,c)+
-				(this.entire.atbplevel?'&atbplevel=on':''));
+			let paramsObj = {
+				itemlist: "on",
+				imgAreaSelect: "on",
+				statusId: this.statusId,
+				startChr: t.name,
+				startCoord: Math.max(t.start,b),
+				stopChr: t.name,
+				stopCoord: Math.min(t.stop,c)
+			}
+			if (this.entire.atbplevel) {
+				paramsObj.atbplevel = "on";
+			}
+			this.ajaxX(paramsObj);
 			return;
 		}
 	}
 	return;
 }
 this.cloak();
-this.ajaxX(this.displayedRegionParam()+"&jump=on&jumppos="+coord);
+let paramsObj = this.displayedRegionParam();
+paramsObj.jump = "on";
+paramsObj.jumppos = coord;
+this.ajaxX(paramsObj);
 }
 
 function menu_jump_highlighttkitem(event)
@@ -27284,8 +27450,11 @@ if(ss.length==0) {
 }
 var bbj=gflag.menu.bbj;
 stripChild(menu.c47.table,0);
-bbj.ajax('searchsnptable='+bbj.genome.snptable+'&dbName='+bbj.genome.name+'&text='+ss,
-	function(data){bbj.tkitemkwsearch_cb(data);});
+bbj.ajax({
+	searchsnptable: bbj.genome.snptable,
+	dbName: bbj.genome.name,
+	text: ss
+},function(data){bbj.tkitemkwsearch_cb(data);});
 }
 
 
@@ -27310,9 +27479,13 @@ if(ss.length<=1) {
 	return;
 }
 var bbj=gflag.menu.bbj;
-bbj.ajax('findgenebypartialname=on&dbName='+bbj.genome.name+'&query='+ss+
-	'&searchgenetknames='+bbj.genome.searchgenetknames.join(','),
-	function(data){bbj.jumpgene_keyup_cb(data,ss);});
+let paramsObj = {
+	findgenebypartialname: "on",
+	dbName: bbj.genome.name,
+	query: ss,
+	searchgenetknames: bbj.genome.searchgenetknames.join(',')
+}
+bbj.ajax(paramsObj, function(data){bbj.jumpgene_keyup_cb(data,ss);});
 }
 Browser.prototype.jumpgene_keyup_cb=function(data,query)
 {
@@ -27397,9 +27570,13 @@ if(this.genome.linkagegroup) {
 Browser.prototype.getcoord4genenames=function(lst,callback)
 {
 var bbj=this;
-this.ajax('getcoord4genenames=on&scaffoldruntimenoupdate=on&dbName='+this.genome.name+
-	'&lst='+lst.join(',')+'&searchgenetknames='+this.genome.searchgenetknames.join(','),
-	function(data){bbj.getcoord4genenames_cb(data,callback);});
+this.ajax({
+	getcoord4genenames: "on",
+	scaffoldruntimenoupdate: "on",
+	dbName: this.genome.name,
+	lst: lst.join(','),
+	searchgenetknames: this.genome.searchgenetknames.join(',')
+},function(data){bbj.getcoord4genenames_cb(data,callback);});
 }
 
 Browser.prototype.getcoord4genenames_cb=function(data,callback)
@@ -27431,7 +27608,12 @@ in case of gsv, border name is itemname, but not chrom name
 so adding new chrom in case of gsv need to preserve old right border!!
 */
 var bbj=this;
-this.ajax('scfdruntimesync=on&dbName='+this.genome.name+'&session='+this.sessionId+'&status='+this.statusId,function(data){bbj.scfdruntimesync(data)});
+this.ajax({
+	scfdruntimesync: "on",
+	dbName: this.genome.name,
+	session: this.sessionId,
+	status: this.statusId,
+}, function(data){bbj.scfdruntimesync(data)});
 }
 
 Browser.prototype.scfdruntimesync=function(data)
@@ -27929,10 +28111,10 @@ function scfd_updateconfigure()
 		return;
 	}
 	// now determine dsp
-	var dspParam = '';
+	var dspParam = null;
 	if(bbj.dspBoundary.vstartr==bbj.dspBoundary.vstopr && thinginlist(bbj.regionLst[bbj.dspBoundary.vstartr][0], newlst)) {
 		// very well, currently only showing single region and that region is still in use
-		dspParam = '&'+bbj.displayedRegionParam();
+		dspParam = bbj.displayedRegionParam();
 	} else {
 		var preservedRegions = [];
 		var oldlookregion = [];
@@ -27958,7 +28140,13 @@ function scfd_updateconfigure()
 			return;
 		}
 		allowed = allowed>bbj.genome.scaffold.len[dspSeq] ? bbj.genome.scaffold.len[dspSeq] : allowed;
-		dspParam = '&runmode='+RM_genome+'&startChr='+dspSeq+'&startCoord=0&stopChr='+dspSeq+'&stopCoord='+(allowed>10000?10000:allowed);
+		dspParam = {
+			runmode: RM_genome,
+			startChr: dspSeq,
+			startCoord: 0,
+			stopChr:dspSeq,
+			stopCoord: Math.min(10000, allowed),
+		}
 	}
 	bbj.genome.scaffold.current=newlst;
 	bbj.genome.scfdoverview_makepanel();
@@ -27969,7 +28157,13 @@ function scfd_updateconfigure()
 		tmp.push(newlst[i]);
 		tmp.push(bbj.genome.scaffold.len[newlst[i]]);
 	}
-	bbj.ajaxX('scaffoldUpdate=on&scaffoldNames='+tmp.join(',')+',&scaffoldCount='+newlst.length+dspParam);
+	let paramsObj = {
+		scaffoldUpdate: "on",
+		scaffoldNames: tmp.join(','),
+		scaffoldCount: newlst.length,
+	}
+	paramsObj = Object.assign(paramsObj, dspParam);
+	bbj.ajaxX(paramsObj);
 }
 
 function lnkgrp_seq_mo(event)
@@ -28055,9 +28249,10 @@ var lst=bbj.genome.linkagegroup.hash[n.lgname];
 if(i<lst.length && j<lst.length) {
 	menu_hide();
 	gflag.menu.bbj.cloak();
-	gflag.menu.bbj.ajaxX(gflag.menu.bbj.runmode_param()+'&jump=on&jumppos2='+
-	lst[i].n+',0,'+lst[j].n+','+
-	gflag.menu.bbj.genome.scaffold.len[lst[j].n]);
+	let paramsObj = gflag.menu.bbj.runmode_param();
+	paramsObj.jump = "on";
+	paramsObj.jumppos2 = lst[i].n+',0,'+lst[j].n+','+ gflag.menu.bbj.genome.scaffold.len[lst[j].n];
+	gflag.menu.bbj.ajaxX(paramsObj);
 }
 }
 
@@ -28472,7 +28667,7 @@ if(!key) {
 }
 apps.svg.urlspan.innerHTML='<a href=t/'+key+' target=_blank>Link to the svg file</a>';
 var key2 = key.split('.')[0];
-apps.svg.bbj.ajaxText('svg2pdf=on&key='+key2, function(){dom_addtext(apps.svg.urlspan, '&nbsp;&nbsp;&nbsp;&nbsp;<a href=t/'+key2+'.pdf target=_blank>Link to the pdf file</a>');});
+apps.svg.bbj.ajaxText({svg2pdf: "on", key: key2}, function(){dom_addtext(apps.svg.urlspan, '&nbsp;&nbsp;&nbsp;&nbsp;<a href=t/'+key2+'.pdf target=_blank>Link to the pdf file</a>');});
 }
 
 
@@ -28641,7 +28836,8 @@ function get_genome_info(event)
 // from menu option, menu already shown
 var t=event.target;
 while(t.tagName!='DIV') t=t.parentNode;
-gflag.menu.bbj.ajax('getgenomeinfo=on&dbName='+t.genome,function(data){show_genome_info(data);});
+
+gflag.menu.bbj.ajax({getgenomeinfo: "on", dbName: t.genome},function(data){show_genome_info(data);});
 }
 function show_genome_info(data)
 {
@@ -29325,7 +29521,11 @@ if(gc.length==0) {
 	return;
 }
 event.target.disabled=true;
-bbj.ajax("getChromseq=on&regionlst="+gc.join(',')+'&dbName='+bbj.genome.name, function(data){app_showseq(data,lc);});
+bbj.ajax({
+	getChromseq: "on",
+	regionlst: gc.join(','),
+	dbName: bbj.genome.name
+}, function(data){app_showseq(data,lc);});
 }
 function app_showseq(data,coordlst)
 {
