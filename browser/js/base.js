@@ -564,13 +564,26 @@ this.__hubfailedmdvurl={};
 return this;
 }
 
-function prettyBinSize(value){
-    for(var i=0;i<hicUnitRes.options_bp.length;i++){
-        if (hicUnitRes.options_bp[i].value == value) return hicUnitRes.options_bp[i].text;
-    }
-    return 'unknown'
+function prettyBinSize(value) {
+	if (typeof value !== "number") {
+		return '' + value;
+	}
+	let unit = '';
+	let stringValue;
+	if (value >= 1000000) {
+		stringValue = (value/1000000).toFixed(1);
+		unit = 'M'
+	} else if (value >= 1000) {
+		stringValue = (value/1000).toFixed(1);
+		unit = 'K'
+	} else {
+		stringValue = String(value);
+	}
+	if (stringValue.substr(-2, undefined) == '.0') {
+		stringValue = stringValue.substring(0, stringValue.length - 2);
+	}
+	return stringValue + unit;
 }
-
 
 /*** __dom__ ***/
 function dom_create(tag,holder,style,p)
@@ -24902,7 +24915,7 @@ case FT_cool_c:
 		print2console('Negative threshold value must be <=0',2);
 		return;
 	}
-	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,norm:c.norm.options[c.norm.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};//,hasChr:c.hasChr.checked?1:0};
+	_tmp.qtc={pfilterscore:score1,nfilterscore:score2,matrix:c.matrix.options[c.matrix.selectedIndex].value,unit_res:c.unit_res.options[c.unit_res.selectedIndex].value,bin_size:c.resoptions.options[c.resoptions.selectedIndex].value};//,hasChr:c.hasChr.checked?1:0};
 	break;
 case FT_bam_c:
 	c=bbj.genome.custtk.ui_bam;
@@ -24939,7 +24952,8 @@ if(bbj.genome.tkurlInUse(_tmp.url)) {
 	return;
 }
 */
-if(newCustomTrack_isInvalid(_tmp)) {
+// Cool tracks use a file name instead of URL, so we skip newCustomTrack_isInvalid because it validates URL.
+if(!ft==FT_cool_c && newCustomTrack_isInvalid(_tmp)) {
 	return;
 }
 
@@ -25101,7 +25115,11 @@ table.cellSpacing=10;
 var tr=table.insertRow(0);
 var td=tr.insertCell(0);
 td.align='right';
-td.innerHTML=ftname+' file URL';
+if (ft == FT_cool_c) {
+	td.innerHTML=ftname+' file name';
+} else {
+	td.innerHTML=ftname+' file URL';
+}
 var td=tr.insertCell(1);
 var inp=dom_create('input',td);
 inp.type='text';
@@ -25228,12 +25246,6 @@ if(ft==FT_cool_c) {
         td=tr.insertCell(0);
         td.align='right';
         td.innerHTML="Normalization";
-        td=tr.insertCell(1);
-	d.norm=dom_addselect(td,null,hicNormOptions);
-        tr=table.insertRow(-1);
-        td=tr.insertCell(0);
-        td.align='right';
-        td.innerHTML="Unit of Resolution";
         td=tr.insertCell(1);
 	d.unit_res=dom_addselect(td,cust_cool_unit_change,hicUnitOptions);
 	dom_addtext(td,' BP is base-pair delimited resolution and FRAG is fragment delimited','#858585');

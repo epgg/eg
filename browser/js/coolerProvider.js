@@ -19,15 +19,18 @@ class CoolerProvider extends HicProvider {
      * results according to the given HicFormatter.
      *
      * @param {string} fileName - the name of the .cool file stored on the server
+     * @param {string} label - the label to add to the track data
      * @param {HicFormatter} hicFormatter - used to format results
      */
-    constructor(fileName, formatter) {
+    constructor(fileName, label, formatter) {
         super({loadDataset: () => null}, null);
 
         this.fileName = fileName;
+        this.label = label;
         this.formatter = formatter;
-        let apiUrl = CoolerProvider.METADATA_URL + $.param({fileName: fileName});
-        this.metadataPromise = CoolerProvider._requestJson(apiUrl).then(jsonObj => new _CoolerMetadata(jsonObj));
+        this.metadataUrl = CoolerProvider.METADATA_URL + $.param({fileName: fileName});
+        this.metadataPromise = CoolerProvider._requestJson(this.metadataUrl)
+            .then(jsonObj => new _CoolerMetadata(jsonObj));
     }
 
     /**
@@ -130,7 +133,8 @@ class CoolerProvider extends HicProvider {
      */
     _constructTrackData(hicTrack, recordsForEachRegion) {
         let trackData = super._constructTrackData(hicTrack, recordsForEachRegion);
-        trackData.label = this.fileName;
+        trackData.url = this.metadataUrl;
+        trackData.label = hicTrack.label;
         return trackData;
     }
 }
