@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux={};
-var washUver='43.4';
+var washUver='44';
 var washUtag='\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -25024,9 +25024,11 @@ if(url.length <= 8) {
 	print2console("URL looks invalid", 3);
 	return true;
 }
-if(url.substr(0,4).toLowerCase()!='http' && url.substr(0,3).toLowerCase()!='ftp') {
+if(hash.ft !== FT_cool_c){
+    if(url.substr(0,4).toLowerCase()!='http' && url.substr(0,3).toLowerCase()!='ftp') {
 	print2console("unrecognizable URL", 3);
 	return true;
+    }
 }
 var label = hash.label;
 if(label.length == 0) {

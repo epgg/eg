@@ -8,7 +8,7 @@ Common functions for the Cooler-related CGI scripts.
 import cooler
 import os
 
-COOL_DIR = "???"
+COOL_DIR = "/var/www/"
 
 def get_subfiles(cool_file_path):
     """
