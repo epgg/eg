@@ -12,7 +12,7 @@
  * About bins: HiC stores contact matrix data.  Becuase the entire matrix is very large, we aggregate adjacent entries
  * into larger cells.  The number of rows and columns we aggregate is the bin size.  Bin size is measured in base pairs.
  *
- * Dependencies: juicebox-1.0.js, juiceboxPatch.js and base.js.  Juicebox.js further depends on jQuery, igv.js,
+ * Dependencies: juicebox-1.0-modified.js and base.js.  Juicebox.js further depends on jQuery, igv.js,
  * and underscore.js.
  *
  * @author Silas Hsu
@@ -89,6 +89,7 @@ class HicProvider extends DataProvider {
         let trackData = {
             data: recordsForEachRegion,
             name: hicTrack.name,
+            label: hicTrack.label,
             ft: hicTrack.ft,
             mode: hicTrack.mode,
             bin_size: hicTrack.qtc.bin_size || scale_auto,

@@ -70,7 +70,7 @@ def get_json_response(cool_file, chromosome, start_base, end_base):
     start_bin = start_base // cool_file.binsize
 
     # matrix() by default applies balance=True, normalizing the entries
-    matrix = cool_file.matrix().fetch("%s:%d-%d" % (chromosome, start_base, end_base))
+    matrix = cool_file.matrix(balance=False).fetch("%s:%d-%d" % (chromosome, start_base, end_base))
     numpy.nan_to_num(matrix, copy=False)
     records = matrix.tolist()
 

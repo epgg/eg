@@ -134,7 +134,7 @@ class CoolerProvider extends HicProvider {
     _constructTrackData(hicTrack, recordsForEachRegion) {
         let trackData = super._constructTrackData(hicTrack, recordsForEachRegion);
         trackData.url = this.metadataUrl;
-        trackData.label = hicTrack.label;
+        trackData.norm = "NONE";
         return trackData;
     }
 }
@@ -154,7 +154,7 @@ class _CoolerMetadata {
      */
     constructor(parsedJson) {
         this.binSizes = parsedJson.binSizes.slice();
-        this.binSizes.sort().reverse();
+        this.binSizes.sort((a, b) => a < b);
         // We alias this.binSizes because we delegate some functions to hic.Dataset
         this.bpResolutions = this.binSizes;
         this.chromosomes = parsedJson.chromosomes.slice();
@@ -202,10 +202,12 @@ class CoolerFormatter extends BrowserHicFormatter {
         let records = parsedJson.records;
         for (let i = 0; i < records.length; i++) {
             for (let j = 0; j < records[i].length; j++) {
-                allData.push(
-                    new CoordinateRecord(id, chromosome, startBinNum + i, startBinNum + j, binSize, records[i][j])
-                );
-                id++;
+                if (records[i][j] > 0) {
+                    allData.push(
+                        new CoordinateRecord(id, chromosome, startBinNum + i, startBinNum + j, binSize, records[i][j])
+                    );
+                    id++;
+                }
             }
         }
         return allData;

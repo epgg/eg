@@ -25248,7 +25248,7 @@ if(ft==FT_cool_c) {
         tr=table.insertRow(-1);
         td=tr.insertCell(0);
         td.align='right';
-        td.innerHTML="Normalization";
+        td.innerHTML="Unit";
         td=tr.insertCell(1);
 	d.unit_res=dom_addselect(td,cust_cool_unit_change,hicUnitOptions);
 	dom_addtext(td,' BP is base-pair delimited resolution and FRAG is fragment delimited','#858585');
