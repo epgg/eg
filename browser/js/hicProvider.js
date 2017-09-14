@@ -28,7 +28,7 @@ class HicProvider extends DataProvider {
     constructor(hicReader, hicFormatter) {
         super();
         this.reader = hicReader;
-        this.datasetPromise = hicReader.loadDataset();
+        this.datasetPromise = hicReader.loadDataset({});
         this.hicFormatter = hicFormatter;
     }
 

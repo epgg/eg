@@ -152,7 +152,7 @@ describe("Unit tests - HicProvider", function() {
 
         let getBlocksStub = null;
         before(function() {
-            getBlocksStub = sinon.stub(HicProvider, "getBlocks");
+            getBlocksStub = sinon.stub(HicProvider, "_getBlocks");
         });
 
         beforeEach(function() {

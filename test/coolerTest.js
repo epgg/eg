@@ -13,7 +13,7 @@ describe("Unit tests - CoolerProvider", function() {
     const getInstance = function() {
         let _requestJsonStub = sinon.stub(CoolerProvider, "_requestJson");
         _requestJsonStub.returns(Promise.resolve( {binSizes: [], chromosomes: []} ))
-        let instance = new CoolerProvider("", CoolerFormatter);
+        let instance = new CoolerProvider("myFileName", "myLabel", CoolerFormatter);
         _requestJsonStub.restore();
         return instance
     }
@@ -224,21 +224,22 @@ describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", fu
         return {
             binSize: 1,
             startBase: startBase,
-            records: [[0]]
+            records: [[1]]
         };
     };
 
     const EXPECTED = {
         data: [
             [
-                new CoordinateRecord(0, "chr1", 0, 0, 1, 0)
+                new CoordinateRecord(0, "chr1", 0, 0, 1, 1)
             ],
             [
-                new CoordinateRecord(0, "chr2", 0, 0, 1, 0),
-                new CoordinateRecord(1, "chr2", 150, 150, 1, 0)
+                new CoordinateRecord(0, "chr2", 0, 0, 1, 1),
+                new CoordinateRecord(1, "chr2", 150, 150, 1, 1)
             ]
         ],
-        "label":FILE_NAME,"name":"35616758416129213","ft":34,"mode":4,bin_size:0,d_binsize:1,matrix:"observed",
+        "label":"myLabel","name":"35616758416129213","ft":34,"mode":4,bin_size:0,d_binsize:1,norm:"NONE",
+        matrix:"observed",url:"/cgi-bin/cooler/getMetadata.py?fileName=myFile"
     }
 
     it("works", function() {
@@ -250,7 +251,7 @@ describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", fu
             requestObj.respond(200, {}, JSON.stringify(makeDataBlob(startBase)));
         });
 
-        let instance = new CoolerProvider(FILE_NAME, CoolerFormatter);
+        let instance = new CoolerProvider(FILE_NAME, coolerTestData.track.label, CoolerFormatter);
         return instance.getData(coolerTestData.track, REGION_LST).then(function(result) {
             expect(fakeServer.requests).to.have.lengthOf(4); // One metadata request, three block requests
 
@@ -258,7 +259,6 @@ describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", fu
             delete result[DataProvider.TRACK_PROP_NAME];
 
             expect(result).to.deep.equal(EXPECTED);
-
             fakeServer.restore(); // Needed since fakeServer replaces the native XMLHttpRequest
         });
     });

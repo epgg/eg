@@ -90,54 +90,8 @@ hic.HiCReader.fromUrl = function(url) {
 // Bug fixes //
 ///////////////
 
-/**
- * Changes:
- * - Clears blocks out of the cache properly: `delete self.blockCache[self.blockCacheKeys[0]];` originally was
- * `self.blockCache[self.blockCacheKeys[0]] = undefined;`
- * - Uses hic.Dataset.BLOCK_CACHE_SIZE instead of a magic number
- */
-hic.Dataset.prototype.getBlock = function (zd, blockNumber) {
 
-    var self = this,
-        key = "" + zd.chr1.name + "_" + zd.chr2.name + "_" + zd.zoom.binSize + "_" + zd.zoom.unit + "_" + blockNumber;
-
-
-    if (this.blockCache.hasOwnProperty(key)) {
-        return Promise.resolve(this.blockCache[key]);
-    } else {
-        return new Promise(function (fulfill, reject) {
-
-            var reader = self.hicReader;
-
-            reader.readBlock(blockNumber, zd)
-
-                .then(function (block) {
-
-                    // Cache at most BLOCK_CACHE_SIZE blocks
-                    if(self.blockCacheKeys.length > hic.Dataset.BLOCK_CACHE_SIZE) {
-                        delete self.blockCache[self.blockCacheKeys[0]];
-                        self.blockCacheKeys.shift();
-                    }
-
-                    self.blockCacheKeys.push(key);
-                    self.blockCache[key] = block;
-
-                    fulfill(block);
-
-                })
-                .catch(function (error) {
-                    reject(error);
-                })
-        })
-    }
-}
-
-/*
- * Copy-pasting is messy and breaks easily.  Here, we put fixes in wrappers.
- */
 hic = (function (hic) {
-    let _readNormVectorIndex = hic.HiCReader.prototype.readNormVectorIndex;
-    let _readMatrix = hic.HiCReader.prototype.readMatrix;
     let _getNormalizationVector = hic.Dataset.prototype.getNormalizationVector;
 
     /*
@@ -148,42 +102,6 @@ hic = (function (hic) {
         return _getNormalizationVector.bind(this)(type, chrIdx, unit, binSize)
             .then(normVector => normVector || undefined);
     }
-
-    /*
-     * In the original function, the `Promise.resolve(...)` statements were missing `return`.
-     */
-    hic.HiCReader.prototype.readNormVectorIndex = function (dataset) {
-
-        if (this.expectedValueVectorsPosition === undefined) {
-            return Promise.resolve();
-        }
-
-        if (this.normVectorIndex) {
-            return Promise.resolve(normVectorIndex);
-        }
-
-        return _readNormVectorIndex.bind(this)(dataset);
-    }
-
-    /*
-     * In the original function, the `Promise.resolve(undefined)` statement was missing `return`.
-     */
-    hic.HiCReader.prototype.readMatrix = function (key) {
-        if (this.masterIndex[key] == null) {
-            return Promise.resolve(undefined);
-        }
-
-        return _readMatrix.bind(this)(key);
-    }
-
-    /*
-     * In hic.HiCReader.prototype.readBlock(), there is a line that contains `new hic.hic.ContactRecord`, where the
-     * extra `.hic` is a typo.  Instead of replacing that line, we will just give it what it wants.
-     */
-    if (!hic.hic) {
-        hic.hic = {};
-    }
-    hic.hic.ContactRecord = hic.ContactRecord;
 
     return hic;
 })
