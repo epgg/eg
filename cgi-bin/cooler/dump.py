@@ -35,18 +35,23 @@ def main():
 
     query_params = cgi.FieldStorage()
     file_name = query_params.getfirst("fileName")
-    chromosome = query_params.getfirst("chromosome")
-    start_base = query_params.getfirst("startBase")
-    end_base = query_params.getfirst("endBase")
+    chromosome_x = query_params.getfirst("chromosomeX")
+    start_base_x = query_params.getfirst("startBaseX")
+    end_base_x = query_params.getfirst("endBaseX")
+    chromosome_y = query_params.getfirst("chromosomeY")
+    start_base_y = query_params.getfirst("startBaseY")
+    end_base_y = query_params.getfirst("endBaseY")
     desired_binsize = query_params.getfirst("binSize")
-    if None in [file_name, chromosome, start_base, end_base, desired_binsize]:
+    if None in [file_name, chromosome_x, start_base_x, end_base_x, chromosome_y, start_base_y, end_base_y,
+            desired_binsize]:
         coolUtils.respond_with_text(400, "Missing required parameter(s)")
         return
 
     try:
         subfiles = coolUtils.get_subfiles(coolUtils.COOL_DIR + file_name)
         cool_file = get_file_matching_binsize(subfiles, int(desired_binsize))
-        jsonText = get_json_response(cool_file, chromosome, int(start_base), int(end_base))
+        json_text = get_json_response(cool_file, chromosome_x, int(start_base_x), int(end_base_x), chromosome_y,
+            int(start_base_y), int(end_base_y))
     except IOError:
         coolUtils.respond_with_text(404, "No such .cool file stored on this server")
         return
@@ -54,9 +59,9 @@ def main():
         coolUtils.respond_with_text(400, "Malformed or unknown genomic region specified")
         return
 
-    coolUtils.respond_with_json(jsonText)
+    coolUtils.respond_with_json(json_text)
 
-def get_json_response(cool_file, chromosome, start_base, end_base):
+def get_json_response(cool_file, chromosome_x, start_base_x, end_base_x, chromosome_y, start_base_y, end_base_y):
     """
     Gets the body of the HTTP response.
 
@@ -67,16 +72,18 @@ def get_json_response(cool_file, chromosome, start_base, end_base):
     :returns: string of JSON-compliant data
     :throws ValueError: if the input genomic region was invalid
     """
-    start_bin = start_base // cool_file.binsize
 
     # matrix() by default applies balance=True, normalizing the entries
-    matrix = cool_file.matrix(balance=False).fetch("%s:%d-%d" % (chromosome, start_base, end_base))
+    matrix = cool_file.matrix(balance=False).fetch(
+        (chromosome_x, start_base_x, end_base_x), (chromosome_y, start_base_y, end_base_y)
+    )
     numpy.nan_to_num(matrix, copy=False)
     records = matrix.tolist()
 
     return json.dumps({
         "binSize": cool_file.binsize,
-        "startBase": start_base,
+        "startBaseX": start_base_x,
+        "startBaseY": start_base_y,
         "records": records
     })
 

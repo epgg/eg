@@ -132,7 +132,7 @@ describe("Unit tests - CoolerProvider", function() {
         });
 
         it("resolves with empty array if there is a problem", function() {
-            _getBlocks2Stub.rejects(new Error("This error should be caught"));
+            _getBlocks2Stub.rejects(new Error("Fake error message"));
             return INSTANCE.getRecords("chr1", 0, 1, "chr2", 0, 2, "norm", null, null)
                 .then(function(result) {
                     expect(result).to.deep.equal([]);
@@ -155,25 +155,10 @@ describe("Unit tests - CoolerProvider", function() {
             CoolerProvider.BINS_PER_BLOCK = oldBinsPerBlock;
         });
 
-        it("only requests coordinates in consistent blocks", function() {
-            return INSTANCE._getBlocks2("chr1", 5, 25, 1, 100).then(function(urls) {
-                expect(urls).to.have.lengthOf(3);
-                expect(urls[0]).to.include("startBase=0");
-                expect(urls[0]).to.include("endBase=9");
-                expect(urls[1]).to.include("startBase=10");
-                expect(urls[1]).to.include("endBase=19");
-                expect(urls[2]).to.include("startBase=20");
-                expect(urls[2]).to.include("endBase=29");
-            });
-        });
-
-        it("ensures coordinates do not exceed the chromosome's length", function() {
-            return INSTANCE._getBlocks2("chr1", 95, 115, 1, 100).then(function(urls) {
-                expect(urls).to.have.lengthOf(2);
-                expect(urls[0]).to.include("startBase=90");
-                expect(urls[0]).to.include("endBase=99");
-                expect(urls[1]).to.include("startBase=100");
-                expect(urls[1]).to.include("endBase=100");
+        it("requests to the right URL", function() {
+            return INSTANCE._getBlocks2("chr1", 0, 9, 1, 100).then(function(urls) {
+                expect(urls[0]).to.equal("/cgi-bin/cooler/dump.py?fileName=myFileName&chromosomeX=chr1&startBaseX=0" +
+                    "&endBaseX=9&chromosomeY=chr1&startBaseY=0&endBaseY=9&binSize=1");
             });
         });
     });
@@ -190,7 +175,8 @@ describe("Unit tests - CoolerFormatter", function() {
                     [3, 4]
                 ],
                 binSize: 10,
-                startBase: 100
+                startBaseX: 100,
+                startBaseY: 100,
             };
             const CHR = "chr"
             const EXPECTED = [
@@ -205,11 +191,12 @@ describe("Unit tests - CoolerFormatter", function() {
     });
 });
 
-describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", function() {
+describe("Integration test (HicProvider + RequestSplitter + CoolerProvider + CoolerFormatter)", function() {
     // It would be nice to test the backend too, but it's too much of a pain to set up...
     let fakeServer = null;
 
     const FILE_NAME = "myFile";
+    // Both regions base pair 1-299
     const REGION_LST = [["chr1",0,141213431,1,299,192,""],["chr2",0,135534747,1,299,2790,""]];
     const METADATA_BLOB = {
         binSizes: [1, 10],
@@ -219,11 +206,12 @@ describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", fu
         ]
     };
     // chr1:1-299, chr2:1-299
-    // Taking into account numBasePairs and CoolerProvider.BINS_PER_BLOCK, =one block for chr1 and two blocks for chr2
-    const makeDataBlob = function(startBase) {
+    // Taking into account numBasePairs and CoolerProvider.BINS_PER_BLOCK = 400, 1 block for chr1 and 1 block for chr2
+    const makeDataBlob = function(startBaseX, startBaseY) {
         return {
             binSize: 1,
-            startBase: startBase,
+            startBaseX: startBaseX,
+            startBaseY: startBaseY,
             records: [[1]]
         };
     };
@@ -235,7 +223,6 @@ describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", fu
             ],
             [
                 new CoordinateRecord(0, "chr2", 0, 0, 1, 1),
-                new CoordinateRecord(1, "chr2", 150, 150, 1, 1)
             ]
         ],
         "label":"myLabel","name":"35616758416129213","ft":34,"mode":4,bin_size:0,d_binsize:1,norm:"NONE",
@@ -246,18 +233,22 @@ describe("Integration test (HicProvider + CoolerProvider + CoolerFormatter)", fu
         let fakeServer = sinon.fakeServer.create({respondImmediately: true});
         fakeServer.respondWith(new RegExp(CoolerProvider.METADATA_URL), JSON.stringify(METADATA_BLOB));
         fakeServer.respondWith(new RegExp(CoolerProvider.DATA_URL), function(requestObj) {
-            let queryParam = requestObj.url.match(/startBase=\d+/)[0];
-            let startBase = parseInt(queryParam.split("=")[1]);
-            requestObj.respond(200, {}, JSON.stringify(makeDataBlob(startBase)));
+            let paramStartBaseX = requestObj.url.match(/startBaseX=\d+/)[0];
+            let paramStartBaseY = requestObj.url.match(/startBaseY=\d+/)[0];
+            let startBaseX = parseInt(paramStartBaseX.split("=")[1]);
+            let startBaseY = parseInt(paramStartBaseY.split("=")[1]);
+            requestObj.respond(200, {}, JSON.stringify(makeDataBlob(startBaseX, startBaseY)));
         });
 
         let instance = new CoolerProvider(FILE_NAME, coolerTestData.track.label, CoolerFormatter);
         return instance.getData(coolerTestData.track, REGION_LST).then(function(result) {
-            expect(fakeServer.requests).to.have.lengthOf(4); // One metadata request, three block requests
+            expect(fakeServer.requests).to.have.lengthOf(3); // One metadata request, two block requests
 
             expect(result[DataProvider.TRACK_PROP_NAME]).to.be.an.instanceof(CoolerProvider);
             delete result[DataProvider.TRACK_PROP_NAME];
 
+            console.log(result);
+            console.log(EXPECTED);
             expect(result).to.deep.equal(EXPECTED);
             fakeServer.restore(); // Needed since fakeServer replaces the native XMLHttpRequest
         });

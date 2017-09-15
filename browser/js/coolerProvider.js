@@ -31,6 +31,7 @@ class CoolerProvider extends HicProvider {
         this.metadataUrl = CoolerProvider.METADATA_URL + $.param({fileName: fileName});
         this.metadataPromise = CoolerProvider._requestJson(this.metadataUrl)
             .then(jsonObj => new _CoolerMetadata(jsonObj));
+        this.requestSplitter = new RequestSplitter();
     }
 
     /**
@@ -103,23 +104,18 @@ class CoolerProvider extends HicProvider {
      * @return {Promise.<Object[]>} - Promise for array of parsed JSON
      */
     _getBlocks2(chromosome, startBase, endBase, binSize, chromosomeLength) {
-        let startBin = Math.floor(startBase / binSize);
-        let startBlock = Math.floor(startBin / CoolerProvider.BINS_PER_BLOCK);
-        let endBin = Math.floor(endBase / binSize);
-        let endBlock = Math.floor(endBin / CoolerProvider.BINS_PER_BLOCK);
-
+        let blockSize = CoolerProvider.BINS_PER_BLOCK * binSize;
+        let blocks = this.requestSplitter.splitRegion2d(blockSize, startBase, endBase, chromosomeLength);
         let blockPromises = [];
-        for (let blockNum = startBlock; blockNum <= endBlock; blockNum++) {
-            let blockStartBase = blockNum * CoolerProvider.BINS_PER_BLOCK * binSize;
-            if (blockStartBase > chromosomeLength) {
-                break;
-            }
-
+        for (let block of blocks) {
             let params = {
                 fileName: this.fileName,
-                chromosome: chromosome,
-                startBase: blockStartBase,
-                endBase: Math.min((blockNum + 1) * CoolerProvider.BINS_PER_BLOCK * binSize - 1, chromosomeLength),
+                chromosomeX: chromosome,
+                startBaseX: block.startBaseX,
+                endBaseX: block.endBaseX,
+                chromosomeY: chromosome,
+                startBaseY: block.startBaseY,
+                endBaseY: block.endBaseY,
                 binSize: binSize
             }
             let apiURL = CoolerProvider.DATA_URL + $.param(params);
@@ -139,7 +135,7 @@ class CoolerProvider extends HicProvider {
     }
 }
 
-CoolerProvider.BINS_PER_BLOCK = 150;
+CoolerProvider.BINS_PER_BLOCK = 400;
 CoolerProvider.METADATA_URL = "/cgi-bin/cooler/getMetadata.py?";
 CoolerProvider.DATA_URL = "/cgi-bin/cooler/dump.py?";
 
@@ -194,8 +190,10 @@ class CoolerFormatter extends BrowserHicFormatter {
      */
     static _toCoordinateRecords(parsedJson, chromosome) {
         let binSize = parsedJson.binSize;
-        let startBase = parsedJson.startBase;
-        let startBinNum = Math.floor(startBase / binSize);
+        let startBaseX = parsedJson.startBaseX;
+        let startBaseY = parsedJson.startBaseY;
+        let startBinNumX = Math.floor(startBaseX / binSize);
+        let startBinNumY = Math.floor(startBaseY / binSize);
 
         var id = 0;
         let allData = [];
@@ -204,7 +202,7 @@ class CoolerFormatter extends BrowserHicFormatter {
             for (let j = 0; j < records[i].length; j++) {
                 if (records[i][j] > 0) {
                     allData.push(
-                        new CoordinateRecord(id, chromosome, startBinNum + i, startBinNum + j, binSize, records[i][j])
+                        new CoordinateRecord(id, chromosome, startBinNumX + i, startBinNumY + j, binSize, records[i][j])
                     );
                     id++;
                 }
