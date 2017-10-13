@@ -15564,13 +15564,13 @@ function placeIndicator3(x, y, w, h) {
     indicator3.style.display = "block";
 }
 
-function tkinfo_show_closure(bbj, tk) {
+function tkinfo_show_closure(bbj, tk, context) {
     return function() {
-        bbj.tkinfo_show(tk);
+        bbj.tkinfo_show(tk, context);
     }
     ;
 }
-Browser.prototype.tkinfo_show = function(arg) {
+Browser.prototype.tkinfo_show = function(arg, context) {
     // registry obj for accessing md
     var tk;
     if (typeof (arg) == 'string') {
@@ -15683,6 +15683,15 @@ Browser.prototype.tkinfo_show = function(arg) {
     }
     if (tk.url) {
         dom_create('div', d).innerHTML = 'File URL: <a href=' + tk.url + ' target=_blank>' + (tk.url.length > 50 ? tk.url.substr(0, 50) + '...' : tk.url) + '</a>';
+    }
+    if (context === 23) { // Displaying search results
+        let backButton = $(dom_create('button', d));
+        backButton.text("Back to search results");
+        backButton.attr("style", "margin-top: 10px;");
+        backButton.click(() => {
+            menu_blank();
+            tkkwsearch();
+        });
     }
 }
 
@@ -24302,7 +24311,7 @@ Browser.prototype.showhmtkchoice = function(p) {
         td = tr.insertCell(-1);
         td.innerHTML = '&nbsp;&#8505;&nbsp;';
         td.className = 'clb';
-        td.onclick = tkinfo_show_closure(bbj, obj);
+        td.onclick = tkinfo_show_closure(bbj, obj, p.context);
         if (p.delete) {
             td = tr.insertCell(-1);
             dom_addbutt(td, 'delete', menu_delete_custtk).tkname = tkn;
