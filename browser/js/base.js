@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux = {};
-var washUver = '44';
+var washUver = '44.1';
 var washUtag = '\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -7322,7 +7322,7 @@ calling drawTrack_browser(trunk_tk) will automatically redraw splinter
                 }
                 break;
             case 19:
-                if (tk.ft == FT_lr_n || tk.ft == FT_lr_c) {
+                if (tk.ft == FT_lr_n || tk.ft == FT_lr_c || tk.ft == FT_hi_c || tk.ft == FT_cool_c) {
                     var c = colorstr2int(menu.lr.pcolor.style.backgroundColor);
                     tk.qtc.pr = c[0];
                     tk.qtc.pg = c[1];
@@ -7342,7 +7342,7 @@ calling drawTrack_browser(trunk_tk) will automatically redraw splinter
                 }
                 break;
             case 20:
-                if (tk.ft == FT_lr_n || tk.ft == FT_lr_c) {
+                if (tk.ft == FT_lr_n || tk.ft == FT_lr_c || tk.ft == FT_hi_c || tk.ft == FT_cool_c) {
                     var c = colorstr2int(menu.lr.ncolor.style.backgroundColor);
                     tk.qtc.nr = c[0];
                     tk.qtc.ng = c[1];
