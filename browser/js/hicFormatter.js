@@ -85,18 +85,19 @@ class BrowserHicFormatter extends HicFormatter {
  * makes construction of such strange records easier.
  */
 class CoordinateRecord {
-    constructor(id, chromosome, bin1, bin2, binSize, counts) {
+    constructor(id, chromosome, bin1, bin2, binSize, value) {
         let coor1Start = bin1 * binSize;
         let coor1Stop = (bin1 + 1) * binSize;
         let coor2Start = bin2 * binSize;
         let coor2Stop = (bin2 + 1) * binSize;
-        let roundedCounts = (counts != null) ? counts.toFixed(CoordinateRecord.DIGITS_TO_ROUND) : 0;
+        let roundedCounts = (value != null) ? value.toFixed(CoordinateRecord.DIGITS_TO_ROUND) : 0;
 
         this.id = id;
         this.name = `${chromosome}:${coor1Start}-${coor1Stop},${roundedCounts}`;
         this.start = coor2Start;
         this.stop = coor2Stop;
         this.strand = (bin1 < bin2) ? "<" : ">";
+        this.value = value;
     }
 }
 

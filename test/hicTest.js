@@ -133,7 +133,7 @@ describe("Unit tests - HicProvider", function() {
 
         it("automatically gets the bin size from the given records", function() {
             expect(INSTANCE._constructTrackData(HIC_TRACK, RECORDS).d_binsize).to.equal(BIN_SIZE);
-            expect(INSTANCE._constructTrackData(HIC_TRACK, [[],[]]).d_binsize).to.equal(0);
+            expect(INSTANCE._constructTrackData(HIC_TRACK, [ [], [] ]).d_binsize).to.equal(0);
         });
 
         it("copies record data and certain properties to the result", function() {
@@ -142,8 +142,14 @@ describe("Unit tests - HicProvider", function() {
             expect(result.ft).to.equal(HIC_TRACK.ft);
             expect(result.mode).to.equal(HIC_TRACK.mode);
             expect(result.bin_size).to.equal(HIC_TRACK.qtc.bin_size);
-            expect(result.data).to.equal(RECORDS);
+            expect(result.data).to.deep.equal(RECORDS);
             expect(result[HicProvider.TRACK_PROP_NAME]).to.equal(INSTANCE);
+        });
+
+        it("can filter out records under a minimum score", function() {
+            let trackWithMinScore = Object.assign({}, HIC_TRACK);
+            trackWithMinScore.qtc = Object.assign({pfilterscore: 1}, HIC_TRACK.qtc);
+            expect(INSTANCE._constructTrackData(trackWithMinScore, RECORDS).data).to.deep.equal([ [], [] ]);
         });
     });
 

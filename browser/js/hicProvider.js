@@ -85,7 +85,19 @@ class HicProvider extends DataProvider {
     _constructTrackData(hicTrack, recordsForEachRegion) {
         // Find the first region with records
         let regionWithRecords = recordsForEachRegion.find(records => records.length > 0);
-        let binSize = regionWithRecords !== undefined ? (regionWithRecords[0].stop - regionWithRecords[0].start) : 0;
+        const binSize = regionWithRecords !== undefined ? (regionWithRecords[0].stop - regionWithRecords[0].start) : 0;
+        const positiveFilterScore = hicTrack.qtc.pfilterscore || 0;
+        const negativeFilterScore = hicTrack.qtc.nfilterscore || 0;
+        recordsForEachRegion = recordsForEachRegion.map(records => {
+            return records.filter(record => {
+                if (record.value >= 0) {
+                    return record.value > positiveFilterScore;
+                } else {
+                    return record.value < negativeFilterScore;
+                }
+            })
+        });
+        
         let trackData = {
             data: recordsForEachRegion,
             name: hicTrack.name,
