@@ -2447,14 +2447,14 @@ Genome.prototype.parseCoordinate = function(input, type) {
         c[3] = input[2];
         break;
     case 2:
-        var t = input.split(/[^\w\.]/);
+        var t = input.split(/[^\w\.]+/);
         if (t.length == 3) {
             c[0] = c[2] = t[0];
             c[1] = parseInt(t[1]);
             c[3] = parseInt(t[2]);
         } else {
             // remove all comma and try again
-            t = input.replace(/,/g, '').split(/[^\w\.]/);
+            t = input.replace(/,/g, '').split(/[^\w\.]+/);
             if (t.length == 3) {
                 c[0] = c[2] = t[0];
                 c[1] = parseInt(t[1]);
@@ -26149,8 +26149,14 @@ remove a thing through menu 'remove' option
                         g2lst[t.cotton] = [t];
                     }
                 } else {
-                    if (t.ft != FT_weaver_c)
+                    let isRemoveConfirmed = true;
+                    if (t.ft == FT_weaver_c) {
+                        isRemoveConfirmed = window.confirm("Removing this alignment track will cause tracks of the " +
+                            "other genome to stop updating until the alignment track is re-added.  Continue?")
+                    }
+                    if (isRemoveConfirmed) {
                         tlst.push(t);
+                    }
                 }
             }
             if (tlst.length > 0)
@@ -26382,7 +26388,6 @@ or a splinter
     case FT_ld_n:
         break;
     case FT_weaver_c:
-        menu.c4.style.display = 'none';
         if (tk.reciprocal) {
             menu.c62.style.display = 'block';
             //menu.c63.style.display=
