@@ -13,7 +13,8 @@
 		{"assembly":"rn5","commonname":"Rat","scientificname":"Rattus norvegicus","major":"rn4"},
 		{"assembly":"rn6","commonname":"Rat","scientificname":"Rattus norvegicus","major":"rn4"},
 		{"assembly":"cavPor3","commonname":"Guinea pig","scientificname":"Cavia porcellus","ismajor":true,"logofontcolor":"black"},
-		{"assembly":"canFam3","commonname":"Dog","scientificname":"Canis lupus familiaris","ismajor":true,"logofontcolor":"white"}
+		{"assembly":"canFam3","commonname":"Dog","scientificname":"Canis lupus familiaris","ismajor":true,"logofontcolor":"white"},
+		{"assembly":"panTro5","commonname":"Chimp","scientificname":"Pan troglodytes","ismajor":true,"logofontcolor":"white"}
 		],
 	"Vertebrate" : [
 		{"assembly":"galGal4","commonname":"Chicken","scientificname":"Gallus gallus","ismajor":true,"logofontcolor":"white"},
