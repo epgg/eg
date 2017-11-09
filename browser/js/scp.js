@@ -95,7 +95,14 @@ dom_addbutt(d5,'&#9473;',scatterplot_opacity).change=-0.1;
 dom_addtext(d5,'&nbsp;&nbsp;&nbsp;');
 s=dom_addtext(d5,'&nbsp;color&nbsp;','white','coloroval');
 s.style.backgroundColor='rgb('+sp.dotcolor_r+','+sp.dotcolor_g+','+sp.dotcolor_b+')';
-s.addEventListener('click',scatterplot_dotcolor_initiator,false);
+
+let colorPicker = dom_create('input', d5, 'display: inline-block');
+$(colorPicker).attr('size', 8);
+$(colorPicker).addClass(jscolor.lookupClass);
+jscolor.installByClassName(jscolor.lookupClass);
+colorPicker.jscolor.fromRGB(sp.dotcolor_r, sp.dotcolor_g, sp.dotcolor_b);
+colorPicker.addEventListener('focus', scatterplot_dotcolor_initiator);
+colorPicker.addEventListener('change', hexColorPicked);
 sp.dotcolor_span=s;
 }
 
@@ -417,15 +424,15 @@ for(i=0; i<data.length; i++) {
 	e.style.position='absolute';
 	e.style.width=e.style.height=obj.dot_size;
 	switch(obj.dot_shape) {
-	case 1:
+	case 1: // box
 		e.style.border='solid 1px '+color;break;
-	case 2:
+	case 2: // square
 		e.style.backgroundColor=color;break;
-	case 3:
-		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2);
+	case 3: // circle
+		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2) + 'px';
 		e.style.border='solid 1px '+color;break;
-	case 4:
-		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2);
+	case 4: // disc
+		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2) + 'px';
 		e.style.backgroundColor=color;break;
 	}
 	e.idx=i;
