@@ -6,7 +6,7 @@ var washUtag = '\
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
 <span style="color:#38761d;">G<span style="font-size:80%;">ENOME</span></span> \
 <span style="color:#cc4125;">B<span style="font-size:80%;">ROWSER</span></span>';
-
+const DEFAULT_COLOR = "#FFFFFF";
 var gflag = {
     allow_packhide_tkdata: false,
     browser: undefined,
@@ -12361,6 +12361,15 @@ function page_makeDoms(param) {
         return;
     gflag.__pageMakeDom_called = true;
 
+    const makeColorPicker = function(parent, contextSetter) {
+        let picker = dom_create('input', parent, 'display: inline-block');
+        $(picker).attr('size', 8);
+        $(picker).addClass(jscolor.lookupClass);
+        picker.addEventListener('focus', contextSetter);
+        picker.addEventListener('change', hexColorPicked);
+        return picker;
+    }
+
     // internal md
     if (getmdidx_internal() == -1) {
         var ft = [FT2verbal[FT_bed_c], FT2verbal[FT_bigbed_c], FT2verbal[FT_bedgraph_c], FT2verbal[FT_bigwighmtk_c], FT2verbal[FT_anno_c], FT2verbal[FT_bam_c], FT2verbal[FT_lr_c], FT2verbal[FT_hi_c], FT2verbal[FT_cool_c], FT2verbal[FT_cat_c], FT2verbal[FT_matplot], FT2verbal[FT_weaver_c], FT2verbal[FT_cm_c], FT2verbal[FT_ld_c]];
@@ -12923,12 +12932,12 @@ panels that belong to the page and shared by all browser objs
         call: stc_fontsize
     }], 'margin-right:10px;');
     menu.font.color = dom_addtext(menu.font, '&nbsp;&nbsp;color&nbsp;&nbsp;', 'white', 'coloroval');
-    menu.font.color.addEventListener('click', stc_textcolor_initiator, false);
+    menu.font.colorPicker = makeColorPicker(menu.font, stc_textcolor_initiator);
 
     // TODO integrate into menu.c50
     menu.bed = dom_create('div', menu, 'margin:10px;');
     menu.bed.color = dom_addtext(menu.bed, '&nbsp;&nbsp;item color&nbsp;&nbsp;', 'white', 'coloroval');
-    menu.bed.color.addEventListener('click', stc_bedcolor_initiator, false);
+    menu.bed.colorPicker = makeColorPicker(menu.bed, stc_bedcolor_initiator);
 
     menu.lr = dom_create('div', menu, 'margin:20px 10px 10px 10px;white-space:nowrap;');
     var d = dom_create('div', menu.lr, 'margin-bottom:20px;');
@@ -12941,7 +12950,6 @@ panels that belong to the page and shared by all browser objs
     menu.lr.pcolor = dom_create('canvas', d2, 'margin:0px 5px');
     menu.lr.pcolor.width = 80;
     menu.lr.pcolor.height = 15;
-    menu.lr.pcolor.addEventListener('click', stc_longrange_pcolor_initiator, false);
     menu.lr.pcscoresays = dom_addtext(d2);
     // color threshold
     d3 = dom_addtext(d2);
@@ -12949,6 +12957,9 @@ panels that belong to the page and shared by all browser objs
         call: stc_longrange_pcolorscore_KU
     });
     dom_addbutt(d3, 'set', stc_longrange_pcolorscore);
+    dom_addtext(d2, "<br>");
+    menu.lr.pcolorPicker = makeColorPicker(d2, stc_longrange_pcolor_initiator);
+
     // filter threshold
     var d3 = dom_create('div', d2, 'margin-top:5px;');
     dom_addtext(d3, 'filter threshold ', '#858585');
@@ -12965,7 +12976,6 @@ panels that belong to the page and shared by all browser objs
     menu.lr.ncolor = dom_create('canvas', d2, 'margin:0px 5px;');
     menu.lr.ncolor.width = 80;
     menu.lr.ncolor.height = 15;
-    menu.lr.ncolor.addEventListener('click', stc_longrange_ncolor_initiator, false);
     menu.lr.ncscoresays = dom_addtext(d2);
     // color threshold
     d3 = dom_addtext(d2);
@@ -12973,6 +12983,9 @@ panels that belong to the page and shared by all browser objs
         call: stc_longrange_ncolorscore_KU
     });
     dom_addbutt(d3, 'set', stc_longrange_ncolorscore);
+    dom_addtext(d2, "<br>");
+    menu.lr.ncolorPicker = makeColorPicker(d2, stc_longrange_ncolor_initiator);
+
     // filter threshold
     d3 = dom_create('div', d2, 'margin-top:5px;');
     dom_addtext(d3, 'filter threshold ', '#858585');
@@ -13010,20 +13023,24 @@ panels that belong to the page and shared by all browser objs
 
     menu.bam = dom_create('div', menu, 'margin:10px;');
     menu.bam.f = dom_addtext(menu.bam, '&nbsp;forward&nbsp;', 'white', 'coloroval');
-    menu.bam.f.addEventListener('click', stc_forwardcolor_initiator, false);
+    menu.bam.fColorPicker = makeColorPicker(menu.bam, stc_forwardcolor_initiator);
+    dom_addtext(menu.bam, '<br>');
+
     dom_addtext(menu.bam, '&nbsp;');
     menu.bam.r = dom_addtext(menu.bam, '&nbsp;reverse&nbsp;', 'white', 'coloroval');
-    menu.bam.r.addEventListener('click', stc_reversecolor_initiator, false);
+    menu.bam.rColorPicker = makeColorPicker(menu.bam, stc_reversecolor_initiator);
+    dom_addtext(menu.bam, '<br>');
+
     dom_addtext(menu.bam, '&nbsp;');
     menu.bam.m = dom_addtext(menu.bam, '&nbsp;mismatch&nbsp;', 'black', 'coloroval');
-    menu.bam.m.addEventListener('click', stc_mismatchcolor_initiator, false);
+    menu.bam.mColorPicker = makeColorPicker(menu.bam, stc_mismatchcolor_initiator);
 
     menu.c48 = dom_create('div', menu, 'padding:15px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c49 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c49.color = dom_create('span', menu.c49, 'display:block;margin:10px 20px;padding:3px 20px;');
     menu.c49.color.className = 'coloroval';
     menu.c49.color.innerHTML = 'track color';
-    menu.c49.color.addEventListener('click', ldtk_color_initiator, false);
+    menu.c49.colorPicker = makeColorPicker(menu.c49, ldtk_color_initiator);
     var tt = dom_create('table', menu.c49);
     tt.cellSpacing = 5;
     var tr = tt.insertRow(0);
@@ -13039,25 +13056,33 @@ panels that belong to the page and shared by all browser objs
 
     menu.c50 = dom_create('div', menu);
     var d = dom_create('div', menu.c50, 'margin:15px;white-space:nowrap;');
+
+    // color1
     var s = dom_addtext(d, '', null, 'coloroval');
     menu.c50.color1 = s;
-    s.addEventListener('click', qtc_color1_initiator, false);
     s.style.padding = '2px 10px';
-    s.style.marginRight = 20;
+    menu.c50.colorPicker1 = makeColorPicker(d, qtc_color1_initiator);
+    menu.c50.colorPicker1.style.marginRight = 20;
+
+    // color1_1
     s = dom_addtext(d, '', null, 'coloroval');
     menu.c50.color1_1 = s;
     s.style.padding = '2px 10px';
-    s.addEventListener('click', qtc_color1_1_initiator, false);
+    menu.c50.colorPicker1_1 = makeColorPicker(d, qtc_color1_1_initiator);
+
     menu.c50.row2 = dom_create('div', menu.c50, 'margin:15px;white-space:nowrap;padding-top:10px;border-top:dashed 2px ' + colorCentral.foreground_faint_2);
+    // color2
     s = dom_addtext(menu.c50.row2, '', null, 'coloroval');
     menu.c50.color2 = s;
     s.style.padding = '2px 10px';
-    s.addEventListener('click', qtc_color2_initiator, false);
-    s.style.marginRight = 20;
+    menu.c50.colorPicker2 = makeColorPicker(menu.c50.row2, qtc_color2_initiator);
+    menu.c50.colorPicker2.style.marginRight = 20;
+
+    // color 2_1
     s = dom_addtext(menu.c50.row2, '', null, 'coloroval');
     menu.c50.color2_1 = s;
     s.style.padding = '2px 10px';
-    s.addEventListener('click', qtc_color2_1_initiator, false);
+    menu.c50.colorPicker2_1 = makeColorPicker(menu.c50.row2, qtc_color2_1_initiator);
     // feel free to add more color cells
 
     menu.c51 = dom_create('div', menu, 'white-space:nowrap;padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
@@ -13239,16 +13264,18 @@ panels that belong to the page and shared by all browser objs
     menu.c29.color = dom_create('div', menu.c29, 'display:none;cursor:default;', {
         c: 'menushadowbox',
         clc: tk_barplotbg_initiator,
-        t: 'choose color'
+        t: 'current color'
     });
+    menu.c29.colorPicker = makeColorPicker(menu.c29, tk_barplotbg_initiator);
 
     menu.c44 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c44.checkbox = dom_addcheckbox(menu.c44, 'Track background', menu_tkbg_change);
-    menu.c44.color = dom_create('div', menu.c44, 'display:none;cursor:default;background-color:#e0e0e0;', {
+    menu.c44.color = dom_create('div', menu.c44, 'display:none;cursor:default;background-color:' + DEFAULT_COLOR + ';', {
         c: 'menushadowbox',
         clc: tk_bgcolor_initiator,
-        t: 'choose color'
+        t: 'current color'
     });
+    menu.c44.colorPicker = makeColorPicker(menu.c44, tk_bgcolor_initiator);
 
     if (param.menu_curvenoarea) {
         menu.c66 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
@@ -14163,6 +14190,9 @@ ctx.fill();
     alertbox.messages = [];
     alertbox.addEventListener('click', alertbox_click, false);
     alertbox.title = 'Click to see messages';
+
+    // We have to install the color pickers
+    jscolor.installByClassName(jscolor.lookupClass);
 }
 
 function alertbox_addmsg(stuff) {
@@ -14232,12 +14262,16 @@ function menu_smoothwindow_change(event) {
 function menu_tkbg_change() {
     // from config menu
     var usebg = menu.c44.checkbox.checked;
-    var bg = null;
+    var bg = null; // I don't know why this is here, since it's a local variable that never gets read...
     if (usebg) {
         menu.c44.color.style.display = 'block';
         bg = menu.c44.color.style.backgroundColor;
+
+        menu.c44.colorPicker.style.display = 'block';
+        bg = '#' + menu.c44.colorPicker.value;
     } else {
         menu.c44.color.style.display = 'none';
+        menu.c44.colorPicker.style.display = 'none';
     }
     menu_update_track(38);
 }
@@ -14253,8 +14287,10 @@ function menu_barplotbg_change() {
     if (usebg) {
         menu.c29.color.style.display = 'block';
         bg = menu.c29.color.style.backgroundColor;
+        menu.c29.colorPicker.style.display = 'block';
     } else {
         menu.c29.color.style.display = 'none';
+        menu.c29.colorPicker.style.display = 'none';
     }
     menu_update_track(37);
 }
@@ -14523,18 +14559,27 @@ function qtcpanel_setdisplay(pm) {
         menu.c50.color1.style.display = 'inline-block';
         menu.c50.color1.innerHTML = pm.color1text ? pm.color1text : 'choose color';
         menu.c50.color1.style.backgroundColor = pm.color1;
+
+        menu.c50.colorPicker1.style.display = 'inline-block';
+        menu.c50.colorPicker1.jscolor.fromString(pm.color1 || DEFAULT_COLOR);
     } else {
         menu.c50.color1.style.display = 'none';
+        menu.c50.colorPicker1.style.display = 'none';
     }
     if (pm.color2) {
         menu.c50.row2.style.display = 'block';
         menu.c50.color2.style.display = 'inline-block';
         menu.c50.color2.innerHTML = pm.color2text ? pm.color2text : 'choose color';
         menu.c50.color2.style.backgroundColor = pm.color2;
+
+        menu.c50.colorPicker2.style.display = 'inline-block';
+        menu.c50.colorPicker2.jscolor.fromString(pm.color2 || DEFAULT_COLOR);
     } else {
         menu.c50.color2.style.display = 'none';
+        menu.c50.colorPicker2.style.display = 'none';
     }
     menu.c50.color1_1.style.display = menu.c50.color2_1.style.display = 'none';
+    menu.c50.colorPicker1_1.style.display = menu.c50.colorPicker2_1.style.display = 'none';
     if (pm.qtc) {
         qtc_thresholdcolorcell(pm.qtc);
     }
@@ -14601,9 +14646,12 @@ function qtcpanel_setdisplay(pm) {
             menu.c29.checkbox.checked = true;
             menu.c29.color.style.display = 'block';
             menu.c29.color.style.backgroundColor = pm.qtc.barplotbg;
+            menu.c29.colorPicker.style.display = 'block';
+            menu.c29.colorPicker.jscolor.fromString(pm.qtc.barplotbg || DEFAULT_COLOR);
         } else {
             menu.c29.checkbox.checked = false;
             menu.c29.color.style.display = 'none';
+            menu.c29.colorPicker.style.display = 'none';
         }
     }
     if (menu.c66) {
@@ -15752,6 +15800,7 @@ function qtc_thresholdcolorcell(_qtc) {
         return;
     if (_qtc.thtype == scale_auto) {
         menu.c50.color1_1.style.display = menu.c50.color2_1.style.display = 'none';
+        menu.c50.colorPicker1_1.style.display = menu.c50.colorPicker2_1.style.display = 'none';
         return;
     }
     if (menu.c50.color1.style.display != 'none') {
@@ -15759,12 +15808,20 @@ function qtc_thresholdcolorcell(_qtc) {
         c.style.display = 'inline-block';
         c.innerHTML = 'beyond threshold';
         c.style.backgroundColor = _qtc.pth;
+
+        let colorPicker = menu.c50.colorPicker1_1;
+        colorPicker.style.display = 'inline-block';
+        colorPicker.jscolor.fromString(_qtc.pth || DEFAULT_COLOR);
     }
     if (menu.c50.color2.style.display != 'none') {
         var c = menu.c50.color2_1;
         c.style.display = 'inline-block';
         c.innerHTML = 'beyond threshold';
         c.style.backgroundColor = _qtc.nth;
+
+        let colorPicker = menu.c50.colorPicker2_1;
+        colorPicker.style.display = 'inline-block';
+        colorPicker.jscolor.fromString(_qtc.nth || DEFAULT_COLOR);
     }
 }
 
@@ -15779,6 +15836,7 @@ function toggle26(event) {
     }
     if (v == scale_auto) {
         menu.c50.color1_1.style.display = menu.c50.color2_1.style.display = 'none';
+        menu.c50.colorPicker1_1.style.display = menu.c50.colorPicker2_1.style.display = 'none';
     } else if (v == scale_percentile) {
         menu.c51.percentile.style.display = 'block';
         menu.c51.percentile.says.innerHTML = '95 percentile';
@@ -16207,26 +16265,39 @@ function palettehide() {
     palette.style.display = "none";
     document.body.removeEventListener("mousedown", palettehide, false);
 }
-function paletteshow(x, y, which) {
+// We're moving to a new color picker, but until we've added it everywhere, we sometimes want to show the old palette.
+// Hence, the actuallyShow parameter.
+function paletteshow(x, y, which, actuallyShow=false) {
     // x and y should be event.clientX/Y
     // TODO automatic beak placement, ...
-    palette.style.display = "block";
-    var w = 200;
-    if (x + w > document.body.clientWidth) {
-        x = document.body.clientWidth - w;
-    } else {
-        x -= 80;
+    if (actuallyShow) {
+        palette.style.display = "block";
+        var w = 200;
+        if (x + w > document.body.clientWidth) {
+            x = document.body.clientWidth - w;
+        } else {
+            x -= 80;
+        }
+        var h = 250;
+        if (y + h > document.body.clientHeight) {
+            y = document.body.clientHeight - h - 40;
+        } else {
+            y += 5;
+        }
+        palette.style.left = x;
+        palette.style.top = y;
+        document.body.addEventListener('mousedown', palettehide, false);
     }
-    var h = 250;
-    if (y + h > document.body.clientHeight) {
-        y = document.body.clientHeight - h - 40;
-    } else {
-        y += 5;
-    }
-    palette.style.left = x;
-    palette.style.top = y;
+
     palette.which = which;
-    document.body.addEventListener('mousedown', palettehide, false);
+}
+/**
+ * Intended as a onchange listeners for text inputs.
+ */
+function hexColorPicked(event) {
+    let color = '#' + event.target.value;
+    palette.output = color;
+    palette_context_update();
 }
 function palettedyeclick(event) {
     // clicking palette dye
@@ -16309,10 +16380,10 @@ function tk_barplotbg() {
     menu_update_track(36);
 }
 
-function cmtk_color_initiate(event) {
+function cmtk_color_initiate(event, colorcell) {
     paletteshow(event.clientX, event.clientY, 16);
     palettegrove_paint(event.target.style.backgroundColor);
-    gflag.menu.cmtk_colorcell = event.target;
+    gflag.menu.cmtk_colorcell = colorcell || event.target;
 }
 function cmtk_color_set() {
     gflag.menu.cmtk_colorcell.style.backgroundColor = palette.output;
@@ -16379,7 +16450,7 @@ function stc_longrange_ncolor(event) {
 }
 
 function hengeview_arcpcolor_initiator(event) {
-    paletteshow(event.clientX, event.clientY, 10);
+    paletteshow(event.clientX, event.clientY, 10, true);
     palettegrove_paint(event.target.style.backgroundColor);
 }
 function hengeview_arcpcolor() {
@@ -16389,7 +16460,7 @@ function hengeview_arcpcolor() {
     longrange_showplotcolor(palette.output, null);
 }
 function hengeview_arcncolor_initiator(event) {
-    paletteshow(event.clientX, event.clientY, 11);
+    paletteshow(event.clientX, event.clientY, 11, true);
     palettegrove_paint(event.target.style.backgroundColor);
 }
 function hengeview_arcncolor() {
@@ -16399,7 +16470,7 @@ function hengeview_arcncolor() {
     longrange_showplotcolor(null, palette.output);
 }
 function hengeview_wreathpcolor_initiator(event) {
-    paletteshow(event.clientX, event.clientY, 40);
+    paletteshow(event.clientX, event.clientY, 40, true);
     palettegrove_paint(event.target.style.backgroundColor);
     palette.hook = event.target;
     // contains track name
@@ -16420,7 +16491,7 @@ function hengeview_wreathpcolor() {
     hengeview_draw(gflag.menu.viewkey);
 }
 function hengeview_wreathncolor_initiator(event) {
-    paletteshow(event.clientX, event.clientY, 41);
+    paletteshow(event.clientX, event.clientY, 41, true);
     palettegrove_paint(event.target.style.backgroundColor);
     palette.hook = event.target;
     // contains track name
@@ -23120,7 +23191,7 @@ function mcm_configcolor_restore() {
 }
 
 function mcm_configcolor_initiate(event) {
-    paletteshow(event.clientX, event.clientY, 12);
+    paletteshow(event.clientX, event.clientY, 12, true);
     palettegrove_paint(event.target.style.backgroundColor);
     menu.colorlonglstcell = event.target;
 }
@@ -25542,7 +25613,10 @@ set to -1 for not changing position
     gflag.menu.bbj = gflag.browser;
     gflag.menu.context = ctxt;
 }
-function menu_hide() {
+function menu_hide(event) {
+    if (event && (event.target._jscLinkedInstance || event.target._jscControlName)) { // Don't hide if color picker is open
+        return;
+    }
     indicator3.style.display = indicator7.style.display = indicator6.style.display = invisibleBlanket.style.display = menu.style.display = 'none';
     menu.style.maxHeight = 1;
     document.body.removeEventListener('mousedown', menu_hide, false);
@@ -25578,12 +25652,45 @@ function fontpanel_set(tk) {
     if (tk.qtc.textcolor) {
         menu.font.color.style.backgroundColor = tk.qtc.textcolor;
         menu.font.color.style.display = 'inline';
+        menu.font.colorPicker.jscolor.fromString(tk.qtc.forwardcolor || DEFAULT_COLOR);
+        menu.font.colorPicker.style.display = 'inline-block';
     } else {
         menu.font.color.style.display = 'none';
+        menu.font.colorPicker.style.display = 'none';
     }
 }
 
 function config_cmtk(tk) {
+    const makeColoredCanvas = function(parent, color, which) {
+        let c = dom_create('canvas', parent, 'background-color:' + color);
+        c.width = 36;
+        c.height = 20;
+        c.which = which;
+        return c;
+    };
+
+    const makeColorPicker = function(parent, color, colorCell, display='inline-block') {
+        let picker = dom_create('input', parent, 'display: ' + display);
+        $(picker).attr('size', 6);
+        $(picker).addClass(jscolor.lookupClass);
+        jscolor.installByClassName(jscolor.lookupClass);
+        picker.jscolor.fromString(color);
+
+        picker.addEventListener('focus', event => cmtk_color_initiate(event, colorCell));
+        picker.addEventListener('change', hexColorPicked);
+        return picker;
+    };
+
+    const makeColorPickerPair = function(parent, color, backgroundColor, which) {
+        let canvas1 = makeColoredCanvas(parent, color, which);
+        let canvas2 = makeColoredCanvas(parent, backgroundColor, which);
+        canvas2.bg = true;
+
+        dom_addtext(parent, "<br>");
+        makeColorPicker(parent, color, canvas1);
+        makeColorPicker(parent, backgroundColor, canvas2);
+    };
+
     menu.c14.style.display = 'block';
     menu.c14.unify.style.display = 'none';
     menu.c45.style.display = 'block';
@@ -25631,30 +25738,13 @@ function config_cmtk(tk) {
     td.align = 'right';
     td.innerHTML = 'CG';
     td = tr.insertCell(-1);
-    var c = dom_create('canvas', td, 'background-color:' + tk.cm.color.cg_f);
-    c.width = 36;
-    c.height = 20;
-    c.which = 'cg_f';
-    c.addEventListener('click', cmtk_color_initiate, false);
-    c = dom_create('canvas', td, 'background-color:' + tk.cm.bg.cg_f);
-    c.width = 36;
-    c.height = 20;
-    c.which = 'cg_f';
-    c.addEventListener('click', cmtk_color_initiate, false);
-    c.bg = true;
+
+    // Forward CG
+    makeColorPickerPair(td, tk.cm.color.cg_f, tk.cm.bg.cg_f, 'cg_f');
+
     if (hasreverse) {
         td = tr.insertCell(-1);
-        c = dom_create('canvas', td, 'background-color:' + tk.cm.color.cg_r);
-        c.width = 36;
-        c.height = 20;
-        c.which = 'cg_r';
-        c.addEventListener('click', cmtk_color_initiate, false);
-        c = dom_create('canvas', td, 'background-color:' + tk.cm.bg.cg_r);
-        c.width = 36;
-        c.height = 20;
-        c.which = 'cg_r';
-        c.addEventListener('click', cmtk_color_initiate, false);
-        c.bg = true;
+        makeColorPickerPair(td, tk.cm.color.cg_r, tk.cm.bg.cg_r, 'cg_r');
     }
     if (tk.cm.set.chg_f) {
         tr = t.insertRow(-1);
@@ -25662,30 +25752,11 @@ function config_cmtk(tk) {
         td.align = 'right';
         td.innerHTML = 'CHG';
         td = tr.insertCell(-1);
-        c = dom_create('canvas', td, 'background-color:' + tk.cm.color.chg_f);
-        c.width = 36;
-        c.height = 20;
-        c.addEventListener('click', cmtk_color_initiate, false);
-        c.which = 'chg_f';
-        c = dom_create('canvas', td, 'background-color:' + tk.cm.bg.chg_f);
-        c.width = 36;
-        c.height = 20;
-        c.which = 'chg_f';
-        c.addEventListener('click', cmtk_color_initiate, false);
-        c.bg = true;
+        makeColorPickerPair(td, tk.cm.color.chg_f, tk.cm.bg.chg_f, 'chg_f');
+
         if (hasreverse) {
             td = tr.insertCell(-1);
-            c = dom_create('canvas', td, 'background-color:' + tk.cm.color.chg_r);
-            c.width = 36;
-            c.height = 20;
-            c.which = 'chg_r';
-            c.addEventListener('click', cmtk_color_initiate, false);
-            c = dom_create('canvas', td, 'background-color:' + tk.cm.bg.chg_r);
-            c.width = 36;
-            c.height = 20;
-            c.which = 'chg_r';
-            c.addEventListener('click', cmtk_color_initiate, false);
-            c.bg = true;
+            makeColorPickerPair(td, tk.cm.color.chg_r, tk.cm.bg.chg_r, 'chg_r');
         }
     }
     if (tk.cm.set.chh_f) {
@@ -25694,30 +25765,11 @@ function config_cmtk(tk) {
         td.align = 'right';
         td.innerHTML = 'CHH';
         td = tr.insertCell(-1);
-        c = dom_create('canvas', td, 'background-color:' + tk.cm.color.chh_f);
-        c.width = 36;
-        c.height = 20;
-        c.which = 'chh_f';
-        c.addEventListener('click', cmtk_color_initiate, false);
-        c = dom_create('canvas', td, 'background-color:' + tk.cm.bg.chh_f);
-        c.width = 36;
-        c.height = 20;
-        c.which = 'chh_f';
-        c.addEventListener('click', cmtk_color_initiate, false);
-        c.bg = true;
+        makeColorPickerPair(td, tk.cm.color.chh_f, tk.cm.bg.chh_f, 'chh_f');
+
         if (hasreverse) {
             td = tr.insertCell(-1);
-            c = dom_create('canvas', td, 'background-color:' + tk.cm.color.chh_r);
-            c.width = 36;
-            c.height = 20;
-            c.which = 'chh_r';
-            c.addEventListener('click', cmtk_color_initiate, false);
-            c = dom_create('canvas', td, 'background-color:' + tk.cm.bg.chh_r);
-            c.width = 36;
-            c.height = 20;
-            c.which = 'chh_r';
-            c.addEventListener('click', cmtk_color_initiate, false);
-            c.bg = true;
+            makeColorPickerPair(td, tk.cm.color.chh_r, tk.cm.bg.chh_r, 'chh_r');
         }
     }
     tr = t.insertRow(-1);
@@ -25728,14 +25780,14 @@ function config_cmtk(tk) {
     c.width = 50;
     c.height = 20;
     c.which = 'rd_f';
-    c.addEventListener('click', cmtk_color_initiate, false);
+    makeColorPicker(td, tk.cm.color.rd_f, c, 'block');
     if (hasreverse) {
         td = tr.insertCell(-1);
         c = dom_create('canvas', td, 'background-color:' + tk.cm.color.rd_r);
         c.width = 50;
         c.height = 20;
         c.which = 'rd_r';
-        c.addEventListener('click', cmtk_color_initiate, false);
+        makeColorPicker(td, tk.cm.color.rd_r, c, 'block');
     }
     // smoothing for rd
     menu.c46.style.display = 'block';
@@ -25781,6 +25833,7 @@ function config_ld(tk) {
     // not density mode
     menu.c49.style.display = 'block';
     menu.c49.color.style.backgroundColor = 'rgb(' + tk.qtc.pr + ',' + tk.qtc.pg + ',' + tk.qtc.pb + ')';
+    menu.c49.colorPicker.jscolor.fromRGB(tk.qtc.pr, tk.qtc.pg, tk.qtc.pb);
     menu.c14.style.display = 'block';
     menu.c14.unify.style.display = 'none';
     config_hammock(tk);
@@ -25799,13 +25852,16 @@ can be nested inside other tracks that derives from hammock format
     if (tk.cateInfo) {
         // TODO text color is same as item color
         menu.font.color.style.display = 'none';
+        menu.font.colorPicker.style.display = 'none';
         menu.bed.style.display = 'none';
         cateCfg_show(tk, false, true);
     } else {
         // all items have same color, separate color for item/text
         menu.font.color.style.display = 'inline';
+        menu.font.colorPicker.style.display = 'inline';
         menu.bed.style.display = 'block';
         menu.bed.color.style.backgroundColor = tk.qtc.bedcolor;
+        menu.bed.colorPicker.jscolor.fromString(tk.qtc.bedcolor || DEFAULT_COLOR);
     }
     if (tk.showscoreidx != undefined) {
         menu.c48.style.display = 'block';
@@ -25910,6 +25966,10 @@ function config_bam(tk) {
     menu.bam.f.style.backgroundColor = tk.qtc.forwardcolor;
     menu.bam.r.style.backgroundColor = tk.qtc.reversecolor;
     menu.bam.m.style.backgroundColor = tk.qtc.mismatchcolor;
+
+    menu.bam.fColorPicker.jscolor.fromString(tk.qtc.forwardcolor || DEFAULT_COLOR);
+    menu.bam.rColorPicker.jscolor.fromString(tk.qtc.reversecolor || DEFAULT_COLOR);
+    menu.bam.mColorPicker.jscolor.fromString(tk.qtc.mismatchcolor || DEFAULT_COLOR);
 }
 function config_weaver(tk) {
     menu.c14.style.display = tk.weaver.mode == W_rough ? 'block' : 'none';
@@ -26019,9 +26079,13 @@ function menuConfig() {
             menu.c44.checkbox.checked = true;
             menu.c44.color.style.display = 'block';
             menu.c44.color.style.backgroundColor = tk.qtc.bg;
+
+            menu.c44.colorPicker.style.display = 'block';
+            menu.c44.colorPicker.jscolor.fromString(tk.qtc.bg || DEFAULT_COLOR);
         } else {
             menu.c44.checkbox.checked = false;
             menu.c44.color.style.display = 'none';
+            menu.c44.colorPicker.style.display = 'none';
         }
         config_dispatcher(tk);
     } else if (m.context == 2) {
@@ -26037,6 +26101,7 @@ function menuConfig() {
             // tk bg
             menu.c44.checkbox.checked = false;
             menu.c44.color.style.display = 'none';
+            menu.c44.colorPicker.style.display = 'none';
             var ft = {};
             var den = [];
             var nft = FT_nottk
@@ -26069,6 +26134,7 @@ function menuConfig() {
                     menu.c14.style.display = menu.c44.style.display = 'block';
                     menu.c44.checkbox.checked = false;
                     menu.c44.color.style.display = 'none';
+                    menu.c44.colorPicker.style.display = 'none';
                 } else {
                     config_dispatcher(m.tklst[ft[nft][0]]);
                 }
@@ -26655,7 +26721,7 @@ function config_matplot(tk) {
 }
 
 function matplot_linecolor_initiate(event) {
-    paletteshow(event.clientX, event.clientY, 14);
+    paletteshow(event.clientX, event.clientY, 14, true);
     palettegrove_paint(event.target.style.backgroundColor);
     gflag.menu.matplottkcell = event.target;
 }
@@ -26873,6 +26939,7 @@ function longrange_showplotcolor(pcolor, ncolor) {
         lingrad.addColorStop(1, pcolor);
         ctx.fillStyle = lingrad;
         ctx.fillRect(0, 0, c.width, c.height);
+        menu.lr.pcolorPicker.jscolor.fromString(pcolor);
     }
     if (ncolor) {
         var c = menu.lr.ncolor;
@@ -26883,6 +26950,7 @@ function longrange_showplotcolor(pcolor, ncolor) {
         lingrad.addColorStop(1, ncolor);
         ctx.fillStyle = lingrad;
         ctx.fillRect(0, 0, c.width, c.height);
+        menu.lr.ncolorPicker.jscolor.fromString(ncolor);
     }
 }
 
@@ -26948,11 +27016,24 @@ function cateCfg_show(tkobj, showcateid, disablecc) {
     }
     menu.catetkobj = tkobj;
     var lst = ['<table cellspacing=3 style="color:inherit;">'];
-    for (var i in tkobj.cateInfo) {
+    for (let i in tkobj.cateInfo) {
         if (i == -1)
             continue;
         var t = tkobj.cateInfo[i];
-        lst.push('<tr><td>' + (showcateid ? i : '') + '</td><td class=squarecell itemidx=' + i + (disablecc ? '' : ' onclick="cateTkitemcolor_initiate(event)"') + ' style="background-color:' + t[1] + ';"></td><td>' + t[0] + '</td></tr>');
+
+        let colorDisplay = '';
+        if (disablecc) {
+            colorDisplay = `<td class=squarecell itemidx="${i}" style="background-color: ${t[1]}"></td>`;
+        } else { // Make color picker.  We'll initialize it later in this function.
+            colorDisplay = `<td>
+                <input itemidx='${i}' class="${jscolor.lookupClass}"></input>
+            </td>`;
+        }
+        lst.push(`<tr>
+            <td>${showcateid ? i : ''}</td>
+            ${colorDisplay}
+            <td>${t[0]}</td>
+        </tr>`);
     }
     // restore button is only shown for native hmtk
     if (tkobj.ft == FT_cat_n) {
@@ -26965,6 +27046,25 @@ function cateCfg_show(tkobj, showcateid, disablecc) {
     menu.c13.innerHTML = lst.join('');
     menu.c13.style.display = menu.c14.style.display = 'block';
     menu.c14.unify.style.display = 'none';
+
+    if (disablecc) { // We don't need to worry about jscolor if input is disabled.
+        return;
+    }
+    jscolor.installByClassName(jscolor.lookupClass);
+    let jscolorInputs = $(menu.c13).find('.' + jscolor.lookupClass);
+    let i = 0;
+    // So cateInfo is not an array, even though the props are ints.  We assume that we will iterate through the props in
+    // the same order as the loop above.
+    for (let prop in tkobj.cateInfo) { 
+        if (prop == -1)
+            continue;
+        let picker = jscolorInputs[i];
+        picker.jscolor.fromString(tkobj.cateInfo[prop][1]);
+        picker.addEventListener('focus', cateTkitemcolor_initiate);
+        picker.addEventListener('change', hexColorPicked);
+        i++;
+    }
+    jscolorInputs.attr('size', 7);
 }
 
 function cateCfg_showcateid(event) {
@@ -27072,7 +27172,7 @@ Genome.prototype.custcate_idnum_change = function(num) {
 function custcate_color_initiate(event) {
     /* invoking color palette for cust cate in submit ui
 */
-    paletteshow(event.clientX, event.clientY, 39);
+    paletteshow(event.clientX, event.clientY, 39, true);
     palettegrove_paint(event.target.style.backgroundColor);
     gflag.menu.catetk.item = event.target;
 }
