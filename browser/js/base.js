@@ -28463,11 +28463,12 @@ function parse_jsontext(text) {
     return j;
 }
 
+// this supports longrange to be backward compatible
+const HUB_TRACK_TAGS = new Set(['bedgraph', 'bigwig', 'bed', 'bigbed', 'longrange', 'interaction', 'hic', 'cool', 'bam',
+    'categorical', 'methylc', 'ld', 'annotation', 'hammock', 'categorymatrix', 'quantitativecategoryseries',
+    'genomealign', 'matplot']);
 function hubtagistrack(tag) {
-    // this supports longrange to be backward compatible
-    if (tag == 'bedgraph' || tag == 'bigwig' || tag == 'bed' || tag == 'bigbed' || tag == 'longrange' || tag == 'interaction' || tag == 'hic' || tag == 'bam' || tag == 'categorical' || tag == 'methylc' || tag == 'ld' || tag == 'annotation' || tag == 'hammock' || tag == 'categorymatrix' || tag == 'quantitativecategoryseries' || tag == 'genomealign' || tag == 'matplot')
-        return true;
-    return false;
+    return HUB_TRACK_TAGS.has(tag);
 }
 
 Browser.prototype.parse_custom_track = function(obj) {
