@@ -12361,12 +12361,25 @@ function page_makeDoms(param) {
         return;
     gflag.__pageMakeDom_called = true;
 
-    const makeColorPicker = function(parent, contextSetter) {
+    /**
+     * @param {HTMLElement} parent - DOM element to which to append a color picker
+     * @param {function} contextSetter - one of the color context setters
+     * @param {HTMLElement} [otherColorOpener] - (optional) some DOM element that will also open the color picker
+     * @return {HTMLElement} the created color picker
+     */
+    const makeColorPicker = function(parent, contextSetter, otherColorOpener) {
         let picker = dom_create('input', parent, 'display: inline-block');
         $(picker).attr('size', 8);
         $(picker).addClass(jscolor.lookupClass);
         picker.addEventListener('focus', contextSetter);
         picker.addEventListener('change', hexColorPicked);
+
+        if (otherColorOpener) {
+            otherColorOpener.addEventListener('click', (event) => {
+                contextSetter(event);
+                picker.jscolor.show();
+            });
+        }
         return picker;
     }
 
@@ -12932,12 +12945,12 @@ panels that belong to the page and shared by all browser objs
         call: stc_fontsize
     }], 'margin-right:10px;');
     menu.font.color = dom_addtext(menu.font, '&nbsp;&nbsp;color&nbsp;&nbsp;', 'white', 'coloroval');
-    menu.font.colorPicker = makeColorPicker(menu.font, stc_textcolor_initiator);
+    menu.font.colorPicker = makeColorPicker(menu.font, stc_textcolor_initiator, menu.font.color);
 
     // TODO integrate into menu.c50
     menu.bed = dom_create('div', menu, 'margin:10px;');
     menu.bed.color = dom_addtext(menu.bed, '&nbsp;&nbsp;item color&nbsp;&nbsp;', 'white', 'coloroval');
-    menu.bed.colorPicker = makeColorPicker(menu.bed, stc_bedcolor_initiator);
+    menu.bed.colorPicker = makeColorPicker(menu.bed, stc_bedcolor_initiator, menu.bed.color);
 
     menu.lr = dom_create('div', menu, 'margin:20px 10px 10px 10px;white-space:nowrap;');
     var d = dom_create('div', menu.lr, 'margin-bottom:20px;');
@@ -12958,7 +12971,7 @@ panels that belong to the page and shared by all browser objs
     });
     dom_addbutt(d3, 'set', stc_longrange_pcolorscore);
     dom_addtext(d2, "<br>");
-    menu.lr.pcolorPicker = makeColorPicker(d2, stc_longrange_pcolor_initiator);
+    menu.lr.pcolorPicker = makeColorPicker(d2, stc_longrange_pcolor_initiator, menu.lr.pcolor);
 
     // filter threshold
     var d3 = dom_create('div', d2, 'margin-top:5px;');
@@ -12984,7 +12997,7 @@ panels that belong to the page and shared by all browser objs
     });
     dom_addbutt(d3, 'set', stc_longrange_ncolorscore);
     dom_addtext(d2, "<br>");
-    menu.lr.ncolorPicker = makeColorPicker(d2, stc_longrange_ncolor_initiator);
+    menu.lr.ncolorPicker = makeColorPicker(d2, stc_longrange_ncolor_initiator, menu.lr.ncolor);
 
     // filter threshold
     d3 = dom_create('div', d2, 'margin-top:5px;');
@@ -13023,24 +13036,24 @@ panels that belong to the page and shared by all browser objs
 
     menu.bam = dom_create('div', menu, 'margin:10px;');
     menu.bam.f = dom_addtext(menu.bam, '&nbsp;forward&nbsp;', 'white', 'coloroval');
-    menu.bam.fColorPicker = makeColorPicker(menu.bam, stc_forwardcolor_initiator);
+    menu.bam.fColorPicker = makeColorPicker(menu.bam, stc_forwardcolor_initiator, menu.bam.f);
     dom_addtext(menu.bam, '<br>');
 
     dom_addtext(menu.bam, '&nbsp;');
     menu.bam.r = dom_addtext(menu.bam, '&nbsp;reverse&nbsp;', 'white', 'coloroval');
-    menu.bam.rColorPicker = makeColorPicker(menu.bam, stc_reversecolor_initiator);
+    menu.bam.rColorPicker = makeColorPicker(menu.bam, stc_reversecolor_initiator, menu.bam.r);
     dom_addtext(menu.bam, '<br>');
 
     dom_addtext(menu.bam, '&nbsp;');
     menu.bam.m = dom_addtext(menu.bam, '&nbsp;mismatch&nbsp;', 'black', 'coloroval');
-    menu.bam.mColorPicker = makeColorPicker(menu.bam, stc_mismatchcolor_initiator);
+    menu.bam.mColorPicker = makeColorPicker(menu.bam, stc_mismatchcolor_initiator, menu.bam.m);
 
     menu.c48 = dom_create('div', menu, 'padding:15px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c49 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c49.color = dom_create('span', menu.c49, 'display:block;margin:10px 20px;padding:3px 20px;');
     menu.c49.color.className = 'coloroval';
     menu.c49.color.innerHTML = 'track color';
-    menu.c49.colorPicker = makeColorPicker(menu.c49, ldtk_color_initiator);
+    menu.c49.colorPicker = makeColorPicker(menu.c49, ldtk_color_initiator, menu.c49.color);
     var tt = dom_create('table', menu.c49);
     tt.cellSpacing = 5;
     var tr = tt.insertRow(0);
@@ -13061,28 +13074,28 @@ panels that belong to the page and shared by all browser objs
     var s = dom_addtext(d, '', null, 'coloroval');
     menu.c50.color1 = s;
     s.style.padding = '2px 10px';
-    menu.c50.colorPicker1 = makeColorPicker(d, qtc_color1_initiator);
+    menu.c50.colorPicker1 = makeColorPicker(d, qtc_color1_initiator, s);
     menu.c50.colorPicker1.style.marginRight = 20;
 
     // color1_1
     s = dom_addtext(d, '', null, 'coloroval');
     menu.c50.color1_1 = s;
     s.style.padding = '2px 10px';
-    menu.c50.colorPicker1_1 = makeColorPicker(d, qtc_color1_1_initiator);
+    menu.c50.colorPicker1_1 = makeColorPicker(d, qtc_color1_1_initiator, s);
 
     menu.c50.row2 = dom_create('div', menu.c50, 'margin:15px;white-space:nowrap;padding-top:10px;border-top:dashed 2px ' + colorCentral.foreground_faint_2);
     // color2
     s = dom_addtext(menu.c50.row2, '', null, 'coloroval');
     menu.c50.color2 = s;
     s.style.padding = '2px 10px';
-    menu.c50.colorPicker2 = makeColorPicker(menu.c50.row2, qtc_color2_initiator);
+    menu.c50.colorPicker2 = makeColorPicker(menu.c50.row2, qtc_color2_initiator, s);
     menu.c50.colorPicker2.style.marginRight = 20;
 
     // color 2_1
     s = dom_addtext(menu.c50.row2, '', null, 'coloroval');
     menu.c50.color2_1 = s;
     s.style.padding = '2px 10px';
-    menu.c50.colorPicker2_1 = makeColorPicker(menu.c50.row2, qtc_color2_1_initiator);
+    menu.c50.colorPicker2_1 = makeColorPicker(menu.c50.row2, qtc_color2_1_initiator, s);
     // feel free to add more color cells
 
     menu.c51 = dom_create('div', menu, 'white-space:nowrap;padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
@@ -13266,7 +13279,7 @@ panels that belong to the page and shared by all browser objs
         clc: tk_barplotbg_initiator,
         t: 'current color'
     });
-    menu.c29.colorPicker = makeColorPicker(menu.c29, tk_barplotbg_initiator);
+    menu.c29.colorPicker = makeColorPicker(menu.c29, tk_barplotbg_initiator, menu.c29.color);
 
     menu.c44 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c44.checkbox = dom_addcheckbox(menu.c44, 'Track background', menu_tkbg_change);
@@ -13275,7 +13288,7 @@ panels that belong to the page and shared by all browser objs
         clc: tk_bgcolor_initiator,
         t: 'current color'
     });
-    menu.c44.colorPicker = makeColorPicker(menu.c44, tk_bgcolor_initiator);
+    menu.c44.colorPicker = makeColorPicker(menu.c44, tk_bgcolor_initiator, menu.c44.color);
 
     if (param.menu_curvenoarea) {
         menu.c66 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
@@ -25687,8 +25700,11 @@ function config_cmtk(tk) {
         canvas2.bg = true;
 
         dom_addtext(parent, "<br>");
-        makeColorPicker(parent, color, canvas1);
-        makeColorPicker(parent, backgroundColor, canvas2);
+        let picker1 = makeColorPicker(parent, color, canvas1);
+        let picker2 = makeColorPicker(parent, backgroundColor, canvas2);
+
+        canvas1.onclick = () => picker1.jscolor.show();
+        canvas2.onclick = () => picker2.jscolor.show();
     };
 
     menu.c14.style.display = 'block';
@@ -25780,14 +25796,16 @@ function config_cmtk(tk) {
     c.width = 50;
     c.height = 20;
     c.which = 'rd_f';
-    makeColorPicker(td, tk.cm.color.rd_f, c, 'block');
+    let picker = makeColorPicker(td, tk.cm.color.rd_f, c, 'block');
+    c.onclick = () => picker.jscolor.show();
     if (hasreverse) {
         td = tr.insertCell(-1);
         c = dom_create('canvas', td, 'background-color:' + tk.cm.color.rd_r);
         c.width = 50;
         c.height = 20;
         c.which = 'rd_r';
-        makeColorPicker(td, tk.cm.color.rd_r, c, 'block');
+        picker = makeColorPicker(td, tk.cm.color.rd_r, c, 'block');
+        c.onclick = () => picker.jscolor.show();
     }
     // smoothing for rd
     menu.c46.style.display = 'block';

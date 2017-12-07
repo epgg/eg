@@ -5,6 +5,24 @@ const makeColorPickerAsString = function(defaultColor, contextSetterName) {
 		`onfocus=${contextSetterName}(event) onchange=hexColorPicked(event)></input>`;
 }
 
+const setOnClickForColorOvals = function(parent) {
+	let colorOvals = $(parent).find('.coloroval');
+	let pickers = $(parent).find('.' + jscolor.lookupClass);
+	if (colorOvals.length !== pickers.length) {
+		console.warn("setOnClickForColorOvals: number of color ovals and color pickers not equal!  Skipping...");
+		return;
+	}
+	for (let i = 0; i < colorOvals.length; i++) {
+		let oval = colorOvals[i];
+		let picker = pickers[i];
+
+		oval.onclick = (event) => {
+			picker.onfocus(event);
+			picker.jscolor.show();
+		}
+	}
+}
+
 var d=make_controlpanel(param);
 d.__hbutt2.style.display='none';
 d.__contentdiv.style.position='relative';
@@ -91,6 +109,8 @@ outlier <select id=geneplot_s1_outlier><option value=F selected>hide</option><op
 <input type=checkbox id=geneplot_s1_average> <label for=geneplot_s1_average>plot average values</label>\
 </p>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
+
 // style 2
 d4=dom_create('div',d3._c);
 G.style2_div=d4;
@@ -110,6 +130,8 @@ makeColorPickerAsString('FF9400', 'geneplot_s2_lc_initiator') +
 'image width <select id=geneplot_s2_iw><option value=300>300</option><option value=400>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800 selected>800</option><option value=900>900</option><option value=1000>1000</option><option value=1100>1100</option><option value=1200>1200</option><option value=1300>1300</option><option value=1400>1400</option><option value=1500>1500</option></select> \
 height <select id=geneplot_s2_ih class=s2><option value=300>300</option><option value=400 selected>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800>800</option></select></p>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
+
 // style 3
 d4=dom_create('div',d3._c);
 G.style3_div=d4;
@@ -151,6 +173,8 @@ outlier <select id=geneplot_s3_outlier><option value=F selected>hide</option><op
 <input type=checkbox id=geneplot_s3_average> <label for=geneplot_s3_average>plot average values</label>\
 </div>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
+
 // style 4
 d4=dom_create('div',d3._c);
 G.style4_div=d4;
@@ -185,6 +209,7 @@ makeColorPickerAsString('0000FF', 'geneplot_s4_nc_initiator') +
 '(white for zero baseline)\
 </p>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
 
 // 3 - rendering method
 d3=make_headertable(d2);
