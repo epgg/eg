@@ -103,6 +103,7 @@ jscolor.installByClassName(jscolor.lookupClass);
 colorPicker.jscolor.fromRGB(sp.dotcolor_r, sp.dotcolor_g, sp.dotcolor_b);
 colorPicker.addEventListener('focus', scatterplot_dotcolor_initiator);
 colorPicker.addEventListener('change', hexColorPicked);
+s.onclick = () => colorPicker.jscolor.show();
 sp.dotcolor_span=s;
 }
 
