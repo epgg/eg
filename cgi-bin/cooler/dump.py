@@ -52,10 +52,12 @@ def main():
         cool_file = get_file_matching_binsize(subfiles, int(desired_binsize))
         json_text = get_json_response(cool_file, chromosome_x, int(start_base_x), int(end_base_x), chromosome_y,
             int(start_base_y), int(end_base_y))
-    except IOError:
+    except IOError as e:
+        print >> sys.stderr, "dump.py:", e
         coolUtils.respond_with_text(404, "No such .cool file stored on this server")
         return
-    except ValueError:
+    except ValueError as e:
+        print >> sys.stderr, "dump.py:", e
         coolUtils.respond_with_text(400, "Malformed or unknown genomic region specified")
         return
 

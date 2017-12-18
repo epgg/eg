@@ -5,7 +5,7 @@ API endpoint for getting metadata of Cooler files.  Currently responds with reso
 :author: Silas Hsu
 :since: version 43.4, August 2017
 """
-
+import sys
 import cgi
 import cooler
 import json
@@ -30,7 +30,8 @@ def main():
 
     try:
         subfiles = coolUtils.get_subfiles(coolUtils.COOL_DIR + file_name)
-    except IOError:
+    except IOError as e:
+        print >> sys.stderr, "getMetadata.py:", e
         coolUtils.respond_with_text(404, "No such .cool file stored on this server")
         return
 

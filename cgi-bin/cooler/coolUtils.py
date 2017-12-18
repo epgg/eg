@@ -19,8 +19,9 @@ def get_subfiles(cool_file_path):
     :returns: (cooler.Cooler[]) list of Cooler files
     :raises IOError: if the input file path is not located in COOL_DIR
     """
-    if os.path.commonprefix([os.path.realpath(cool_file_path), COOL_DIR]) != COOL_DIR:
-        raise IOError("Directory traversal detected")
+    real_path = os.path.realpath(cool_file_path)
+    if os.path.commonprefix([real_path, COOL_DIR]) != COOL_DIR:
+        raise IOError("Directory traversal detected: " + cool_file_path + " resolved to " + real_path)
     return [cooler.Cooler(cool_file_path + "::" + subfile_name) for subfile_name in cooler.io.ls(cool_file_path)]
 
 def respond_with_text(code, text):
