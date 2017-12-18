@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux = {};
-var washUver = '44.1';
+var washUver = '44.2';
 var washUtag = '\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -3293,7 +3293,7 @@ function tk_height(tk) {
     if (!tk.canvas)
         return 0;
 
-    if (window.devicePixelRatio && window.devicePixelRatio != 1) {
+    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
         return tk.canvas.height / window.devicePixelRatio;
     } else {
         return tk.canvas.height;
@@ -3694,7 +3694,7 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
     // for header
     //retina fix for header
     ///*
-    if (window.devicePixelRatio && window.devicePixelRatio != 1) {
+    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
         var ctxWidth = tkobj.header.getAttribute('width');
         var ctxHeight = tkobj.header.getAttribute('height');
         var ctxCssWidth = ctxWidth;
@@ -3710,7 +3710,7 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
     //*/
     //y-axis fixing
     var yaxis_xoffset;
-    if (window.devicePixelRatio && window.devicePixelRatio != 1) {
+    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
         yaxis_xoffset = tkobj.header.width / window.devicePixelRatio;
     } else {
         yaxis_xoffset = tkobj.header.width;
@@ -4122,7 +4122,7 @@ to draw a cottontk, must call from cottonbbj (but not target bbj)
     //retina fix for track
     //var oheight = tc.height;
     ///*
-    if (window.devicePixelRatio && window.devicePixelRatio != 1) {
+    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
         var ctxWidth = tc.getAttribute('width');
         var ctxHeight = tc.getAttribute('height');
         var ctxCssWidth = ctxWidth;
@@ -10053,7 +10053,7 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
     //retina fix for lower sep line
     ///*
     var ctx = c.getContext('2d');
-    if (window.devicePixelRatio && window.devicePixelRatio != 1) {
+    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
         var ctxWidth = c.getAttribute('width');
         var ctxHeight = c.getAttribute('height');
         var ctxCssWidth = ctxWidth;
@@ -32057,7 +32057,7 @@ Browser.prototype.cmtk_prep_draw = function(tk, tosvg) {
     tk.canvas.height = cmtk_height(tk);
     //retina fix for methylC track
     ///*
-    if (window.devicePixelRatio && window.devicePixelRatio != 1) {
+    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
         var ctxWidth = tk.canvas.getAttribute('width');
         var ctxHeight = tk.canvas.getAttribute('height');
         var ctxCssWidth = ctxWidth;

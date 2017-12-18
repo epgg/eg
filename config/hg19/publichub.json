@@ -174,7 +174,7 @@
 },
 {
 "id":"cooler",
-"trackcount":23,
+"trackcount":185,
 "name":"Cool interaction from Cooler",
 "url":"http://epgg-test.wustl.edu/dli/long-range-test/hg19-coolhub",
 "desc":"HiC interaction data sets from Cooler."
