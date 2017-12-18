@@ -50,7 +50,11 @@ def main():
     try:
         subfiles = coolUtils.get_subfiles(coolUtils.COOL_DIR + file_name)
         cool_file = get_file_matching_binsize(subfiles, int(desired_binsize))
-        json_text = get_json_response(cool_file, chromosome_x, int(start_base_x), int(end_base_x), chromosome_y,
+        chr_x_match = get_matching_chromosome_name(cool_file, chromosome_x)
+        chr_y_match = get_matching_chromosome_name(cool_file, chromosome_y)
+        if None in [chr_x_match, chr_y_match]:
+            raise ValueError("Unknown chromosome name {} or {}".format(chromosome_x, chromosome_y))
+        json_text = get_json_response(cool_file, chr_x_match, int(start_base_x), int(end_base_x), chr_y_match,
             int(start_base_y), int(end_base_y))
     except IOError as e:
         print >> sys.stderr, "dump.py:", e
@@ -107,6 +111,25 @@ def get_file_matching_binsize(cool_file_list, desired_binsize):
             break
 
     return sorted_files[found_index]
+
+def get_matching_chromosome_name(cool_file, chr_name):
+    """
+    Gets a chromosome name in cool_file that matches the input chr_name.  If no such match was found, then returns None.
+
+    :param cool_file: (cooler.Cooler) open cooler file interface
+    :param chr_name: (string) chromosome name to match
+    :returns: (string) a chromosome name that is in the cool_file, or None if not found
+    """
+    chr_names = cool_file.chromnames
+    if chr_name in chr_names:
+        return chr_name
+
+    modified_name = chr_name.replace("chrM", "MT")
+    modified_name = modified_name.replace("chr", "")
+    if modified_name in chr_names:
+        return modified_name
+
+    return None
 
 if __name__ == "__main__":
     main()
