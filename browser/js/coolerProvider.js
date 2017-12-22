@@ -150,7 +150,7 @@ class _CoolerMetadata {
      */
     constructor(parsedJson) {
         this.binSizes = parsedJson.binSizes.slice();
-        this.binSizes.sort((a, b) => a < b);
+        this.binSizes.sort((a, b) => b - a);
         // We alias this.binSizes because we delegate some functions to hic.Dataset
         this.bpResolutions = this.binSizes;
         this.chromosomes = parsedJson.chromosomes.slice();
