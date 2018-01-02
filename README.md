@@ -6,6 +6,9 @@ http://wiki.wubrowse.org/Version_History
 ### public server
 http://epigenomegateway.wustl.edu/browser
 
+### docker
+https://hub.docker.com/r/epgg/eg/
+
 ### wiki
 http://wiki.wubrowse.org
 

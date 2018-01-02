@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux = {};
-var washUver = '44.2';
+var washUver = '45';
 var washUtag = '\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
