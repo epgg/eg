@@ -25691,6 +25691,11 @@ function config_cmtk(tk) {
 
         picker.addEventListener('focus', event => cmtk_color_initiate(event, colorCell));
         picker.addEventListener('change', hexColorPicked);
+
+        colorCell.onclick = function(event) {
+            cmtk_color_initiate(event, colorCell);
+            picker.jscolor.show();
+        };
         return picker;
     };
 
@@ -25702,9 +25707,6 @@ function config_cmtk(tk) {
         dom_addtext(parent, "<br>");
         let picker1 = makeColorPicker(parent, color, canvas1);
         let picker2 = makeColorPicker(parent, backgroundColor, canvas2);
-
-        canvas1.onclick = () => picker1.jscolor.show();
-        canvas2.onclick = () => picker2.jscolor.show();
     };
 
     menu.c14.style.display = 'block';
@@ -25797,7 +25799,6 @@ function config_cmtk(tk) {
     c.height = 20;
     c.which = 'rd_f';
     let picker = makeColorPicker(td, tk.cm.color.rd_f, c, 'block');
-    c.onclick = () => picker.jscolor.show();
     if (hasreverse) {
         td = tr.insertCell(-1);
         c = dom_create('canvas', td, 'background-color:' + tk.cm.color.rd_r);
@@ -25805,7 +25806,6 @@ function config_cmtk(tk) {
         c.height = 20;
         c.which = 'rd_r';
         picker = makeColorPicker(td, tk.cm.color.rd_r, c, 'block');
-        c.onclick = () => picker.jscolor.show();
     }
     // smoothing for rd
     menu.c46.style.display = 'block';
@@ -26726,11 +26726,17 @@ function config_matplot(tk) {
         var t2 = tk.tracks[i];
         var tr = t.insertRow(-1);
         var td = tr.insertCell(0);
-        td.className = 'squarecell';
         var q = t2.qtc;
-        td.style.backgroundColor = 'rgb(' + q.pr + ',' + q.pg + ',' + q.pb + ')';
-        td.onclick = matplot_linecolor_initiate;
-        td.tkidx = i;
+
+        let picker = dom_create('input', td);
+        picker.tkidx = i;
+        $(picker).attr('size', 6);
+        $(picker).addClass(jscolor.lookupClass);
+        jscolor.installByClassName(jscolor.lookupClass);
+        picker.jscolor.fromRGB(q.pr, q.pg, q.pb);
+        picker.addEventListener('focus', matplot_linecolor_initiate);
+        picker.addEventListener('change', hexColorPicked);
+
         tr.insertCell(1).innerHTML = t2.label;
     }
     menu.c13.style.display = 'block';
@@ -26739,7 +26745,7 @@ function config_matplot(tk) {
 }
 
 function matplot_linecolor_initiate(event) {
-    paletteshow(event.clientX, event.clientY, 14, true);
+    paletteshow(event.clientX, event.clientY, 14);
     palettegrove_paint(event.target.style.backgroundColor);
     gflag.menu.matplottkcell = event.target;
 }
