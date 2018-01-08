@@ -7,6 +7,7 @@ var washUtag = '\
 <span style="color:#38761d;">G<span style="font-size:80%;">ENOME</span></span> \
 <span style="color:#cc4125;">B<span style="font-size:80%;">ROWSER</span></span>';
 const DEFAULT_COLOR = "#FFFFFF";
+const DEFAULT_LABEL_FONT_SIZE = 8;
 var gflag = {
     allow_packhide_tkdata: false,
     browser: undefined,
@@ -3822,13 +3823,16 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
             }
         }
         // label
-        ctx.fillText(tkobj.label, 1, 25);
+        const labelFontSize = tkobj.qtc.labelFontSize || DEFAULT_LABEL_FONT_SIZE;
+        ctx.font = `${labelFontSize}pt Sans-serif`;
+        ctx.fillText(tkobj.label, 1, 17 + labelFontSize);
         if (tosvg)
             svgdata.push({
                 type: svgt_text_notscrollable,
                 x: 1,
-                y: 25,
+                y: 17 + labelFontSize,
                 text: tkobj.label,
+                size: labelFontSize + 'pt',
                 color: ctx.fillStyle
             });
         return svgdata;
@@ -3945,7 +3949,8 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
     }
 
     // plot label
-    ctx.font = "8pt Sans-serif";
+    const labelFontSize = tkobj.qtc.labelFontSize || DEFAULT_LABEL_FONT_SIZE;
+    ctx.font = `${labelFontSize}pt Sans-serif`;
     if (ctx.measureText(tkobj.label).width >= this.leftColumnWidth - 7) {
         // clear things in the path, digit 0 is usually there when track height is not big
         var w = this.leftColumnWidth - 7;
@@ -3961,7 +3966,7 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
             });
     }
 
-    y += 10;
+    y += labelFontSize + 2;
     ctx.fillStyle = color;
     var label = (tkobj.cotton ? tkobj.cotton + ' ' : '') + tkobj.label;
     ctx.fillText(label, 1, y);
@@ -3970,6 +3975,7 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
             type: svgt_text_notscrollable,
             x: 1,
             y: y,
+            size: labelFontSize + 'pt',
             text: label
         });
 
@@ -7277,6 +7283,21 @@ calling drawTrack_browser(trunk_tk) will automatically redraw splinter
                     }
                     U = true;
                 }
+                break;
+            case 45: // Label font size
+                let parsedUserInput = Number.parseInt(menu.labelFontItem.input.value, 10);
+                tk.qtc.labelFontSize = Number.isFinite(parsedUserInput) ? parsedUserInput : DEFAULT_LABEL_FONT_SIZE;
+                if (!tkreg.qtc) {
+                    tkreg.qtc = {};
+                }
+                tkreg.qtc.labelFontSize = tk.qtc.labelFontSize;
+                for (var a in bbj.splinters) {
+                    var tk2 = bbj.splinters[a].findTrack(tk.name);
+                    if (!tk2)
+                        continue;
+                    tk2.qtc.labelFontSize = tk.qtc.labelFontSize;
+                }
+                U = true;
                 break;
             case 15:
                 if (tk.qtc.forwardcolor) {
@@ -13323,6 +13344,15 @@ panels that belong to the page and shared by all browser objs
     menu.c53 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c53.checkbox = dom_addcheckbox(menu.c53, 'Apply to all tracks', toggle15);
 
+    menu.labelFontItem = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
+    dom_addtext(menu.labelFontItem, 'Label size: ');
+    let labelFontInput = dom_create('input', menu.labelFontItem, 'display: inline-block; width: 4em');
+    $(labelFontInput).attr('type', 'number');
+    $(labelFontInput).attr('min', 0);
+    $(labelFontInput).attr('max', 99);
+    labelFontInput.onchange = stc_labelFontSize;
+    menu.labelFontItem.input = labelFontInput;
+
     menu.c16 = menu_addoption('&#8505;', 'Information', menuGetonetrackdetails, menu);
 
     /* menu - select tk to add, small panel in menu */
@@ -16147,7 +16177,9 @@ Browser.prototype.tklstfrommenu = function() {
 }
 
 /*** __qtc__ ends ***/
-
+function stc_labelFontSize() {
+    menu_update_track(45);
+}
 function stc_fontfamily() {
     menu_update_track(12);
 }
@@ -26118,6 +26150,9 @@ function menuConfig() {
         var tk = m.tklst[0];
         // bg applies to everyone
         menu.c44.style.display = 'block';
+
+        menu.labelFontItem.style.display = 'block';
+        menu.labelFontItem.input.value = tk.qtc.labelFontSize || DEFAULT_LABEL_FONT_SIZE;
         if (tk.qtc.bg) {
             menu.c44.checkbox.checked = true;
             menu.c44.color.style.display = 'block';
