@@ -5605,6 +5605,17 @@ to draw a cottontk, must call from cottonbbj (but not target bbj)
                     continue;
                 ctx.fillStyle = 'rgba(' + hc[0] + ',' + hc[1] + ',' + hc[2] + ',' + 0.5 * (1 - w / (this.hmSpan * .75)) + ')';
                 ctx.fillRect(pos[j][0], 0, Math.max(2, w), tc.height);
+
+                if (tosvg) {
+                    svgdata.push({
+                        type: svgt_rect,
+                        x: pos[j][0],
+                        y: 0,
+                        w: Math.max(2, w),
+                        h: tc.height,
+                        fill: ctx.fillStyle
+                    });
+                }
             }
         }
     }
@@ -6585,7 +6596,7 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
     //this.rulercanvas.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
 }
 */
-
+    var svgdata = [];
     if (this.highlight_regions.length > 0) {
         var cl = colorCentral.hl;
         for (var j = 0; j < this.highlight_regions.length; j++) {
@@ -6608,6 +6619,17 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
                 ctx.fill();
                 ctx.fillStyle = cl;
                 ctx.fillRect(p[0], h - 3, p[1], 2);
+
+                if (tosvg) {
+                    svgdata.push({
+                        type: svgt_rect,
+                        x: p[0],
+                        y: 0,
+                        w: p[1],
+                        h: h - 1,
+                        fill: cl
+                    });
+                }
             }
         }
     }
@@ -6621,7 +6643,6 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
         return [];
     }
     var previousplotstop = 0;
-    var svgdata = [];
     ctx.lineWidth = 1;
     var y = h - 3.5;
     ctx.strokeStyle = ctx.fillStyle = colorCentral.foreground_faint_5;
@@ -12610,7 +12631,11 @@ panels that belong to the page and shared by all browser objs
         var hd = d.__contentdiv;
         hd.style.color = colorCentral.background;
         var p = dom_create('p', hd, 'color:inherit;line-height:1.5;');
-        apps.svg.showtklabel = dom_addcheckbox(p, 'show track name', null);
+        apps.svg.showtklabel = dom_addcheckbox(p, 'Show track name', null);
+
+        p = dom_create('p', hd, 'color:inherit;line-height:1.5;');
+        dom_addcheckbox(p, 'Disable region highlighting', toggle16);
+
         var bt = dom_addbutt(hd, 'Take screenshot', makesvg_browserpanel_pushbutt, 'margin-right:20px;');
         bt.addEventListener('mousedown', makesvg_clear, false);
         apps.svg.submitbutt = bt;
