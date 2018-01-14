@@ -32661,6 +32661,68 @@ function blog_geneset() {
 function blog_circlet() {
     window.open('http://wiki.wubrowse.org/V17:_Circlet_View');
 }
+
+function makeHeart() {
+    const fontSize = Math.floor(Math.random() * 85) + 20;
+    const left = Math.floor(Math.random() * 100);
+    const blueValue = Math.floor(Math.random() * 25) + 100;
+    const greenValue = blueValue - 25;
+    const animationDuration = Math.floor(Math.random() * 5) + 5;
+
+    let heart = $("<span>💜</span>");
+    heart.css({
+        fontSize: fontSize + "px",
+        color: "transparent",
+        textShadow: `0 0 0 rgb(255, ${greenValue}, ${blueValue}`,
+        opacity: 0,
+
+        position: "absolute",
+        left: left + "%",
+
+        animationName: "bubble-up",
+        animationDuration: animationDuration + "s"
+    });
+    return heart;
+}
+
+function animateHearts() {
+    let heartPane = $("<div class='heart-pane'></div>");
+    heartPane.append($(
+        `<style>
+            .heart-pane {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100vh;
+            }
+
+            @keyframes bubble-up {
+                from {
+                    top: 100%;
+                    opacity: 1;
+                }
+        
+                to {
+                    top: -10%;
+                    opacity: 0;
+                }
+            }
+        </style>`
+    ));
+
+    let heartAnimation = window.setInterval(function() {
+        heartPane.append(makeHeart());
+    }, 500);
+
+    heartPane.on('click', () => {
+        window.clearInterval(heartAnimation);
+        heartPane.remove();
+    });
+
+    $('body').append(heartPane);
+}
+
 function app_get_sequence(event) {
     var bbj = gflag.menu.bbj;
     var lst = menu.apppanel.getseq.input.value.split('\n');
@@ -32668,6 +32730,16 @@ function app_get_sequence(event) {
         print2console('No coordinates given', 2);
         return;
     }
+
+    if (lst.length === 1 && lst[0] === "chr1:12-27") {
+        animateHearts();
+        app_showseq(
+            {lst: ["我对你的感情那么深，在我的DNA里。工作在这里是我一生最好的决定之一～<br><br>祝你今天快乐！-🐱"]},
+            ["chr1", 12, 27]
+        );
+        return;
+    }
+
     var gc = []
       , lc = [];
     // for looking
