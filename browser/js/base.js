@@ -8138,7 +8138,7 @@ Browser.prototype.ajaxSaveUrlpiece = function(callback) {
         saveURLpiece: url.substr(this.urloffset, urllenlimit),
         offset: this.urloffset,
         session: this.sessionId,
-        dbName: this.genomeName,
+        dbName: this.genome.name,
     }
     req.open("POST", gflag.cors_host + "/cgi-bin/subtleKnife?" + $.param(params), true);
     // This is not technically correct...
