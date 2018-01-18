@@ -47,7 +47,7 @@ class CoolerProvider extends HicProvider {
             request.onload = function() {
                 if (request.status == 200) {
                     resolve(JSON.parse(request.responseText));
-                } else if (Math.floor(request.status/100) == 4 || Math.floor(request.status/100) == 5) {
+                } else if (request.status >= 400) {
                     // 400 or 500 level
                     let reason = `HTTP ${request.status}: ${request.responseText}`;
                     print2console(reason, 2);
@@ -129,7 +129,7 @@ class CoolerProvider extends HicProvider {
      */
     _constructTrackData(hicTrack, recordsForEachRegion) {
         let trackData = super._constructTrackData(hicTrack, recordsForEachRegion);
-        trackData.url = this.metadataUrl;
+        trackData.url = this.fileName;
         trackData.norm = "NONE";
         return trackData;
     }

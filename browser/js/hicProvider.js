@@ -99,6 +99,7 @@ class HicProvider extends DataProvider {
         });
         
         let trackData = {
+            url: hicTrack.url,
             data: recordsForEachRegion,
             name: hicTrack.name,
             label: hicTrack.label,
