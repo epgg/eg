@@ -18960,11 +18960,11 @@ TODO pwc, htest, bev?
     // decide where (ghm or under) this track should appear initially
     if (ft == FT_matplot) {
         obj.where = 1;
-    } else if (ft == FT_bam_n || ft == FT_bam_c || ft == FT_sam_n || ft == FT_sam_c) {
+    } else if (ft == FT_bam_n || ft == FT_bam_c || ft == FT_sam_n || ft == FT_sam_c || ft == FT_lr_c) {
         obj.where = 1;
     } else if (ft == FT_ld_c || ft == FT_ld_n) {
         obj.where = 2;
-    } else if ((ft == FT_bed_n || ft == FT_bed_c || ft == FT_bigbed_n || ft == FT_bigbed_c || ft == FT_lr_n || ft == FT_lr_c || ft == FT_qdecor_n) || (name in this.genome.decorInfo)) {
+    } else if ((ft == FT_bed_n || ft == FT_bed_c || ft == FT_bigbed_n || ft == FT_bigbed_c || ft == FT_lr_n || ft == FT_qdecor_n) || (name in this.genome.decorInfo)) {
         obj.where = 2;
     } else {
         obj.where = 1;
