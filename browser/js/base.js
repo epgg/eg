@@ -14731,7 +14731,14 @@ Browser.prototype.trackHeightChanged = function() {
 */
     if (!this.hmdiv)
         return;
-    this.hmdiv.parentNode.style.height = this.hmdiv.clientHeight;
+
+    let totalHeight = 0;
+    const canvases = this.hmdiv.getElementsByTagName('canvas');
+    for (let i = 0; i < canvases.length; i++) {
+        totalHeight += canvases[i].height / (window.devicePixelRatio || 1);
+    }
+    this.hmdiv.parentNode.style.height = Math.round(totalHeight);
+
     //if(this.mcm) this.mcmPlaceheader();
     if (this.decordiv) {
         this.decordiv.parentNode.style.height = this.decordiv.clientHeight;
