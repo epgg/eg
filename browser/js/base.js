@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux = {};
-var washUver = '45';
+var washUver = '45.1';
 var washUtag = '\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -3285,11 +3285,7 @@ function tk_height(tk) {
     if (!tk.canvas)
         return 0;
 
-    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
-        return tk.canvas.height / window.devicePixelRatio;
-    } else {
-        return tk.canvas.height;
-    }
+    return tk.canvas.height / getPixelRatioSafely();
 }
 function cmtk_height(tk) {
     if (tk.cm.combine || !tk.cm.set.rd_r)
@@ -3671,6 +3667,44 @@ screen/scrollable x to region coord, x from beginning of scrollable canvas
     return hit;
 }
 
+/**
+ * Gets the device's pixel ratio.  Guaranteed to be a number greater than 0.
+ * 
+ * @return {number} this device's pixel ratio
+ */
+function getPixelRatioSafely() {
+    const pixelRatio = window.devicePixelRatio;
+    if (Number.isFinite(pixelRatio) && pixelRatio > 0) {
+        return pixelRatio;
+    } else {
+        return 1;
+    }
+}
+
+/**
+ * Applies a fix for Retina (i.e. high pixel density) displays, to prevent a canvas from being blurry.  Set =
+ * `setParentStyle` to `true` to apply identical style to the parent element.
+ * 
+ * @param {HTMLElement} canvas - canvas to modify
+ * @param {boolean} setParentStyle - whether to apply styles to parent element as well
+ */
+function applyRetinaFix(canvas, setParentStyle=false) {
+    const pixelRatio = getPixelRatioSafely();
+    if (pixelRatio !== 1) {
+        const width = canvas.width;
+        const height = canvas.height;
+        canvas.setAttribute('style', `width: ${width}px; height: ${height}px;`);
+        if (setParentStyle && canvas.parentNode) {
+            canvas.parentNode.setAttribute('style', `width: ${width}px; height: ${height}px;`);
+        }
+
+        canvas.setAttribute('width', width * pixelRatio);
+        canvas.setAttribute('height', height * pixelRatio);
+        const ctx = canvas.getContext('2d');
+        ctx.scale(pixelRatio, pixelRatio);
+    }
+}
+
 Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
     if (tkishidden(tkobj))
         return;
@@ -3682,32 +3716,11 @@ Browser.prototype.drawTrack_header = function(tkobj, tosvg) {
     var svgdata = [];
     tkobj.header.width = this.leftColumnWidth;
     tkobj.header.height = tk_height(tkobj);
+
+    applyRetinaFix(tkobj.header, true);
+    var yaxis_xoffset = tkobj.header.width / getPixelRatioSafely();
+
     var ctx = tkobj.header.getContext('2d');
-    // for header
-    //retina fix for header
-    ///*
-    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
-        var ctxWidth = tkobj.header.getAttribute('width');
-        var ctxHeight = tkobj.header.getAttribute('height');
-        var ctxCssWidth = ctxWidth;
-        var ctxCssHeight = ctxHeight;
-        tkobj.header.setAttribute('width', ctxWidth * window.devicePixelRatio);
-        tkobj.header.setAttribute('height', ctxHeight * window.devicePixelRatio);
-        tkobj.header.setAttribute('style', 'width:' + ctxCssWidth + 'px;height:' + ctxCssHeight + 'px');
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        if (tkobj.header.parentNode) {
-            tkobj.header.parentNode.setAttribute('style', 'width:' + ctxCssWidth + 'px;height:' + ctxCssHeight + 'px');
-        }
-    }
-    //*/
-    //y-axis fixing
-    var yaxis_xoffset;
-    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
-        yaxis_xoffset = tkobj.header.width / window.devicePixelRatio;
-    } else {
-        yaxis_xoffset = tkobj.header.width;
-    }
-    //end
     ctx.fillStyle = colorCentral.foreground_faint_1;
     ctx.fillRect(0, 0, tkobj.header.width, 1);
     if (tosvg)
@@ -4115,24 +4128,11 @@ to draw a cottontk, must call from cottonbbj (but not target bbj)
         tc.height = tkobj.qtc.height + (tkobj.qtc.height >= 20 ? densitydecorpaddingtop : 0);
     } else if (tkobj.ft == FT_cat_c || tkobj.ft == FT_cat_n || tkobj.ft == FT_catmat) {
         tc.height = 1 + tkobj.qtc.height;
-    } else if (tkobj.ft == FT_catmat) {}
-    //retina fix for track
-    //var oheight = tc.height;
-    ///*
-    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
-        var ctxWidth = tc.getAttribute('width');
-        var ctxHeight = tc.getAttribute('height');
-        var ctxCssWidth = ctxWidth;
-        var ctxCssHeight = ctxHeight;
-        tc.setAttribute('width', ctxWidth * window.devicePixelRatio);
-        tc.setAttribute('height', ctxHeight * window.devicePixelRatio);
-        tc.setAttribute('style', 'width:' + ctxCssWidth + 'px;height:' + ctxCssHeight + 'px');
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        //tc.parentNode.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-        //tc.parentNode.setAttribute('style','height:'+ctxCssHeight+'px');
-        //tkobj.qtc.height = ctxCssHeight;
+    } else if (tosvg) { // The hackiest of hacks to prevent heights from doubling from applyRetinaFix()... only in SVG?
+        tc.height = tc.height / getPixelRatioSafely(); // O ye gods, forgiveth me
     }
-    //*/
+    applyRetinaFix(tc);
+
     ctx.clearRect(0, 0, tc.width, tc.height);
 
     if (tkobj.qtc.bg) {
@@ -6580,19 +6580,7 @@ Browser.prototype.drawRuler_browser = function(tosvg) {
     var ctx = this.rulercanvas.getContext('2d');
     var h = this.rulercanvas.height;
     //retina fix for ruler
-    /*
-if (window.devicePixelRatio && window.devicePixelRatio != 1){
-    var ctxWidth = this.rulercanvas.getAttribute('width');
-    var ctxHeight = this.rulercanvas.getAttribute('height');
-    var ctxCssWidth = ctxWidth;
-    var ctxCssHeight = ctxHeight;
-    this.rulercanvas.setAttribute('width',ctxWidth*window.devicePixelRatio);
-    this.rulercanvas.setAttribute('height',ctxHeight*window.devicePixelRatio);
-    this.rulercanvas.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    //this.rulercanvas.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-}
-*/
+    //applyRetinaFix(this.rulercanvas);
     var svgdata = [];
     if (this.highlight_regions.length > 0) {
         var cl = colorCentral.hl;
@@ -10053,21 +10041,7 @@ since that will make splinters unreachable
     var c = dom_create('canvas', td);
     //c.width= td.style.width=this.leftColumnWidth;
     c.height = 12;
-    //retina fix for lower sep line
-    /*
-var ctx = c.getContext('2d');
-if (window.devicePixelRatio && window.devicePixelRatio != 1){
-    var ctxWidth = c.getAttribute('width');
-    var ctxHeight = c.getAttribute('height');
-    var ctxCssWidth = ctxWidth;
-    var ctxCssHeight = ctxHeight;
-    c.setAttribute('width',ctxWidth*window.devicePixelRatio);
-    c.setAttribute('height',ctxHeight*window.devicePixelRatio);
-    c.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    c.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-}
-*/
+    //applyRetinaFix(c, true);
     c.style.marginTop = 2;
     c.style.display = 'none';
     this.basepairlegendcanvas = c;
@@ -10083,21 +10057,7 @@ if (window.devicePixelRatio && window.devicePixelRatio != 1){
     var d3 = dom_create('div', d2);
     d3.style.position = 'relative';
     c = dom_create('canvas', d3);
-    //retina fix for lower sep line
-    ///*
-    var ctx = c.getContext('2d');
-    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
-        var ctxWidth = c.getAttribute('width');
-        var ctxHeight = c.getAttribute('height');
-        var ctxCssWidth = ctxWidth;
-        var ctxCssHeight = ctxHeight;
-        c.setAttribute('width', ctxWidth * window.devicePixelRatio);
-        c.setAttribute('height', ctxHeight * window.devicePixelRatio);
-        c.setAttribute('style', 'width:' + ctxCssWidth + 'px;height:' + ctxCssHeight + 'px');
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        //c.parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-    }
-    //*/
+    //applyRetinaFix(c);
     c.style.marginBottom = 3;
     c.width = this.hmSpan;
     c.height = 20;
@@ -11118,20 +11078,7 @@ Browser.prototype.drawIdeogram_browser = function(tosvg) {
         this.basepairlegendcanvas.style.display = "none";
     }
     var ctx = this.ideogram.canvas.getContext('2d');
-
-    //retina fix for ideogram
-    /*
-if (window.devicePixelRatio && window.devicePixelRatio != 1){
-    var ctxWidth = this.ideogram.canvas.getAttribute('width');
-    var ctxHeight = this.ideogram.canvas.getAttribute('height');
-    var ctxCssWidth = ctxWidth;
-    var ctxCssHeight = ctxHeight;
-    this.ideogram.canvas.setAttribute('width',ctxWidth*window.devicePixelRatio);
-    this.ideogram.canvas.setAttribute('height',ctxHeight*window.devicePixelRatio);
-    this.ideogram.canvas.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-}
-*/
+    //applyRetinaFix(this.ideogram.canvas);
 
     var svgdata = [];
 
@@ -14735,7 +14682,7 @@ Browser.prototype.trackHeightChanged = function() {
     let totalHeight = 0;
     const canvases = this.hmdiv.getElementsByTagName('canvas');
     for (let i = 0; i < canvases.length; i++) {
-        totalHeight += canvases[i].height / (window.devicePixelRatio || 1);
+        totalHeight += canvases[i].height / getPixelRatioSafely();
     }
     this.hmdiv.parentNode.style.height = Math.round(totalHeight);
 
@@ -32138,19 +32085,8 @@ Browser.prototype.cmtk_prep_draw = function(tk, tosvg) {
     }
     tk.canvas.height = cmtk_height(tk);
     //retina fix for methylC track
-    ///*
-    if (window.devicePixelRatio && window.devicePixelRatio == 2) {
-        var ctxWidth = tk.canvas.getAttribute('width');
-        var ctxHeight = tk.canvas.getAttribute('height');
-        var ctxCssWidth = ctxWidth;
-        var ctxCssHeight = ctxHeight;
-        tk.canvas.setAttribute('width', ctxWidth * window.devicePixelRatio);
-        tk.canvas.setAttribute('height', ctxHeight * window.devicePixelRatio);
-        tk.canvas.setAttribute('style', 'width:' + ctxCssWidth + 'px;height:' + ctxCssHeight + 'px');
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        //tk.canvas..parentNode.setAttribute('style','width:'+ctxCssWidth+'px;height:'+ctxCssHeight+'px');
-    }
-    //*/
+    applyRetinaFix(tk.canvas);
+
     var svgdata = [];
     if (tk.cm.combine) {
         /* combine two strands, mainly for rd and cg
