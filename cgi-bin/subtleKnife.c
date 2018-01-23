@@ -8412,7 +8412,8 @@ if(cgiVarExists("makegeneplot"))
     FILE *fout = NULL;
     if(is_s1 || is_s3 || is_s4 || usingR)
         {
-		if(asprintf(&rfile, "%s/%s.geneplot", trashDir, session)<0) errabort("bae");
+		if(asprintf(&rfile, "%s/%s.%d.geneplot", trashDir, session, rand())<0) errabort("bae");
+		fprintf(stderr, "Writing geneplot file to %s\n", rfile);
 		fout = fopen(rfile, "w");
 		if(fout == NULL)
 			errabort("cannot open file for writing geneplot code");
