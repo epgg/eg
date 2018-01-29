@@ -214,10 +214,9 @@ scatterplot_makeplot(apps.scp);
 function scatterplot_reset()
 {
 var sp=apps.scp;
-sp.textarea.value='';
+sp.geneset=null;
+sp.ui_geneset_says.innerHTML='No gene set selected';
 sp.tk1=sp.tk2=null;
-stripChild(sp.tk1_span,0);
-stripChild(sp.tk2_span,0);
 sp.tk1_span.innerHTML='for X axis';
 sp.tk2_span.innerHTML='for Y axis';
 }
@@ -268,6 +267,10 @@ function scatterplot_submit()
 /* polymorphism in alethiometer
 */
 var sp=apps.scp;
+if(sp.geneset==null) {
+	print2console('Geneset unspecified',2);
+	return;
+}
 if(sp.tk1==null) {
 	print2console('Track X unspecified',2);
 	return;
