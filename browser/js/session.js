@@ -289,7 +289,9 @@ if(this.genome.geneset && this.genome.geneset.lst.length>0) {
 	var lst=[];
 	for(var i=0; i<this.genome.geneset.lst.length; i++) {
 		var t=this.genome.geneset.lst[i];
-		lst.push({name:t.name,lst:t.lst,gss_down:t.gss_down,gss_opt:t.gss_opt,gss_origin:t.gss_origin,gss_up:t.gss_up});
+		if (t != undefined) {
+			lst.push({name:t.name,lst:t.lst,gss_down:t.gss_down,gss_opt:t.gss_opt,gss_origin:t.gss_origin,gss_up:t.gss_up});
+		}
 	}
 	jlst.push({type:'geneset_ripe',list:lst});
 }
