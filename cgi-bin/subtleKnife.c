@@ -10781,6 +10781,7 @@ if(hm.trackSl!=NULL)
 					/* ft-specific treatment */
 					double *data = malloc(sizeof(double)*dsp.usedSummaryNumber);
 					FILE *fin = fopen(tk->tmpfile, "r");
+                    fputs("10784\n", stderr);
 					if(fin == NULL) 
 						{
 						/* error! file missing!
@@ -10790,11 +10791,14 @@ if(hm.trackSl!=NULL)
 							{
 							data[i]=NAN;
 							}
+                        fputs("10794\n", stderr);
 						}
 					else
 						{
+                            fputs("10798\n", stderr);
 						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c)//||tk->ft==FT_callingcard_c||tk->ft==FT_callingcard_n)
 							{
+                                fputs("10801\n", stderr);
 							for(i=0; i<dsp.usedSummaryNumber; i++)
 								{
 								if(getline(&line, &s, fin) == -1)
@@ -10818,7 +10822,7 @@ if(hm.trackSl!=NULL)
 								}
 							// print out json for tkLst array element
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
-							if(tk->ft==FT_bedgraph_c||tk->ft==FT_bigwighmtk_c)//||tk->ft==FT_callingcard_c)
+							if(tk->ft==FT_bedgraph_c||tk->ft==FT_bigwighmtk_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
 							printf("'data':[");
 							// track data of different regions are in separate arrays
@@ -10839,6 +10843,8 @@ if(hm.trackSl!=NULL)
 								i += j;
 								}
 							printf("]},");
+                            fprintf(stderr, "'name':'%s','ft':%d,",tk->name, tk->ft);
+                            fputs("10846\n", stderr);
 							}
 						else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
 							// fprintf(stderr, "number lines to read = %d\n", lines);
@@ -10955,7 +10961,7 @@ if(hm.trackSl!=NULL)
 								for (i = 0; i < current->length; i++) {
 									// fputs("10942\n", stderr);
 									if (current->strand[i] != '\0')
-										{fputs("10944\n", stderr); printf("'%c',", current->strand[i]);}
+										{/*fputs("10944\n", stderr); */printf("'%c',", current->strand[i]);}
 									else
 										printf("'',");
 								}
