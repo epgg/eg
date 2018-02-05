@@ -495,7 +495,7 @@ var defaultQtcStyle = {
 		thmax:10,
 		thpercentile:90,
 		height:15,
-		opacity:0.5
+		opacity:1
 	},
 }
 
