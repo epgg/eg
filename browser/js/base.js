@@ -11557,7 +11557,7 @@ if(param.menu_curvenoarea) {
 // Calling card opacity slider
 menu.c67=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
 dom_addtext(menu.c67,'Opacity&nbsp;');
-menu.c67.slider=dom_addslider(menu.c67, 'opacity', 0, 100, 1, 100, opacityslider);
+menu.c67.slider=dom_addslider(menu.c67, 'opacity', 0, 100, 1, 50, opacityslider);
 
 // Calling card size selector
 menu.c68=dom_create('div',menu,'padding:10px;border-top:solid 1px '+colorCentral.foreground_faint_1);
