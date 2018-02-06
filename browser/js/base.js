@@ -9325,7 +9325,7 @@ noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
             fatalError('trackParam: unknown ft ' + t.ft);
         }
     }
-    paramsObj = {};
+    var paramsObj = {};
     if (lst[FT_bedgraph_n].length > 0) {
         paramsObj.hmtk2 = lst[FT_bedgraph_n].join(',');
     }
