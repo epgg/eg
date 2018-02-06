@@ -14996,7 +14996,7 @@ function qtrack_getthreshold_cc(data, qtconfig, startRidx, stopRidx, startDidx, 
         for (var i = startRidx; i <= stopRidx; i++) {
             var start = (i == startRidx) ? startDidx : 0;
             var stop = (i == stopRidx) ? stopDidx : data[i].length;
-            for (var j = start; j < s top; j++) {
+            for (var j = start; j < stop; j++) {
                 var v = data[i][j];
                 if (isNaN(v) || v == Infinity || v == -Infinity) {
                 } else if (v > 0) {
