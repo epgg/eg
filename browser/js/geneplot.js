@@ -1,5 +1,28 @@
 function makepanel_geneplot(param)
 {
+const makeColorPickerAsString = function(defaultColor, contextSetterName) {
+	return `<input class="${jscolor.lookupClass}" value="${defaultColor}" size="10" style="display: inline-block;"` + 
+		`onfocus=${contextSetterName}(event) onchange=hexColorPicked(event)></input>`;
+}
+
+const setOnClickForColorOvals = function(parent) {
+	let colorOvals = $(parent).find('.coloroval');
+	let pickers = $(parent).find('.' + jscolor.lookupClass);
+	if (colorOvals.length !== pickers.length) {
+		console.warn("setOnClickForColorOvals: number of color ovals and color pickers not equal!  Skipping...");
+		return;
+	}
+	for (let i = 0; i < colorOvals.length; i++) {
+		let oval = colorOvals[i];
+		let picker = pickers[i];
+
+		oval.onclick = (event) => {
+			picker.onfocus(event);
+			picker.jscolor.show();
+		}
+	}
+}
+
 var d=make_controlpanel(param);
 d.__hbutt2.style.display='none';
 d.__contentdiv.style.position='relative';
@@ -68,8 +91,9 @@ d4.innerHTML='<table><tr>\
 </select></div>\
 <p style="font-size:12px;">Line width \
 <select id=geneplot_s1_lw><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5 selected>5</option></select> \
-<span class=coloroval id=geneplot_s1_lc style="background-color:#ff9400;width:90px;" onclick=geneplot_s1_lc_initiator(event)>median curve</span>\
-image width <select id=geneplot_s1_iw>\
+<span class=coloroval id=geneplot_s1_lc style="background-color:#ff9400;width:90px;">median curve</span>' +
+makeColorPickerAsString('FF9400', 'geneplot_s1_lc_initiator') +
+'image width <select id=geneplot_s1_iw>\
 <option value=300>300</option><option value=400>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800 selected>800</option><option value=900>900</option><option value=1000>1000</option><option value=1100>1100</option><option value=1200>1200</option><option value=1300>1300</option><option value=1400>1400</option>\
 <option value=1500>1500</option>\
 </select>\
@@ -85,6 +109,8 @@ outlier <select id=geneplot_s1_outlier><option value=F selected>hide</option><op
 <input type=checkbox id=geneplot_s1_average> <label for=geneplot_s1_average>plot average values</label>\
 </p>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
+
 // style 2
 d4=dom_create('div',d3._c);
 G.style2_div=d4;
@@ -99,10 +125,13 @@ d4.innerHTML='<table cellpadding=10><tr>\
 </select></div>\
 <p style="font-size:12px;">Line width \
 <select id=geneplot_s2_lw class=s2><option value=1 selected>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select> \
-<span class=coloroval id=geneplot_s2_lc style="background-color:#ff9400;width:80px;" onclick=geneplot_s2_lc_initiator(event)>line color</span> \
-image width <select id=geneplot_s2_iw><option value=300>300</option><option value=400>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800 selected>800</option><option value=900>900</option><option value=1000>1000</option><option value=1100>1100</option><option value=1200>1200</option><option value=1300>1300</option><option value=1400>1400</option><option value=1500>1500</option></select> \
+<span class=coloroval id=geneplot_s2_lc style="background-color:#ff9400;width:80px;">line color</span>' +
+makeColorPickerAsString('FF9400', 'geneplot_s2_lc_initiator') +
+'image width <select id=geneplot_s2_iw><option value=300>300</option><option value=400>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800 selected>800</option><option value=900>900</option><option value=1000>1000</option><option value=1100>1100</option><option value=1200>1200</option><option value=1300>1300</option><option value=1400>1400</option><option value=1500>1500</option></select> \
 height <select id=geneplot_s2_ih class=s2><option value=300>300</option><option value=400 selected>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800>800</option></select></p>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
+
 // style 3
 d4=dom_create('div',d3._c);
 G.style3_div=d4;
@@ -122,12 +151,18 @@ image width <select id=geneplot_s3_iw>\
 </select>\
 height <select id=geneplot_s3_ih><option value=300>300</option><option value=400 selected>400</option><option value=500>500</option><option value=600>600</option><option value=700>700</option><option value=800>800</option></select>\
 <br><br>\
-<span class=coloroval title=cc0000 id=geneplot_s3_promoterc style="background-color:#cc0000;width:80px;" onclick=geneplot_s3_promoterc_initiator(event)>promoter</span> \
-<span class=coloroval title=008000 id=geneplot_s3_utr5c style="background-color:#008000;width:80px;" onclick=geneplot_s3_utr5c_initiator(event)>5\' UTR</span> \
-<span class=coloroval title=0000e6 id=geneplot_s3_exonsc style="background-color:#0000e6;width:80px;" onclick=geneplot_s3_exonsc_initiator(event)>exons</span> \
-<span class=coloroval title=990099 id=geneplot_s3_intronsc style="background-color:#990099;width:80px;" onclick=geneplot_s3_intronsc_initiator(event)>introns</span> \
-<span class=coloroval title=b85b19 id=geneplot_s3_utr3c style="background-color:#b85b19;width:80px;" onclick=geneplot_s3_utr3c_initiator(event)>3\' UTR</span>\
-<br><br>\
+<span class=coloroval title=cc0000 id=geneplot_s3_promoterc style="background-color:#cc0000;width:80px;">promoter</span> \
+<span class=coloroval title=008000 id=geneplot_s3_utr5c style="background-color:#008000;width:80px;">5\' UTR</span> \
+<span class=coloroval title=0000e6 id=geneplot_s3_exonsc style="background-color:#0000e6;width:80px;">exons</span> \
+<span class=coloroval title=990099 id=geneplot_s3_intronsc style="background-color:#990099;width:80px;">introns</span> \
+<span class=coloroval title=b85b19 id=geneplot_s3_utr3c style="background-color:#b85b19;width:80px;">3\' UTR</span>\
+<br>' +
+makeColorPickerAsString('CC0000', 'geneplot_s3_promoterc_initiator') + 
+makeColorPickerAsString('008000', 'geneplot_s3_utr5c_initiator') + 
+makeColorPickerAsString('0000E6', 'geneplot_s3_exonsc_initiator') + 
+makeColorPickerAsString('990099', 'geneplot_s3_intronsc_initiator') + 
+makeColorPickerAsString('B85B19', 'geneplot_s3_utr3c_initiator') + 
+'<br><br>\
 <span id=geneplot_s3_googlesays>Above colors are for median curves. Lighter color will be used for other curves.</span>\
 <span id=geneplot_s3_useR style="display:none;">\
 whisker range <select id=geneplot_s3_wrange><option value=0>entire span (min to max)</option> <option value=1.5 selected>1.5x of box span</option></select>\
@@ -138,6 +173,8 @@ outlier <select id=geneplot_s3_outlier><option value=F selected>hide</option><op
 <input type=checkbox id=geneplot_s3_average> <label for=geneplot_s3_average>plot average values</label>\
 </div>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
+
 // style 4
 d4=dom_create('div',d3._c);
 G.style4_div=d4;
@@ -165,11 +202,14 @@ agglomeration <select id=geneplot_s4_aglm class=s2><option value=single>single l
 Row height <select id=geneplot_s4_rh class=s2><option value=1>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option><option value=6>6</option><option value=7>7</option><option value=8>8</option><option value=9>9</option><option value=10>10</option></select> \
 plot width of data points <select id=geneplot_s4_dpw class=s2><option value=1 selected>1</option><option value=2>2</option><option value=3>3</option><option value=4>4</option><option value=5>5</option></select><br>\
 <input type=checkbox id=geneplot_s4_global checked> <label for=geneplot_s4_global>use global min/max</label> \
-<span class=coloroval id=geneplot_s4_pc style="background-color:#FF0000;width:120px;" onclick=geneplot_s4_pc_initiator(event)>positive value</span>\
-<span class=coloroval id=geneplot_s4_nc style="background-color:#0000FF;width:120px;" onclick=geneplot_s4_nc_initiator(event)>negative value</span>\
-(white for zero baseline)\
+<span class=coloroval id=geneplot_s4_pc style="background-color:#FF0000;width:120px;">positive value</span>' +
+makeColorPickerAsString('FF0000', 'geneplot_s4_pc_initiator') +
+'<span class=coloroval id=geneplot_s4_nc style="background-color:#0000FF;width:120px;">negative value</span>' +
+makeColorPickerAsString('0000FF', 'geneplot_s4_nc_initiator') +
+'(white for zero baseline)\
 </p>\
 </td></tr></table>';
+setOnClickForColorOvals(d4);
 
 // 3 - rendering method
 d3=make_headertable(d2);
@@ -426,20 +466,32 @@ document.getElementById("geneplot_dataplaintext").style.display = "none";
 document.getElementById("geneplotgetdatabuttons").style.display = "none";
 
 // plot-type specific params
-var param = '';
+var param = {};
 if(type == "s4") {
-	param = "&clustmethod="+getSelectValueById("geneplot_s4_m")+"&kmeanscnum="+getSelectValueById("geneplot_s4_cnum")+"&clustdist="+getSelectValueById("geneplot_s4_dist")+"&clustaglm="+getSelectValueById("geneplot_s4_aglm");
+	param = {
+		clustmethod: getSelectValueById("geneplot_s4_m"),
+		kmeanscnum: getSelectValueById("geneplot_s4_cnum"),
+		clustdist: getSelectValueById("geneplot_s4_dist"),
+		clustaglm: getSelectValueById("geneplot_s4_aglm")
+	}
 } else if(rendering=='r') {
 	// R rendering params
-	param = "&usingR=on&width="+getSelectValueById("geneplot_"+type+"_iw")+"&height="+getSelectValueById("geneplot_"+type+"_ih")+"&lw="+getSelectValueById("geneplot_"+type+"_lw");
+	param = {
+		usingR: "on",
+		width: getSelectValueById("geneplot_"+type+"_iw"),
+		height: getSelectValueById("geneplot_"+type+"_ih"),
+		lw: getSelectValueById("geneplot_"+type+"_lw")
+	}
 	if(type == 's1') {
 		// s1 specific R params
 		var c = document.getElementById("geneplot_"+type+"_lc").style.backgroundColor;
-		param += '&range='+getSelectValueById('geneplot_s1_wrange')+
-			'&lc='+c+
-		'&averagelc='+darkencolor(colorstr2int(c), 0.4)+
-		'&outlier='+getSelectValueById('geneplot_s1_outlier')+
-		(document.getElementById('geneplot_s1_average').checked?'&average=on':'');
+		param.range = getSelectValueById('geneplot_s1_wrange');
+		param.lc = c;
+		param.averagelc = darkencolor(colorstr2int(c), 0.4);
+		param.outlier = getSelectValueById('geneplot_s1_outlier');
+		if (document.getElementById('geneplot_s1_average').checked) {
+			param.average = "on";
+		}
 	} else if(type=='s2') {
 		// s2 specific R params
 		//param += "&lc="+document.getElementById("geneplot_s2_lc").style.backgroundColor;
@@ -450,19 +502,23 @@ if(type == "s4") {
 		var uc3 = document.getElementById("geneplot_"+type+"_utr3c").style.backgroundColor;
 		var ec = document.getElementById("geneplot_"+type+"_exonsc").style.backgroundColor;
 		var ic = document.getElementById("geneplot_"+type+"_intronsc").style.backgroundColor;
-		param += "&promoterc="+pc+
-				  "&utr5c="+uc5+
-				  "&utr3c="+uc3+
-				  "&exonsc="+ec+
-				  "&intronsc="+ic+
-			  '&average_promoterc='+darkencolor(colorstr2int(pc), 0.4)+
-			  '&average_utr5c='+darkencolor(colorstr2int(uc5), 0.4)+
-			  '&average_utr3c='+darkencolor(colorstr2int(uc3), 0.4)+
-			  '&average_exonsc='+darkencolor(colorstr2int(ec), 0.4)+
-			  '&average_intronsc='+darkencolor(colorstr2int(ic), 0.4)+
-				  '&range='+getSelectValueById('geneplot_s3_wrange')+
-			  '&outlier='+getSelectValueById('geneplot_s3_outlier')+
-			  (document.getElementById('geneplot_s3_average').checked?'&average=on':'');
+		param = Object.assign(param, {
+			promoterc: pc,
+			utr5c: uc5,
+			utr3c: uc3,
+			exonsc: ec,
+			intronsc: ic,
+			average_promoterc: darkencolor(colorstr2int(pc), 0.4),
+			average_utr5c: darkencolor(colorstr2int(uc5), 0.4),
+			average_utr3c: darkencolor(colorstr2int(uc3), 0.4),
+			average_exonsc: darkencolor(colorstr2int(ec), 0.4),
+			average_intronsc: darkencolor(colorstr2int(ic), 0.4),
+			range: getSelectValueById('geneplot_s3_wrange'),
+			outlier: getSelectValueById('geneplot_s3_outlier'),
+		});
+		if (document.getElementById('geneplot_s3_average').checked) {
+			param.average = "on"
+		}
 	}
 }
 
@@ -486,18 +542,24 @@ if(G.graphtype=='s3') {
 		lst.push(e.name+','+e.c+','+e.a1+','+e.b1+','+e.strand);
 	}
 }
-param+='&lst='+lst.join(',');
+param.lst = lst.join(',');
 
 G.submit_butt.innerHTML = 'Running...';
 G.submit_butt.removeEventListener('click', makeGeneplot, false);
 
 // context parameter is removed
 var bbj=G.bbj;
-bbj.ajax("makegeneplot=on&plottype="+type+
-	'&searchgenetknames='+bbj.genome.searchgenetknames.join(',')+
-	"&spnum="+getSelectValueById("geneplot_"+type+"_spnum")+
-	'&datatk='+G.datatk.url+
-	'&datatkft='+G.datatk.ft+'&dbName='+bbj.genome.name+param, function(data){bbj.makeGeneplot_cb(data);});
+let paramsObj = {
+	makegeneplot: "on",
+	plottype: type,
+	searchgenetknames: bbj.genome.searchgenetknames.join(','),
+	spnum: getSelectValueById("geneplot_"+type+"_spnum"),
+	datatk: G.datatk.url,
+	datatkft: G.datatk.ft,
+	dbName: bbj.genome.name
+}
+paramsObj = Object.assign(paramsObj, param);
+bbj.ajax(paramsObj, function(data){bbj.makeGeneplot_cb(data);});
 }
 var NA=0;
 

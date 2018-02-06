@@ -132,6 +132,7 @@ if('showLinkagemap' in param) {
 	ibp.show_linkagemap_div=param.container;
 }
 
+bbj.ajax({load_dblst: 'on'},function(data){bbj.sukn_init(data);});
 bbj.loadgenome_initbrowser({
 	dbname:param.genome,
 	browserparam:ibp,

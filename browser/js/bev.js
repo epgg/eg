@@ -224,7 +224,16 @@ for(var i=0; i<this.genome.bev.chrlst.length; i++) {
 }
 loading_cloak(apps.bev.main);
 var bbj=this;
-this.ajax('addtracks=on&runmode='+RM_genome+'&regionLst='+param.join(',')+'&startCoord=0&stopCoord='+lastchrbp+'&dbName='+this.genome.name+trackParam(_tklst),function(data){bbj.bev_ajax_cb(data);});
+let paramsObj = {
+	addtracks: "on",
+	runmode: RM_genome,
+	regionLst: param.join(','),
+	startCoord: 0,
+	stopCoord: lastchrbp,
+	dbName: this.genome.name,
+}
+paramsObj = Object.assign(paramsObj, trackParam(_tklst));
+this.ajax(paramsObj,function(data){bbj.bev_ajax_cb(data);});
 }
 
 Browser.prototype.bev_ajax_cb=function(data,tklst)
@@ -410,7 +419,15 @@ coord2=Math.max(coord2, coord1+bbj.hmSpan/MAXbpwidth_bold);
 if(coord2>bbj.genome.scaffold.len[n.chr]) return;
 toggle18();
 bbj.cloak();
-bbj.ajaxX('imgAreaSelect=on&'+bbj.runmode_param()+'&startChr='+n.chr+'&startCoord='+coord1+'&stopChr='+n.chr+'&stopCoord='+coord2);
+let paramsObj = {
+	imgAreaSelect: "on",
+	startChr: n.chr,
+	startCoord: coord1,
+	stopChr: n.chr,
+	stopCoord: coord2
+}
+paramsObj = Object.assign(paramsObj, bbj.runmode_param())
+bbj.ajaxX(paramsObj);
 }
  
 Browser.prototype.bev_mayaddtrack=function(tk)

@@ -95,7 +95,15 @@ dom_addbutt(d5,'&#9473;',scatterplot_opacity).change=-0.1;
 dom_addtext(d5,'&nbsp;&nbsp;&nbsp;');
 s=dom_addtext(d5,'&nbsp;color&nbsp;','white','coloroval');
 s.style.backgroundColor='rgb('+sp.dotcolor_r+','+sp.dotcolor_g+','+sp.dotcolor_b+')';
-s.addEventListener('click',scatterplot_dotcolor_initiator,false);
+
+let colorPicker = dom_create('input', d5, 'display: inline-block');
+$(colorPicker).attr('size', 8);
+$(colorPicker).addClass(jscolor.lookupClass);
+jscolor.installByClassName(jscolor.lookupClass);
+colorPicker.jscolor.fromRGB(sp.dotcolor_r, sp.dotcolor_g, sp.dotcolor_b);
+colorPicker.addEventListener('focus', scatterplot_dotcolor_initiator);
+colorPicker.addEventListener('change', hexColorPicked);
+s.onclick = () => colorPicker.jscolor.show();
 sp.dotcolor_span=s;
 }
 
@@ -206,10 +214,9 @@ scatterplot_makeplot(apps.scp);
 function scatterplot_reset()
 {
 var sp=apps.scp;
-sp.textarea.value='';
+sp.geneset=null;
+sp.ui_geneset_says.innerHTML='No gene set selected';
 sp.tk1=sp.tk2=null;
-stripChild(sp.tk1_span,0);
-stripChild(sp.tk2_span,0);
 sp.tk1_span.innerHTML='for X axis';
 sp.tk2_span.innerHTML='for Y axis';
 }
@@ -260,6 +267,10 @@ function scatterplot_submit()
 /* polymorphism in alethiometer
 */
 var sp=apps.scp;
+if(sp.geneset==null) {
+	print2console('Geneset unspecified',2);
+	return;
+}
 if(sp.tk1==null) {
 	print2console('Track X unspecified',2);
 	return;
@@ -289,9 +300,16 @@ var b=sp.submit_butt;
 b.disabled=true;
 b.innerHTML='Running...';
 var bbj=sp.bbj;
-bbj.ajax('addtracks=on&dbName='+bbj.genome.name+'&runmode='+RM_genome+'&regionLst='+lst.join(',')+
-	'&startCoord='+_start+'&stopCoord='+_stop+
-	trackParam([sp.tk1,sp.tk2]),function(data){bbj.scatterplot_submit_cb(data);});
+let paramsObj = {
+	addtracks: "on",
+	dbName: bbj.genome.name,
+	runmode: RM_genome,
+	regionLst: lst.join(','),
+	startCoord: _start,
+	stopCoord: _stop
+}
+paramsObj = Object.assign(paramsObj, trackParam([sp.tk1,sp.tk2]));
+bbj.ajax(paramsObj,function(data){bbj.scatterplot_submit_cb(data);});
 }
 Browser.prototype.scatterplot_submit_cb=function(data)
 {
@@ -410,15 +428,15 @@ for(i=0; i<data.length; i++) {
 	e.style.position='absolute';
 	e.style.width=e.style.height=obj.dot_size;
 	switch(obj.dot_shape) {
-	case 1:
+	case 1: // box
 		e.style.border='solid 1px '+color;break;
-	case 2:
+	case 2: // square
 		e.style.backgroundColor=color;break;
-	case 3:
-		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2);
+	case 3: // circle
+		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2) + 'px';
 		e.style.border='solid 1px '+color;break;
-	case 4:
-		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2);
+	case 4: // disc
+		e.style.borderRadius=e.style.mozBorderRadius=Math.ceil(obj.dot_size/2) + 'px';
 		e.style.backgroundColor=color;break;
 	}
 	e.idx=i;

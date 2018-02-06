@@ -26,9 +26,16 @@ desc:'A collection of published long-range chromatin interaction data sets on mo
 },
 {
 "id":"juicebox",
-"trackcount":56,
+"trackcount":74,
 "name":"HiC interaction from Juicebox",
 "url":"http://epgg-test.wustl.edu/dli/long-range-test/mm9-juiceboxhub",
 "desc":"HiC interaction data sets from Juicebox."
+},
+{
+"id":"cooler",
+"trackcount":79,
+"name":"HiC interaction from Cooler",
+"url":"http://epgg-test.wustl.edu/dli/long-range-test/mm9-coolhub",
+"desc":"HiC interaction data sets from Cooler."
 }
 ]

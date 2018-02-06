@@ -5,6 +5,7 @@
       <link rel="stylesheet" type="text/css" href="css/style.css"/>
 
       <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+      <script type="text/javascript" src="js/jscolor.min.js"></script>
       <script type="text/javascript" src="js/base.js"></script>
       <script type="text/javascript" src="js/gsm.js"></script>
       <script type="text/javascript" src="js/fileload.js"></script>
@@ -17,12 +18,18 @@
       <script type="text/javascript" src="js/sukn.js"></script>
       <script type="text/javascript" src="js/personality.js"></script>
 
+      <script type="text/javascript" src="js/dataProvider.js"></script>
+      <script type="text/javascript" src="js/regionWrapper.js"></script>
+
       <!-- Juicebox (for HiC tracks) and dependencies -->
-      <script src="https://igv.org/web/release/jb/igv-beta.js"></script>
+      <script src="js/igv-beta.min.js"></script>
       <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-      <!--<script src="https://igv.org/web/jb/release/1.0/juicebox-1.0.min.js"></script>-->
-      <script type="text/javascript" src="js/juicebox-1.0-modified.js"></script>
-      <script type="text/javascript" src="js/hicInterface.js"></script>
+      <script type="text/javascript" src="js/juicebox.min.js"></script>
+      <script type="text/javascript" src="js/juiceboxPatch.js"></script>
+      <script type="text/javascript" src="js/hicFormatter.js"></script>
+      <script type="text/javascript" src="js/hicProvider.js"></script>
+      <script type="text/javascript" src="js/requestSplitter.js"></script>
+      <script type="text/javascript" src="js/coolerProvider.js"></script>
 
 	<META HTTP-EQUIV="Content-Type" CONTENT="text/html;CHARSET=UTF8">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
@@ -136,6 +143,16 @@ height:30px;'
 
 </div>
 <!-- __ftb__ ends -->
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-109035300-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+        gtag('config', 'UA-109035300-1');
+        </script>
 
 </body>
 </html>

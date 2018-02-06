@@ -125,7 +125,7 @@ load data local infile "scaffoldInfo" into table scaffoldInfo;
 
 drop table if exists cytoband;
 create table cytoband (
-  id int null auto_increment primary key,
+  id int unique auto_increment primary key,
   chrom char(20) not null,
   start int not null,
   stop int not null,

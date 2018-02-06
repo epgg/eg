@@ -222,7 +222,15 @@ for(i=0; i<defaultDecors.length; i++) {
 	var o=pillar.genome.decorInfo[defaultDecors[i]];
 	tklst.push({name:defaultDecors[i],ft:o.ft,mode:tkdefaultMode(o)});
 }
-pane.bbj.ajax('addtracks=on&dbName='+genomeName+'&runmode='+RM_genome+'&jump=on&jumppos='+defaultRegion[0]+':'+defaultRegion[1]+'-'+defaultRegion[2]+trackParam(tklst),function(data){
+let paramsObj = {
+	addtracks: "on",
+	dbName: genomeName,
+	runmode: RM_genome,
+	jump: "on",
+	jumppos: defaultRegion[0]+':'+defaultRegion[1]+'-'+defaultRegion[2]
+}
+paramsObj=Object.assign(paramsObj, trackParam(tklst))
+pane.bbj.ajax(paramsObj,function(data){
 	var bbj=horcrux[data.horcrux];
 	bbj.tklst=[]; // so that makeTrackDisplayobj will be called
 	bbj.jsonDsp(data);
@@ -506,7 +514,11 @@ pagecloak.style.zIndex=100;
 // load genome
 pillar=new Browser();
 pillar.juxtaposition=null;
-pillar.ajax('loadgenome=on&dbName='+genomeName,function(data){
+let paramsObj = {
+	loadgenome: "on",
+	dbName: genomeName
+};
+pillar.ajax(paramsObj,function(data){
 	pillar.genome=new Genome({});
 	pillar.genome.jsonGenome(data);
 

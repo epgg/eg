@@ -30,6 +30,6 @@ Genes : [
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},
 	},
-],
+]
 
 }

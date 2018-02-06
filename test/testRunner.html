@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" data-framework="backbonejs">
+  <head>
+    <meta charset="utf-8">
+    <title>Mocha Test Runner</title>
+    <link rel="stylesheet" href="node_modules/mocha/mocha.css">
+    <style>
+        .center-style {
+            text-align: center;
+            font-family: sans-serif;
+        }
+
+        .myError {
+            color: red;
+        }
+    </style>
+  </head>
+  <body>
+    <h1 class="center-style">HiC-related tests</h1>
+    <p class="center-style">Please note that these tests depend on a working internet connection.</p>
+    <div id="mocha"></div>
+    <p class="center-style">
+        In order for the integration test to pass, this file must be served from a web server.  Run
+        <code>python server.py</code> and browse to <a href="http://localhost:8000/test/testRunner.html">
+        http://localhost:8000/test/testRunner.html</a>
+    </p>
+
+    <!-- Put test libraries and setup here -->
+    <script src="node_modules/mocha/mocha.js"></script>
+    <script src="node_modules/chai/chai.js"></script>
+    <script src="node_modules/sinon/pkg/sinon.js"></script>
+    <script src="node_modules/sinon-chai/lib/sinon-chai.js"></script>
+    <script>
+        let dependencies = [window.chai, window.mocha, window.sinon];
+        if (dependencies.includes(undefined)) {
+            let mochaDiv = document.getElementById("mocha")
+            mochaDiv.innerHTML =
+                "<p class='myError'>" +
+                    "Missing one or more dependencies.  Please get <a href='https://nodejs.org/en/'>node.js</a> and " +
+                    "run <code>npm install</code> to get them." +
+                "</p>";
+        }
+
+        var expect = chai.expect;
+        mocha.setup({
+            ui: 'bdd',
+            ignoreLeaks: true,
+        });
+    </script>
+
+    <!-- Dependencies -->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+        integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="../browser/js/igv-beta.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+    <script src="../browser/js/base.js"></script>
+    <script src="../browser/js/dataProvider.js"></script>
+    <script src="../browser/js/regionWrapper.js"></script>
+
+    <!-- Put code under test here -->
+    <script src="../browser/js/juicebox.min.js"></script>
+    <script src="../browser/js/juiceboxPatch.js"></script>
+    <script src="../browser/js/hicFormatter.js"></script>
+    <script src="../browser/js/hicProvider.js"></script>
+    <script src="../browser/js/requestSplitter.js"></script>
+    <script src="../browser/js/coolerProvider.js"></script>
+
+    <!-- Put test specs here -->
+    <script src="testData.js"></script>
+    <script src="hicTest.js"></script>
+    <script src="requestSplitterTest.js"></script>
+    <script src="coolerTest.js"></script>
+
+    <!-- Run the test -->
+    <script>
+        mocha.run();
+    </script>
+
+  </body>
+</html>
