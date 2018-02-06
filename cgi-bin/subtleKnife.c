@@ -91,8 +91,8 @@
 #define FT_bigbed_n 31
 #define FT_bigbed_c 32
 // calling card format
-#define FT_callingcard_n 33
-#define FT_callingcard_c 34
+#define FT_callingcard_n 35
+#define FT_callingcard_c 36
 
 #define RM_genome 0
 #define RM_jux_n 1
@@ -6261,7 +6261,7 @@ fputs("main\n", stderr);
 clock_t cpuTimeStart, cpuTimeTemp;
 if(CHECKCPUTIME) cpuTimeStart = clock();
 
-if(SQUAWK) fputs("subtileKnife starting... >>>>>\n", Squawk);
+if(SQUAWK) fputs("subtleKnife starting... >>>>>\n", Squawk);
 
 
 {
