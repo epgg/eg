@@ -183,8 +183,6 @@ FT_ld_c = 23
   , FT_anno_n = 24
   , FT_anno_c = 25
   , FT_qcats = 27
-  , FT_callingcard_n = 35 // for mapping transposon insertions
-  , FT_callingcard_c = 36 // for mapping transposon insertions
   , FT_huburl = 100;
 var FT2native = [];
 FT2native[FT_bed_n] = 'bed';
@@ -194,7 +192,6 @@ FT2native[FT_bigwighmtk_n] = 'bigwig';
 FT2native[FT_bam_n] = 'bam';
 FT2native[FT_anno_n] = 'annotation';
 FT2native[FT_ld_n] = 'ld';
-FT2native[FT_callingcard_n] = 'callingcard';
 var FT2noteurl = {
     md: 'http://wiki.wubrowse.org/Metadata'
 };
@@ -213,8 +210,7 @@ var FT2verbal = ['bed', 'bed', 'bedgraph', 'bedgraph', 'sam', 'sam', 'pwc', 'hte
 'unknown', //28
 'hic', 'hic', //29,30
 'bigbed', 'bigbed', //31, 32
-'cool', 'cool', //33, 34 the cool format used by cooler
-'callingcard', 'callingcard' //35, 36 for callingcard data
+'cool', 'cool'//33, 34 the cool format used by cooler
 ];
 
 var M_hide = 0
@@ -589,22 +585,6 @@ var defaultQtcStyle = {
         height: 50,
         summeth: summeth_mean
     },
-    ft36: {
-        pr: 0,
-        pg: 0,
-        pb: 230,
-        nr: 255,
-        ng: 0,
-        nb: 0,
-        pth: '#000099',
-        nth: '#800000',
-        thtype: scale_auto,
-        thmin: 0,
-        thmax: 10,
-        thpercentile: 90,
-        height: 15,
-        opacity: 1
-    },
 }
 
 var urllenlimit = 4000;
@@ -898,18 +878,6 @@ function dom_addtext(holder, text, color, cls) {
     if (cls)
         s.className = cls;
     return s;
-}
-function dom_addslider(holder, id, min, max, step, value, call)
-{
-    var s=dom_create('input', holder);
-    s.type='range';
-    s.id=id;
-    s.min=min;
-    s.max=max;
-    s.step=step;
-    s.value=value;
-    s.addEventListener('input', call);
-    s.addEventListener('change', call);
 }
 function make_headertable(holder) {
     var t = dom_create('div', holder, 'display:table;background-color:' + colorCentral.background_faint_7 + ';border-top:solid 1px ' + colorCentral.magenta7);
@@ -1368,7 +1336,6 @@ function Genome(param) {
         this.custcate_idnum_change(5);
         this.custtk.ui_bam = this.custtk_makeui(FT_bam_c, d2);
         this.custtk.ui_hub = this.custtk_makeui(FT_huburl, d2);
-        this.custtk.ui_callingcard = this.custtk_makeui(FT_callingcard_c,d2);
     }
 
     this.scaffold = {};
@@ -1470,8 +1437,6 @@ Genome.prototype.jsonGenome = function(data) {
                 this.custtk.ui_hi.examplebutt.style.display = 'none';
             if (!(FT_cool_c in v))
                 this.custtk.ui_cool.examplebutt.style.display = 'none';
-            if (!(FT_callingcard_c in v))
-                this.custtk.ui_bed.examplebutt.style.display='none';
             if (FT_weaver_c in v) {
                 var g = this;
                 for (var qn in v[FT_weaver_c]) {
@@ -1980,10 +1945,6 @@ function isHmtk(ft) {
         return true;
     case FT_bigwighmtk_n:
         return true;
-    case FT_callingcard_c:
-        return true;
-    case FT_callingcard_n:
-        return true;
     default:
         return false;
     }
@@ -2007,7 +1968,6 @@ function isCustom(ft) {
     case FT_matplot:
     case FT_catmat:
     case FT_qcats:
-    case FT_callingcard_c:
         return true;
     default:
         return false;
@@ -2016,7 +1976,7 @@ function isCustom(ft) {
 function isNumerical(tkobj) {
     // including density mode
     var ft = tkobj.ft;
-    if (ft == FT_bedgraph_c || ft == FT_bedgraph_n || ft == FT_bigwighmtk_c || ft == FT_bigwighmtk_n || ft == FT_qdecor_n || ft==FT_callingcard_c || ft==FT_callingcard_n)
+    if (ft == FT_bedgraph_c || ft == FT_bedgraph_n || ft == FT_bigwighmtk_c || ft == FT_bigwighmtk_n || ft == FT_qdecor_n)
         return true;
     if (tkobj.mode == M_den)
         return true;
@@ -2504,12 +2464,6 @@ Genome.prototype.parseCoordinate = function(input, type) {
         c[2] = t[2];
         c[1] = parseInt(t[1]);
         c[3] = parseInt(t[3]);
-        break;
-    // Modified version of case 1 for callingcard files
-    case 4:
-        if(input.length != 2) return null;
-        c[0] = c[2] = input[0];
-        c[1] = c[3] = input[1];
         break;
     default:
         fatalError('parseCoordinate: unknown type');
@@ -4283,77 +4237,7 @@ to draw a cottontk, must call from cottonbbj (but not target bbj)
         var d = this.cmtk_prep_draw(tkobj, tosvg);
         if (tosvg)
             svgdata = svgdata.concat(d);
-    } else if(tkobj.ft == FT_callingcard_c) {
-        if(tkobj.qtc.smooth) {
-            // smoothing may have been done upon no-move update
-            if(!tkobj.data_raw) fatalError('data_raw missing');
-            smooth_tkdata(tkobj);
-        }
-        var _d = this.drawTrack_altregiondecor(ctx,tc.height,tosvg);
-        if(tosvg) svgdata = svgdata.concat(_d);
-
-        this.set_tkYscale(tkobj);
-        var data2 = qtrack_logtransform(tkobj.ydata, tkobj.qtc);
-        // Initialize objects for fast lookup of individual insertions
-        tkobj.insertions = []
-        for(var i = 0; i < this.regionLst.length; i++) {
-            var r = this.regionLst[i];
-            var svd = this.callingcard_base({
-                xdata: tkobj.xdata[i],
-                ydata: data2[i],
-                strand: tkobj.strand[i],
-                barcode: tkobj.barcode[i],
-                ctx: ctx,
-                colors: {
-                    p:'rgb('+tkobj.qtc.pr+','+tkobj.qtc.pg+','+tkobj.qtc.pb+')',
-                    n:'rgb('+tkobj.qtc.nr+','+tkobj.qtc.ng+','+tkobj.qtc.nb+')',
-                    pth: tkobj.qtc.pth,
-                    nth: tkobj.qtc.nth,
-                    barbg: tkobj.qtc.barplotbg
-                },
-                opacity: tkobj.qtc.opacity,
-                size: parseFloat(menu.c68.size.value),
-                tk: tkobj,
-                rid: i,
-                x: this.cumoffset(i,r[3]),
-                y: tkobj.qtc.height>=20?densitydecorpaddingtop:0,
-                h: tkobj.qtc.height,
-                pointup: true,
-                tosvg: tosvg});
-            if(tosvg) svgdata = svgdata.concat(svd);
-            if(tosvg) {
-                var _th = tk_height(tkobj);
-                var x = this.cumoffset(i,r[4]);
-                svgdata.push({
-                    type: svgt_line,
-                    x1: x,
-                    y1: 0,
-                    x2: x,
-                    y2: _th,
-                    w: regionSpacing.width,
-                    color: regionSpacing.color
-                });
-            }
-        }
-        if((this.splinterTag || !this.hmheaderdiv) && tkobj.qtc.height >= 20) {
-            // splinter tk, draw a in-track scale as its scale is usually different with trunk
-            var d = plot_ruler({
-                ctx: ctx,
-                stop: densitydecorpaddingtop,
-                start: densitydecorpaddingtop+tkobj.qtc.height-1,
-                xoffset: this.hmSpan-this.move.styleLeft-10,
-                horizontal: false,
-                color: colorCentral.foreground,
-                min: tkobj.minv,
-                max: tkobj.maxv,
-                extremeonly: true,
-                max_offset: -4,
-                tosvg: tosvg,
-                scrollable: true, // because scale is on tk canvas, its position subject to adjustment
-                });
-            if(tosvg) svgdata = svgdata.concat(d);
-        }
-} else if (isNumerical(tkobj)) {
+    } else if (isNumerical(tkobj)) {
         if (tkobj.qtc.smooth) {
             // smoothing may have been done upon no-move update
             if (!tkobj.data_raw)
@@ -7892,17 +7776,6 @@ calling drawTrack_browser(trunk_tk) will automatically redraw splinter
                     U = true;
                 }
                 break;
-            case 41:
-                // Change opacity of calling cards
-                var opacity = document.getElementById('opacity').valueAsNumber * 0.01;
-                tk.qtc.opacity = opacity;
-                U = true;
-                break;
-            case 42:
-                var size = parseFloat(menu.c68.size.value);
-                tk.qtc.size = size;
-                U = true;
-                break;
             case 44:
                 //hic configure change
                 tk.qtc.matrix = menu.lr.matrix.value;
@@ -9232,8 +9105,6 @@ noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
     lst[FT_anno_c] = [];
     lst[FT_catmat] = [];
     lst[FT_qcats] = [];
-    lst[FT_callingcard_n] = [];
-    lst[FT_callingcard_c] = [];
     for (var i = 0; i < _tklst.length; i++) {
         var t = _tklst[i];
         if (nocotton && t.cotton && t.ft != FT_weaver_c) {
@@ -9315,12 +9186,6 @@ noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
         case FT_weaver_c:
             lst[FT_weaver_c].push(name + ',' + label + ',' + url + ',' + t.weaver.mode);
             break;
-        case FT_callingcard_n:
-            lst[FT_callingcard_n].push(name + ',' + url + ',' + mode);
-            break;
-        case FT_callingcard_c:
-            lst[FT_callingcard_c].push(name + ',' + label + ',' + url + ',' + mode + ',' + summ);
-            break;
         default:
             fatalError('trackParam: unknown ft ' + t.ft);
         }
@@ -9400,12 +9265,6 @@ noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
     }
     if (lst[FT_qcats].length > 0) {
         paramsObj.track27 = lst[FT_qcats].join(',');
-    }
-    if (lst[FT_callingcard_n].length > 0) {
-        paramsObj.track35 = lst[FT_callingcard_n].join(',');
-    }
-    if (lst[FT_callingcard_c].length > 0) {
-        paramsObj.track36 = lst[FT_callingcard_c].join(',');
     }
     return paramsObj;
 }
@@ -11013,253 +10872,6 @@ Browser.prototype.barplot_base = function(arg) {
         return svgdata;
 }
 
-// For plotting calling card data
-Browser.prototype.callingcard_base = function(arg) {
-    /* if rid is undefined, won't apply weaving
-    */
-    var xdata = arg.xdata
-        , ydata = arg.ydata
-        , strand = arg.strand
-        , barcode = arg.barcode
-        , ctx = arg.ctx
-        , colors = arg.colors
-        , opacity = arg.opacity
-        , size = arg.size
-        , tk = arg.tk
-        , ridx = arg.rid // for weaver
-        , initcoord = arg.initcoord // for weaver, given for barplot
-        , x = arg.x // will be incremented by weaver insert
-        , y = arg.y
-        , pheight = arg.h
-        , pointup = arg.pointup
-        , w = arg.w
-        , tosvg = arg.tosvg;
-    var curveonly = false;
-    if (tk.qtc && tk.qtc.curveonly) {
-        curveonly = true;
-    }
-
-    var length;
-    if (xdata.length == ydata.length) length = xdata.length;
-
-    var insertlookup = null;
-    var thisregion = null;
-    if (this.weaver && ridx != undefined) {
-        // if ridx == -1, weaver won't apply
-        thisregion = this.regionLst[ridx];
-        if (initcoord == undefined) {
-            initcoord = thisregion[3];
-        }
-        if (this.entire.atbplevel) {
-            insertlookup = this.weaver.insert[ridx];
-        } else {
-            insertlookup = {};
-            for(var c in this.weaver.insert[ridx]) {
-                insertlookup[c] = this.weaver.insert[ridx][c];
-            }
-        }
-    }
-    if (!w) {
-        /* bar width for each data point, preset to 1 in bev
-        w set to negative to indicate reverse alignment from cotton track
-        */
-        w = this.entire.atbplevel ? this.entire.bpwidth : 1;
-        if (thisregion && thisregion[8] && thisregion[8].item.hsp.strand == '-') {
-            w =- w;
-            // x already set to be position of r[3] on the right of region
-        }
-    }
-    var max = tk.maxv,
-        min = tk.minv;
-    if (!colors.p) colors.p = 'rgb(184,0,92)';
-    if (!colors.n) colors.n = 'rgb(0,79,158)';
-    if (!colors.pth) colors.pth = colors.p;
-    if (!colors.nth) colors.nth = colors.n;
-    var pr, pg, pb, nr, ng, nb;
-    var plothm = pheight < 20;
-    if (plothm) {
-        // heatmap instead of bars
-        var _tmp = colorstr2int(colors.p);
-        pr = _tmp[0];
-        pg = _tmp[1];
-        pb = _tmp[2];
-        _tmp = colorstr2int(colors.n);
-        nr = _tmp[0];
-        ng = _tmp[1];
-        nb = _tmp[2];
-    }
-    var svgdata = [];
-    for(var i = 0; i < length; i++) {
-        // for each data point
-        var position = xdata[i];
-        var score = ydata[i];
-        var bary = null
-            , barh = null
-            , barcolor = null
-            , tipy = null
-            , tipcolor = null;
-        if (isNaN(score)) {
-            // do nothing
-        } else if (score == Infinity) {
-            barcolor = colors.inf ? colors.inf : '#b5b5b5';
-            if (plothm) {
-                barh = pheight;
-                bary = y;
-            } else {
-                if (max > 0 && min < 0) {
-                    barh = pheight * max / (max-min);
-                    bary = pointup ? y : (y + pheight - barh);
-                } else {
-                    bary = y;
-                    barh = pheight;
-                }
-            }
-        } else if (score == -Infinity) {
-            barcolor = colors.inf ? colors.inf : '#b5b5b5';
-            if (plothm) {
-                barh = pheight;
-                bary = y;
-            } else {
-                if (max > 0 && min < 0) {
-                    barh = pheight * (0-min) / (max-min);
-                    bary = pointup ? (y+pheight-barh) : y;
-                } else {
-                    bary = y;
-                    barh = pheight;
-                }
-            }
-        } else {
-            if (max > 0 && min < 0) {
-                if (score >= 0) {
-                    if (plothm) {
-                        barh = pheight;
-                        bary = y;
-                        barcolor = score > max ? colors.pth : ('rgba(' + pr + ',' + pg + ',' + pb + ',' + (score / max) + ')');
-                    } else {
-                        barh = pheight * Math.min(score, max) / (max - min);
-                        barcolor = colors.p;
-                        bary  =  y + pheight * max / (max - min) - (pointup ? barh : 0);
-                        if (score >= max) {
-                            tipcolor = colors.pth;
-                            tipy =  pointup ? y : y + pheight - 2;
-                        }
-                    }
-                } else {
-                    if (plothm) {
-                        barh = pheight;
-                        bary = y;
-                        barcolor = score < min ? colors.nth : ('rgba(' + nr + ',' + ng + ',' + nb + ',' + (score / (min - max)) + ')');
-                    } else {
-                        barh = pheight * Math.max(score, min) / (min - max);
-                        barcolor = colors.n;
-                        bary  =  y + pheight * max / (max - min) - (pointup ? 0 : barh);
-                        if (score <= min) {
-                            tipcolor = colors.nth;
-                            tipy =  pointup ? y + pheight - 2 : y;
-                        }
-                    }
-                }
-            } else if (max > 0) {
-                // min max both > 0
-                barcolor = colors.p;
-                if (score < min) {
-                } else if (min > 0 && score == min) {
-                    if (plothm) {
-                    } else {
-                        barh = 1;
-                        bary = pointup ? y + pheight - 1 : y;
-                    }
-                } else {
-                    if (plothm) {
-                        barh = pheight;
-                        bary = y;
-                        barcolor = score >= max ? colors.pth : 'rgba(' + pr + ',' + pg + ',' + pb + ',' + ((score - min) / (max - min)) + ')';
-                    } else {
-                        barh = pheight * (Math.min(score, max) - min) / (max - min);
-                        bary =  pointup ? (y + pheight - barh) : y;
-                        if (score >= max) {
-                            tipcolor = colors.pth;
-                            tipy =  pointup ? y : y + pheight - 2;
-                        }
-                    }
-                }
-            } else {
-                // min max both < =  0
-                // including case when both minmax = 0
-                barcolor = colors.n;
-                if (score > max) {
-                } else if (max < 0 && score == max) {
-                    if (plothm) {
-                    } else {
-                        barh = 1;
-                        bary = pointup ? y: y + pheight - 1;
-                    }
-                } else {
-                    if (plothm) {
-                        if (min == 0 && max == 0) {
-                            // case that both min max = 0, draw nothing!
-                        } else {
-                            barh = pheight;
-                            bary = y;
-                            barcolor = score <= min ? colors.nth : 'rgba(' + nr + ',' + ng + ',' + nb + ',' + ((max - score) / (max - min)) + ')';
-                        }
-                    } else {
-                        barh = pheight * (max - Math.max(score, min)) / (max - min);
-                        bary =  pointup ? y : (y + pheight - barh);
-                        if (score <= min) {
-                            tipcolor = colors.nth;
-                            tipy = pointup ? y + pheight - 2 : y;
-                        }
-                    }
-                }
-            }
-        }
-        // svg do not accept negative width
-        var svgw = w < 0 ? -w : w;
-        var svgx = w < 0 ? x + w : x;
-        if (barh == null) {
-            if (tosvg) {svgdata.push({
-                type: svgt_no
-            });}
-        } else {
-            if (colors.barbg) {
-                ctx.fillStyle = colors.barbg;
-                ctx.fillRect(x,y,w,pheight);
-                if (tosvg) {
-                    svgdata.push({
-                        type: svgt_line,
-                        x1: svgx,
-                        y1: y,
-                        x2: svgx,
-                        y2: y + pheight,
-                        w: svgw,
-                        color: ctx.fillStyle
-                    });
-                }
-            }
-            // ctx.fillStyle  =  barcolor;
-            // ctx.fillRect(position, bary, w, curveonly? 2 : barh);
-            ctx.beginPath();
-            ctx.arc(position, bary, size, 0, 2 * Math.PI);
-            ctx.strokeStyle = barcolor;
-            ctx.globalAlpha = opacity;
-            ctx.stroke();
-            tk.insertions.push([position, bary, score, strand[i], barcode[i]]);
-            if (tosvg) {
-                svgdata.push({
-                    type: svgt_rect,
-                    x: svgx,
-                    y: bary,
-                    w: svgw,
-                    h: barh,
-                    fill: barcolor
-                });
-            }
-        }
-    }
-    if (tosvg) return svgdata;
-}
-
 Browser.prototype.tkplot_line = function(p) {
     /*
 .x/y: start position
@@ -12753,7 +12365,7 @@ function page_makeDoms(param) {
 
     // internal md
     if (getmdidx_internal() == -1) {
-        var ft = [FT2verbal[FT_bed_c], FT2verbal[FT_bigbed_c], FT2verbal[FT_bedgraph_c], FT2verbal[FT_bigwighmtk_c], FT2verbal[FT_anno_c], FT2verbal[FT_bam_c], FT2verbal[FT_lr_c], FT2verbal[FT_hi_c], FT2verbal[FT_cool_c], FT2verbal[FT_cat_c], FT2verbal[FT_matplot], FT2verbal[FT_weaver_c], FT2verbal[FT_cm_c], FT2verbal[FT_ld_c], FT2verbal[FT_callingcard_c]];
+        var ft = [FT2verbal[FT_bed_c], FT2verbal[FT_bigbed_c], FT2verbal[FT_bedgraph_c], FT2verbal[FT_bigwighmtk_c], FT2verbal[FT_anno_c], FT2verbal[FT_bam_c], FT2verbal[FT_lr_c], FT2verbal[FT_hi_c], FT2verbal[FT_cool_c], FT2verbal[FT_cat_c], FT2verbal[FT_matplot], FT2verbal[FT_weaver_c], FT2verbal[FT_cm_c], FT2verbal[FT_ld_c]];
         var gn = [];
         for (var n in genome)
             gn.push(n);
@@ -13668,21 +13280,6 @@ panels that belong to the page and shared by all browser objs
         menu.c66.checkbox = dom_addcheckbox(menu.c66, 'Curve only', menu_tkcurveonly_change);
     }
 
-    // Calling card opacity slider
-    menu.c67 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
-    dom_addtext(menu.c67, 'Opacity&nbsp;');
-    menu.c67.slider = dom_addslider(menu.c67, 'opacity', 0, 100, 1, 50, opacityslider);
-
-    // Calling card size selector
-    menu.c68 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
-    dom_addtext(menu.c68, 'Marker size&nbsp;');
-    menu.c68.size = dom_inputnumber(menu.c68, {
-        id: "callingcard_size",
-        width:50,
-        value:3
-    });
-    dom_addbutt(menu.c68, 'apply', qtc_setcallingcard_size);
-
     menu.c53 = dom_create('div', menu, 'padding:10px;border-top:solid 1px ' + colorCentral.foreground_faint_1);
     menu.c53.checkbox = dom_addcheckbox(menu.c53, 'Apply to all tracks', toggle15);
 
@@ -14018,15 +13615,6 @@ Chromosome bar size <button type=button change=1 onclick=hengeview_changechrbars
         });
         gflag.applst.push({
             name: 'Datahub',
-            toggle: fn
-        });
-    	apps.custtk.shortcut[FT_callingcard_c] = dom_create('div', d2, 'display: none;', {
-            c: 'header_b ilcell',
-            t: 'callingcard',
-            clc: fn
-        });
-    	gflag.applst.push({
-            name: 'Calling card track',
             toggle: fn
         });
         /*
@@ -14779,10 +14367,6 @@ do not deal with tkgroup, only get it from data
 */
     if (tk.ft == FT_matplot) {
         return this.tklst_yscale(tk.tracks);
-    }
-    if(tk.ft == FT_callingcard_n || tk.ft == FT_callingcard_c) {
-    	var data2 = qtrack_logtransform(tk.ydata, tk.qtc);
-    	return qtrack_getthreshold_cc(data2, tk.qtc, this.dspBoundary.vstartr, this.dspBoundary.vstopr, this.dspBoundary.vstarts, this.dspBoundary.vstops);
     }
     if (isNumerical(tk)) {
         var data2 = qtrack_logtransform(tk.data, tk.qtc);
@@ -16793,9 +16377,7 @@ function palettegrove_click(event) {
         palette.output = lightencolor(colorstr2int(palette.grove.color), (x - 50) / 50);
     palette_context_update();
 }
-function opacityslider(event) {
-    menu_update_track(41);
-}
+
 function tk_bgcolor_initiator(event) {
     paletteshow(event.clientX, event.clientY, 15);
     palettegrove_paint(menu.c44.color.style.backgroundColor);
@@ -18438,26 +18020,6 @@ function track_Mmove(event) {
         picasays.innerHTML = '<div style="padding:5px;font-size:16px;color:white">' + '<div class=squarecell style="display:inline-block;background-color:' + cat[1] + '"></div> ' + cat[0] + '<div>' + quantity + '</div>' + '<div class=picadim>' + tk.label + '<br>' + hitpoint.str + '</div>' + cottonlabel + '</div>';
         return;
     }
-    if(tk.ft == FT_callingcard_c || tk.ft == FT_callingcard_n) {
-        // no matter whether the track is in ghm or decor, the x is same
-        pica_go(x, y);
-        hitpoint = sbj.sx2rcoord(result.position, true);
-        var bcstrand = '<div style="font-size:85%">';
-        if (result.strand)
-            bcstrand += '(' + result.strand + ') ';
-        bcstrand += result.barcode + '</div>';
-        var str = '<div style="padding:5px;font-size:16px;color:white">';
-        if(tk.normalize) {
-            var n = sbj.track_normalize(tk, result);
-            str += neatstr(n) + ' (' + tk.normalize.method + ')' + 
-                '<br><span style="font-size:12px">' + result + ' (raw)</span>';
-        } else {
-            str += result.score + '<br>' + bcstrand + (tk.qtc.height < 20 ? '<div style="font-size:70%;opacity:.8">min: ' + tk.minv + ', max: ' + tk.maxv + '</div>' : '');
-        }
-        picasays.innerHTML = str + '<div class=picadim>' + tk.label + 
-            '<br>' + hitpoint.str + '</div>' + cottonlabel + '</div>';
-        return;
-    }
     if (isNumerical(tk)) {
         // no matter whether the track is in ghm or decor, the x is same
         pica_go(x, y);
@@ -18547,33 +18109,11 @@ if at barplot, will return a list of items
         return [];
     }
     if (isNumerical(tk)) {
-        if(tk.ft == FT_callingcard_n || tk.ft == FT_callingcard_c) {
-            var distance = Infinity;
-            var idx, d;
-            for (var i = 0; i < tk.insertions.length; i++) {
-                d = Math.pow((x - tk.insertions[i][0]), 2) + Math.pow((y - tk.insertions[i][1]), 2)
-                if (d < distance) {
-                    distance = d;
-                    idx = i;
-                }
-            }
-            if (distance <= 30) {// Threshold value, can be changed
-                return {
-                    position: tk.insertions[idx][0],
-                    score: tk.insertions[idx][2],
-                    strand: tk.insertions[idx][3],
-                    barcode: tk.insertions[idx][4]
-                }    
-            }
-            else
-                return null;    
-        } else {
-            if (A >= tk.data.length)
-                return null;
-            if (B >= tk.data[A].length)
-                return null;
-            return tk.data[A][B];
-        }
+        if (A >= tk.data.length)
+            return null;
+        if (B >= tk.data[A].length)
+            return null;
+        return tk.data[A][B];
     }
     switch (tk.ft) {
     case FT_cat_n:
@@ -19267,14 +18807,10 @@ function tk_applydefaultstyle(tk) {
         tk.qtc.height = 60;
         break;
     case FT_bedgraph_n:
-    case FT_callingcard_n:
         qtc_paramCopy(defaultQtcStyle.heatmap, tk.qtc);
         break;
     case FT_bedgraph_c:
         qtc_paramCopy(defaultQtcStyle.ft3, tk.qtc);
-        break;
-    case FT_callingcard_c:
-        qtc_paramCopy(defaultQtcStyle.ft36, tk.qtc);
         break;
     case FT_sam_c:
     case FT_bam_c:
@@ -19755,29 +19291,7 @@ function track_click(event) {
 
     bubbleShow(x + document.body.scrollLeft, y + document.body.scrollTop);
     stripChild(bubble.says, 0);
-    
-    if (tk.ft == FT_callingcard_c || tk.ft == FT_callingcard_n) {
-        var countstr = '<div style="font-size:130%;padding-bottom:10px;">';
-        if (result == null) {
-            countstr += 'No data'
-        } else {
-            countstr += 'Count: '+result.score;
-        }
-        countstr += '</div>'
-    
-        var bcstrand = '<div style="font-size:85%">';
-        if (result == null) {
-            bcstrand += '</div>';
-        } else {
-            if (result.strand)
-                bcstrand += '(' + result.strand + ') ';
-            bcstrand += result.barcode+'</div>';
-        }
-        if (result != null)
-            hitpoint = sbj.sx2rcoord(result.position, true);
-        dom_create('div', bubble.says, 'margin:10px;color:white;').innerHTML = countstr + bcstrand + hitpoint.str;
-        return;
-    }
+
     if (isNumerical(tk)) {
         dom_create('div', bubble.says, 'margin:10px;color:white;').innerHTML = '<div style="font-size:130%;padding-bottom:10px;">' + (tk.mode == M_den ? ((isNaN(result) || result == 0) ? 'No data' : result + ' item' + (result > 1 ? 's' : '')) : (isNaN(result) ? 'No data' : 'Score: ' + result)) + '</div>' + hitpoint.str;
         return;
@@ -20355,13 +19869,7 @@ Browser.prototype.jsonAddtracks = function(data) {
     /* pre-process json data
 */
     for (var i = 0; i < lst.length; i++) {
-        // if callingcard, check for both xdata and ydata
-        if (lst[i].ft == 35 || lst[i].ft == 36) {
-            if (!lst[i].xdata || !lst[i].ydata) {
-                print2console('Error adding '+ FT2verbal[lst[i].ft] + ' track "' + lst[i].label + '"', 3);
-                continue;
-            }
-        } else if (!lst[i].data) {
+        if (!lst[i].data) {
             // no data, wrong track
             print2console('Error adding ' + FT2verbal[lst[i].ft] + ' track "' + lst[i].label + '"', 3);
             continue;
@@ -20577,10 +20085,7 @@ do not render
     var hasnewtk = false;
     var weavertk = [];
     for (var i = 0; i < lst.length; i++) {
-        if (lst[i].ft == 35 || lst[i].ft == 36) {
-            if (!lst[i].xdata || !lst[i].ydata)
-                continue;
-        } else if (!lst[i].data)
+        if (!lst[i].data)
             continue;
         var obj = this.findTrack(lst[i].name);
         if (!obj) {
@@ -20625,91 +20130,8 @@ do not render
         }
         // work out the data
         var dj = lst[i].data;
-        var xdj = lst[i].xdata; // calling card data
-        var ydj = lst[i].ydata; // calling card data
-        var sdj = lst[i].strand; // calling card bata
-        var bdj = lst[i].barcode; // calling card data
         // data from json
-        if (obj.ft == FT_callingcard_n || obj.ft == FT_callingcard_c) {
-            // numerical or cat
-            var smooth = (obj.qtc && obj.qtc.smooth);
-            if (!this.move.direction) {
-                if (smooth) {
-                    obj.data_raw = ydj;
-                    if (!obj.ydata) {
-                        smooth_tkdata(obj);
-                    }
-                } else {
-                    obj.xdata = xdj;
-                    obj.ydata = ydj;
-                    obj.strand = sdj;
-                    obj.barcode = bdj;
-                }
-            } else {
-                var y = smooth ? obj.data_raw : obj.ydata;
-                var x = smooth ? obj.data_raw : obj.xdata;
-                var s = obj.strand;
-                var b = obj.barcode;
-                // Need to alter this code to properly shift xdata coords
-                if (this.move.direction == 'l') {
-                    if (this.move.merge) {
-                        y[0] = ydj[ydj.length - 1].concat(y[0]);
-                        ydj.pop();
-                        // Shift xdata values by a constant value
-                        for (var j = 0; j < x.length; j++) {
-                            for (var k = 0; k < x[j].length; k++) {
-                                x[j][k] += this.move.offsetShift;
-                            }
-                        }
-                        x[0] = xdj[xdj.length - 1].concat(x[0]);
-                        xdj.pop();
-                        s[0] = sdj[sdj.length - 1].concat(s[0]);
-                        sdj.pop();
-                        b[0] = bdj[bdj.length - 1].concat(b[0]);
-                        bdj.pop();
-                    }
-                    y = ydj.concat(y);
-                    x = xdj.concat(x);
-                    s = sdj.concat(s);
-                    b = bdj.concat(b);
-                } else {
-                    if (this.move.merge) {
-                        var idx = y.length - 1;
-                        y[idx] = y[idx].concat(ydj[0]);
-                        ydj.shift();
-                        // Shift xdata values; need to add a
-                        // constant value to all elements of xdj.
-                        // In this case, it is the current width of
-                        // canvas in pixels
-                        var xOffsetShift = obj.canvas.scrollWidth;
-                        for (var j = 0; j < xdj.length; j++) {
-                            for (var k = 0; k < xdj[j].length; k++) {
-                                xdj[j][k] += xOffsetShift;
-                            }
-                        }
-                        x[idx] = x[idx].concat(xdj[0]);
-                        xdj.shift();
-                        s[idx] = s[idx].concat(sdj[0]);
-                        sdj.shift();
-                        b[idx] = b[idx].concat(bdj[0]);
-                        bdj.shift();
-                    }
-                    y = y.concat(ydj);
-                    x = x.concat(xdj);
-                    s = s.concat(sdj);
-                    b = b.concat(bdj);
-                }
-                if (smooth) {
-                    obj.data_raw = v;
-                } else {
-                    obj.ydata = y;
-                    obj.xdata = x;
-                    obj.strand = s;
-                    obj.barcode = b;
-                }
-            }
-            obj.skipped = undefined;
-        } else if (isNumerical(obj) || isHmtk(obj.ft) || obj.ft == FT_catmat || obj.ft == FT_qcats) {
+        if (isNumerical(obj) || isHmtk(obj.ft) || obj.ft == FT_catmat || obj.ft == FT_qcats) {
             // numerical or cat
             var smooth = (obj.qtc && obj.qtc.smooth);
             if (!this.move.direction) {
@@ -26399,24 +25821,7 @@ function config_cmtk(tk) {
         menu.c46.div.style.display = 'none';
     }
 }
-function config_callingcard(tk) {
-    var q = tk.qtc;
-    qtcpanel_setdisplay({
-        qtc: q,
-        color1: 'rgb(' + q.pr + ',' + q.pg + ',' + q.pb + ')',
-        color1text: 'positive',
-        color2: 'rgb(' + q.nr + ',' + q.ng + ',' + q.nb + ')',
-        color2text: 'negative',
-        ft: tk.ft,
-    });
-    menu.c14.style.display = 'block';
-    menu.c14.unify.style.display = 'none';
-    menu.c46.style.display = 'none';
-    menu.c51.sharescale.style.display = tk.group! = undefined ? 'block' : 'none';
-    menu.c67.style.display = 'block';
-    menu.c68.style.display = 'block';
-    menu.c59.style.display = 'none';
-}
+
 function config_numerical(tk) {
     var q = tk.qtc;
     qtcpanel_setdisplay({
@@ -26643,10 +26048,6 @@ function config_dispatcher(tk) {
     case FT_bigwighmtk_n:
     case FT_qdecor_n:
         config_numerical(tk);
-        break;
-    case FT_callingcard_c:
-    case FT_callingcard_n:
-        config_callingcard(tk);
         break;
     case FT_cat_c:
     case FT_cat_n:
@@ -26988,8 +26389,6 @@ or a splinter
         break;
     case FT_bedgraph_c:
     case FT_bedgraph_n:
-    case FT_callingcard_c:
-    case FT_callingcard_n:
         if (menu.c20)
             menu.c20.style.display = 'block';
         // bev
@@ -29097,7 +28496,7 @@ function parse_jsontext(text) {
 // this supports longrange to be backward compatible
 const HUB_TRACK_TAGS = new Set(['bedgraph', 'bigwig', 'bed', 'bigbed', 'longrange', 'interaction', 'hic', 'cool', 'bam',
     'categorical', 'methylc', 'ld', 'annotation', 'hammock', 'categorymatrix', 'quantitativecategoryseries',
-    'genomealign', 'matplot', 'callingcard']);
+    'genomealign', 'matplot']);
 function hubtagistrack(tag) {
     return HUB_TRACK_TAGS.has(tag);
 }
@@ -29231,12 +28630,6 @@ Browser.prototype.parse_custom_track = function(obj) {
         break;
     case 'quantitativecategoryseries':
         obj.ft = FT_qcats;
-        if (m != M_hide) {
-            m = M_show;
-        }
-        break;
-    case 'callingcard':
-        obj.ft = FT_callingcard_c;
         if (m != M_hide) {
             m = M_show;
         }
@@ -30312,8 +29705,6 @@ don't die when called upon hmtks
     case FT_catmat:
     case FT_qcats:
     case FT_weaver_c:
-    case FT_callingcard_c:
-    case FT_callingcard_n:
         return M_show;
     case FT_lr_c:
     case FT_lr_n:
