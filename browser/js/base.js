@@ -9402,10 +9402,10 @@ noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
         paramsObj.track27 = lst[FT_qcats].join(',');
     }
     if (lst[FT_callingcard_n].length > 0) {
-        paramsObj.track35 = lst[FT_callingcard_n].join(',');
+        paramsObj.hmtk35 = lst[FT_callingcard_n].join(',');
     }
     if (lst[FT_callingcard_c].length > 0) {
-        paramsObj.track36 = lst[FT_callingcard_c].join(',');
+        paramsObj.hmtk36 = lst[FT_callingcard_c].join(',');
     }
     return paramsObj;
 }
