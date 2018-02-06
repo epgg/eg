@@ -13678,8 +13678,8 @@ panels that belong to the page and shared by all browser objs
     dom_addtext(menu.c68, 'Marker size&nbsp;');
     menu.c68.size = dom_inputnumber(menu.c68, {
         id: "callingcard_size",
-        width:50,
-        value:3
+        width: 50,
+        value: 3
     });
     dom_addbutt(menu.c68, 'apply', qtc_setcallingcard_size);
 
@@ -16296,7 +16296,12 @@ function qtc_setfixscale() {
     }
     menu_update_track(6);
 }
-
+function qtc_setcallingcard_size(event) {
+    // var size=parseFloat(menu.c68.size.value);
+    // print2console(size,2);
+    // return;
+    menu_update_track(42);
+}
 function menu_log_select() {
     menu_update_track(9);
 }
