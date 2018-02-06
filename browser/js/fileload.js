@@ -992,7 +992,7 @@ let paramsObj = {
 	key: key
 }
 this.ajax(paramsObj,function(data){bbj.fud_maketrack_cb(data,key,tk)});
-}
+
 Browser.prototype.fud_maketrack_cb=function(data,key,tk)
 {
 loading_done();
