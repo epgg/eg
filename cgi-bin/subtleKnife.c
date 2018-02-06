@@ -10580,8 +10580,8 @@ if(cgiVarExists("hmtk12"))
 	parseTrackParam(cgiString("hmtk12"), FT_cat_n, &trackSl);
 if(cgiVarExists("hmtk13"))
 	parseTrackParam(cgiString("hmtk13"), FT_cat_c, &trackSl);
-if(cgiVarExists("hmtk34"))
-	parseTrackParam(cgiString("hmtk34"), FT_callingcard_c, &trackSl);
+if(cgiVarExists("hmtk36"))
+	parseTrackParam(cgiString("hmtk36"), FT_callingcard_c, &trackSl);
 
 
 hm.trackSl = trackSl;
@@ -10796,7 +10796,7 @@ if(hm.trackSl!=NULL)
 					else
 						{
                             fputs("10798\n", stderr);
-						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c)//||tk->ft==FT_callingcard_c||tk->ft==FT_callingcard_n)
+						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c)
 							{
                                 fputs("10801\n", stderr);
 							for(i=0; i<dsp.usedSummaryNumber; i++)
