@@ -26412,7 +26412,7 @@ function config_callingcard(tk) {
     menu.c14.style.display = 'block';
     menu.c14.unify.style.display = 'none';
     menu.c46.style.display = 'none';
-    menu.c51.sharescale.style.display = tk.group! = undefined ? 'block' : 'none';
+    menu.c51.sharescale.style.display = tk.group != undefined ? 'block' : 'none';
     menu.c67.style.display = 'block';
     menu.c68.style.display = 'block';
     menu.c59.style.display = 'none';
