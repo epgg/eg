@@ -12555,7 +12555,8 @@ function page_makeDoms(param) {
     waitcloak.style.position = 'absolute';
     waitcloak.style.opacity = 0.5;
     waitcloak.style.zIndex = 200;
-    dom_create('img', waitcloak).src = (gflag.is_cors ? gflag.cors_host : '') + '/images/loading.gif';
+    // dom_create('img', waitcloak).src = (gflag.is_cors ? gflag.cors_host : '') + '/images/loading.gif';
+    dom_create('img', waitcloak).src = (gflag.is_cors ? gflag.cors_host : '') + '/browser/images/loading.gif'; // Fix for Docker
 
     /* __control__ panels
 panels that belong to the page and shared by all browser objs
