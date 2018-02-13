@@ -569,7 +569,7 @@ while(sl!=NULL)
 	}
 }
 
-// Patterned after slCount2
+// For calling cards; patterned after slCount2
 int ccCount(void *in) {
 	int count = 0;
 	struct callingCard *current = (struct callingCard *)in;
@@ -593,21 +593,21 @@ void ccFree(void *in) {
 
 void ccDataFree(void *in) {
 	struct callingCardData *ccData = (struct callingCardData *)in;
-	fputs("596\n", stderr);
-	// fprintf(stderr, "sizeof xdata: %d\n", sizeof(ccData->xdata));
+	/// fputs("596\n", stderr);
+	/// fprintf(stderr, "sizeof xdata: %d\n", sizeof(ccData->xdata));
 	free(ccData->xdata);
-	// fputs("598\n", stderr);
-	// fprintf(stderr, "sizeof ydata: %d\n", sizeof(ccData->ydata));
+	/// fputs("598\n", stderr);
+	/// fprintf(stderr, "sizeof ydata: %d\n", sizeof(ccData->ydata));
 	free(ccData->ydata);
-	// fputs("600\n", stderr);
-	// for (int i=0; i < ccData->length; i++)
+	/// fputs("600\n", stderr);
+	/// for (int i=0; i < ccData->length; i++)
 	free(ccData->strand);
-	// fputs("603\n", stderr);
+	/// fputs("603\n", stderr);
 	for (int i=0; i < ccData->length; i++)
 		free(ccData->barcode[i]);
-	// fputs("606\n", stderr);
+	/// fputs("606\n", stderr);
 	free(ccData->barcode);
-	// fputs("608\n", stderr);
+	/// fputs("608\n", stderr);
 	free(ccData);
 }
 
@@ -1154,13 +1154,13 @@ return re;
 
 void showRegionSl(struct displayedRegion *dsp)
 {
-fprintf(stderr, "showRegionSl:\nusedSummaryNumber: %d\nentireLength: %ld\n", dsp->usedSummaryNumber, dsp->entireLength);
+if (SQUAWK) fprintf(stderr, "showRegionSl:\nusedSummaryNumber: %d\nentireLength: %ld\n", dsp->usedSummaryNumber, dsp->entireLength);
 struct region *r;
 int i = 0;
 for(r=dsp->head; r!=NULL; r=r->next)
     fprintf(stderr, "(%d) %s [%d,%d >> %d,%d]\tlen: %d\tsp:%d\n", i++, chrInfo[r->chromIdx]->name, r->bstart,r->dstart, r->dstop,r->bstop, r->dstop-r->dstart, r->summarySize);
 
-fputs("showRegionSl: okay\n",stderr);
+///fputs("showRegionSl: okay\n",stderr);
 }
 void showTrackSl(struct track *sl)
 {
@@ -1319,17 +1319,17 @@ tabix_t *tabixOpen(char *urlpath, boolean isremote)
 /* open tabix file and load index!
 to be used repeatedly, free after use
 */
-	fputs("1316\n", stderr);
+///	fputs("1316\n", stderr);
 tabix_t *fin=ti_open(urlpath,0);
 if(fin==0)
-	{fputs("1319\n", stderr); return NULL;}
+	{/*fputs("1319\n", stderr);///*/ return NULL;}
 if(!isremote)
 	{
 	if(ti_lazy_index_load(fin)<0)
-		{fputs("1323\n", stderr); return NULL;}
+		{/*fputs("1323\n", stderr);///*/ return NULL;}
 	return fin;
 	}
-	fputs("1326\n", stderr);
+	///fputs("1326\n", stderr);
 // ready to change dir
 char *deposit_dir=getDepositePath4url(urlpath);
 char *olddir=getcwd(NULL,0);
@@ -1345,7 +1345,7 @@ if(chdir(olddir)!=0)
 	fputs("failed to change back dir afterwards\n",stderr);
 	return NULL;
 	}
-	fputs("1342\n",stderr);
+	///fputs("1342\n",stderr);
 return fin;
 }
 
@@ -1582,27 +1582,27 @@ int len;
 int count = 0;
 long l;
 boolean haveInvalid=FALSE;
-fprintf(stderr,"About to parse lines\n");
+if (SQUAWK) fprintf(stderr,"About to parse calling card lines\n");
 while((row=ti_read(fin, iter, &len)) != 0)
-// while(TRUE)
+/// while(TRUE)
 	{
-	// int x = (row=ti_read(fin, iter, &len));
-	// fprintf(stderr, "ti_read return: %d\n", x);
-	// if (x == 0) break;
+	/// int x = (row=ti_read(fin, iter, &len));
+	/// fprintf(stderr, "ti_read return: %d\n", x);
+	/// if (x == 0) break;
 	tmpstr=strdup(row);
-	// fprintf(stderr, "%s\n", tmpstr);
+	/// fprintf(stderr, "%s\n", tmpstr);
 	if(tmpstr==NULL)
 		{
 		fprintf(stderr, "%s: mem\n", __FUNCTION__);
 		exit(0);
 		}
 	cc=malloc(sizeof(struct callingCard));
-	// We expect to encounter values of chr, start, stop, and count
-	// Not necessarily strand and barcode
+	/// We expect to encounter values of chr, start, stop, and count
+	/// Not necessarily strand and barcode
 	cc->strand = NULL;
 	cc->barcode = NULL;
 	// chr
-	// fputs("chr\n", stderr);
+	/// fputs("chr\n", stderr);
 	tok = strtok(tmpstr, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1611,7 +1611,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 		cc->chrom = strdup(tok);
 	}
 	// start
-	// fputs("start\n", stderr);
+	/// fputs("start\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1625,7 +1625,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->start = l;
 	}
 	// stop
-	// fputs("stop\n", stderr);
+	/// fputs("stop\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1639,7 +1639,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->stop = l;
 	}
 	// read count
-	// fputs("count\n", stderr);
+	/// fputs("count\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		haveInvalid = TRUE;
@@ -1653,7 +1653,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->count = l;
 	}
 	// strand, if present
-	// fputs("strand\n", stderr);
+	/// fputs("strand\n", stderr);
 	tok = strtok(NULL, delim);
 	if (tok == NULL) {
 		// End of line, no barcode and strand information present
@@ -1661,7 +1661,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	} else {
 		cc->strand = strdup(tok)[0];
 		// barcode, if present
-		// fputs("barcode\n", stderr);
+		/// fputs("barcode\n", stderr);
 		tok = strtok(NULL, delim);
 		if (tok == NULL) {
 			// End of line, strand present but not barcode
@@ -1670,8 +1670,8 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			cc->barcode = strdup(tok);
 		}
 	}
-	// fputs("1623\n", stderr);
-	// if (count < 10) fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
+	/// fputs("1623\n", stderr);
+	/// if (count < 10) fprintf(stderr, "%s,%d,%d,%d\n", cc->chrom, cc->start, cc->stop, cc->count);
 	if (sl == NULL) {
 		sl = cc;
 		tail = sl;
@@ -1681,24 +1681,24 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	}
 	tail->next = NULL;
 	count++;
-	// fprintf(stderr, "%lu\n", tail->start);
+	/// fprintf(stderr, "%lu\n", tail->start);
 	}
 ti_iter_destroy(iter);
 
 if(haveInvalid)
 	fprintf(stderr, "%s: failed to parse certain lines in %s\n", __FUNCTION__, fin->fn);
 
-fprintf(stderr, "Finished reading file\n");
-fprintf(stderr, "Processed %d records\n", count);
+if (SQUAWK) fprintf(stderr, "Finished reading calling card file\n");
+if (SQUAWK) fprintf(stderr, "Processed %d calling card records\n", count);
 return sl;
 }
 
 struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	unsigned long len = ccCount(cclist);
-	fprintf(stderr, "%d calling cards\n", len);
+	if (SQUAWK) fprintf(stderr, "%d calling cards\n", len);
 	struct callingCardData *data = malloc(sizeof(struct callingCardData));
 	struct callingCard *current = cclist;
-	fputs("1673\n", stderr);
+	///fputs("1673\n", stderr);
 	int i = 0;
 	if (current == NULL) { // No calling cards 
 		data->length = len;
@@ -1718,7 +1718,7 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 		if (current->strand != NULL) {
 			strand[i] = current->strand;
 		} else {
-			// strand[i] = malloc(sizeof(char));
+			/// strand[i] = malloc(sizeof(char));
 			strand[i] = '\0';
 		}
 		
@@ -1730,21 +1730,21 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 		}
 		i++;
 		current = current->next;
-		// fprintf(stderr, "%d,%d,%d,%d\n", i, current->start, current->stop ,current->count);
+		/// fprintf(stderr, "%d,%d,%d,%d\n", i, current->start, current->stop ,current->count);
 	}
-	fputs("1679\n", stderr);
-	// fprintf(stderr, "%d\n", len);
-	// fprintf(stderr, "%d\n", xdata[0]);
-	// fprintf(stderr, "%d\n", ydata[0]);
+	/// fputs("1679\n", stderr);
+	/// fprintf(stderr, "%d\n", len);
+	/// fprintf(stderr, "%d\n", xdata[0]);
+	/// fprintf(stderr, "%d\n", ydata[0]);
 	data->xdata = xdata;
 	data->ydata = ydata;
 	data->strand = strand;
 	data->barcode = barcode;
 	data->length = len;
-	fputs("1683\n", stderr);
-	// free(xdata);
-	// free(ydata);
-	fputs("1686\n", stderr);
+	/// fputs("1683\n", stderr);
+	/// free(xdata);
+	/// free(ydata);
+	/// fputs("1686\n", stderr);
 	return data;
 }
 
@@ -2434,74 +2434,74 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 	   Free after use.
 	*/
 
-	fprintf(stderr, "fin = tabixOpen(%s)\n", tk->urlpath);
+	if (SQUAWK) fprintf(stderr, "fin = tabixOpen(%s)\n", tk->urlpath);
 	tabix_t *fin=tabixOpen(tk->urlpath, TRUE);
 	if(fin==NULL)
 		{
 		return NULL;
 		}
-	fputs("2428\n", stderr);
+	/// fputs("2428\n", stderr);
 	int i, dspStart, offset = 0;
     int start, stop;
 	float width;
 	struct region *r;
-	fputs("2432\n", stderr);
+	/// fputs("2432\n", stderr);
 	struct callingCard *cclist=NULL, *tmp=NULL;
 	struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
-	fputs("2435\n", stderr);
+	/// fputs("2435\n", stderr);
 	boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
-	fputs("2437\n", stderr);
-	// returnData->length = 0;
-	fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
-	fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
-	fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
+	/// fputs("2437\n", stderr);
+	/// returnData->length = 0;
+	if (SQUAWK) fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
+	if (SQUAWK) fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
+	if (SQUAWK) fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
 	if (!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
 	else if (move) width = 1.0;
 	else width = round((float) dsp->hmspan / (float) dsp->entireLength);
-	fprintf(stderr, "width: %f\n", width);
+	if (SQUAWK) fprintf(stderr, "width: %f\n", width);
 	for(r=dsp->head; r!=NULL; r=r->next) {
 	    if(r->summarySize > 0) {
 			if (!move) {start = r->dstart; stop = r->dstop;}
-			fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
-			// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
+			if (SQUAWK) fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
+			/// tmp = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop));
 			tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
 			if (tmp == NULL)
-				fprintf(stderr, "No calling cards in view\n");
+				if (SQUAWK) fprintf(stderr, "No calling cards in view\n");
 			else
-				fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
 			tmpData = getCallingCardData(tmp);
-			fprintf(stderr, "%d data points\n", tmpData->length);
+			if (SQUAWK) fprintf(stderr, "%d data points\n", tmpData->length);
 			dspStart = r->dstart;
-			fprintf(stderr, "dspStart = %d\n", dspStart);
+			if (SQUAWK) fprintf(stderr, "dspStart = %d\n", dspStart);
 		
 			for (i = 0; i < tmpData->length; i++) {
-				// fprintf(stderr, "%lu,", tmpData->xdata[i]);
+				/// fprintf(stderr, "%lu,", tmpData->xdata[i]);
 				if (!atbplevel) {
-					// if (move) {
-					// 	if (move[0] == 'r') {
-					// 		// fprintf(stderr, "FOUND IT!\n");
-					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
-					// 	} else {
-					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
-					// 	}
-					// } else {
+					/// if (move) {
+					/// 	if (move[0] == 'r') {
+					/// 		// fprintf(stderr, "FOUND IT!\n");
+					/// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength)/width;
+					/// 	} else {
+					/// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start)/width;
+					/// 	}
+					/// } else {
 						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset)/width;
-					// }
+					/// }
 				} else {
-					// if (move) {
-					// 	if (move[0] == 'r') {
-					// 		// fprintf(stderr, "FOUND IT!\n");
-					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
-					// 	} else {
-					// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
-					// 	}
-					// } else {
+					/// if (move) {
+					/// 	if (move[0] == 'r') {
+					/// 		// fprintf(stderr, "FOUND IT!\n");
+					/// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start + (float) dsp->entireLength) * width;
+					/// 	} else {
+					/// 		tmpData->xdata[i] = (tmpData->xdata[i] - (float) start) * width;
+					/// 	}
+					/// } else {
 						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset) * width;
-					// }
+					/// }
 				}
 			}
 			offset += (r->dstop - r->dstart);
-			fputs("2491\n", stderr);
+			/// fputs("2491\n", stderr);
 			if (returnData==NULL) { // This is the first region we are processing
 				returnData = tmpData;
 				tail = returnData;
@@ -2509,7 +2509,7 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 				tail->next = tmpData;
 				tail = tmpData;
 			}
-			fputs("2500\n", stderr);
+			/// fputs("2500\n", stderr);
 			tail->next = NULL;
 			if (tmp != NULL) {
 				ccFree(tmp);
@@ -2519,40 +2519,40 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 				fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
 		}
 	}
-	fputs("2510\n", stderr);
+	/// fputs("2510\n", stderr);
 	ti_close(fin);
-	// fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[2655], returnData->ydata[2655], tail->next);
-	fputs("2513\n", stderr);
+	/// fprintf(stderr, "%d,%d,%d,%d\n", returnData->length, returnData->xdata[2655], returnData->ydata[2655], tail->next);
+	/// fputs("2513\n", stderr);
 	return returnData;
 }
-// double *data = malloc(sizeof(double) * dsp->usedSummaryNumber);
-// int i;
-// for(i=0; i<dsp->usedSummaryNumber; i++)
-//     data[i] = NAN;
-//
-// if(tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)
-// 	{
-// 	/* bigwig */
-// 	struct region *r;
-// 	i=0;
-// 	for(r=dsp->head; r!=NULL; r=r->next)
-// 		{
-// 		if(r->summarySize==0)
-// 			{
-// 			if(SQUAWK)
-// 				fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
-// 			continue;
-// 			}
-// 		if(!bigwigQuery(tk->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, r->summarySize, &data[i], tk->summeth))
-// 			{
-// 			return NULL;
-// 			}
-// 		i += r->summarySize;
-// 		}
-// 	return data;
-// 	}
+/// double *data = malloc(sizeof(double) * dsp->usedSummaryNumber);
+/// int i;
+/// for(i=0; i<dsp->usedSummaryNumber; i++)
+///     data[i] = NAN;
+///
+/// if(tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)
+/// 	{
+/// 	/* bigwig */
+/// 	struct region *r;
+/// 	i=0;
+/// 	for(r=dsp->head; r!=NULL; r=r->next)
+/// 		{
+/// 		if(r->summarySize==0)
+/// 			{
+/// 			if(SQUAWK)
+/// 				fprintf(stderr,"%s: skipped a 0-length region...\n", __FUNCTION__);
+/// 			continue;
+/// 			}
+/// 		if(!bigwigQuery(tk->urlpath, chrInfo[r->chromIdx]->name, r->dstart, r->dstop, r->summarySize, &data[i], tk->summeth))
+/// 			{
+/// 			return NULL;
+/// 			}
+/// 		i += r->summarySize;
+/// 		}
+/// 	return data;
+/// 	}
 
-// }
+/// }
 
 void tabixQuery_categorical(tabix_t *fin, char *chrom, unsigned int start, unsigned int stop, int spnum, int *data)
 {
@@ -6257,7 +6257,7 @@ void rmSubstr(char *str, const char *toRemove)
 int main()//int argc, char **argv)
 {
 
-fputs("main\n", stderr);
+///fputs("main\n", stderr);
 clock_t cpuTimeStart, cpuTimeTemp;
 if(CHECKCPUTIME) cpuTimeStart = clock();
 
@@ -8552,7 +8552,7 @@ if(cgiVarExists("getChromseq"))
     }
 
 
-fputs("8452\n", stderr);
+/// fputs("8452\n", stderr);
 
 
 /* GP fetch data for gene plot
@@ -8632,7 +8632,7 @@ if(cgiVarExists("makegeneplot"))
     boolean is_s2 = strcmp(plottype,"s2")==0;
     boolean is_s3 = strcmp(plottype,"s3")==0;
     boolean is_s4 = strcmp(plottype,"s4")==0;
-	fputs("8532\n", stderr);
+	/// fputs("8532\n", stderr);
     if(is_s1 || is_s2 || is_s4)
         {
 		/* these types will take the coordinates as provided, everything, no matter gene or coord
@@ -8649,7 +8649,7 @@ if(cgiVarExists("makegeneplot"))
 				
 				else if ((ft==FT_callingcard_c || ft==FT_callingcard_n)) {
 					// Get all calling cards in region; note that this does not perform local smoothing/collapsing
-					fputs("8548\n", stderr);
+					/// fputs("8548\n", stderr);
 					struct callingCard *cclist = beditemsort_startAsc(tabixQuery_callingCard(fin, chrInfo[item->chrIdx]->name, item->start, item->stop));
 					struct callingCardData *ccData = getCallingCardData(cclist);
 					int width = ((item->stop) - (item->start)) / spnum;
@@ -9468,7 +9468,7 @@ boolean trigger_scaffoldUpdate = cgiVarExists("scaffoldUpdate");
 /* adding arbitrary types of custom tracks
 so that it will fetch hmtk data */
 
-fputs("9367\n", stderr);
+///fputs("9367\n", stderr);
 
 struct displayedRegion dsp;
 dsp.head = NULL;
@@ -10012,9 +10012,9 @@ else
 						{
 						r->chromIdx = dsp.start->chromIdx;
 						r->dstart = r->dstop = dsp.start->coord;
-						fprintf(stderr, "LEFT SHIFT\n");
-						fprintf(stderr, "dsp.start->coord = %d\n", dsp.start->coord);
-						fprintf(stderr, "dsp.stop->coord = %d\n", dsp.stop->coord);
+						///fprintf(stderr, "LEFT SHIFT\n");
+						///fprintf(stderr, "dsp.start->coord = %d\n", dsp.start->coord);
+						///fprintf(stderr, "dsp.stop->coord = %d\n", dsp.stop->coord);
 						}
 					}
 				else
@@ -10033,9 +10033,9 @@ else
 						{
 						r->chromIdx = dsp.stop->chromIdx;
 						r->dstart = r->dstop = dsp.stop->coord;
-						fprintf(stderr, "RIGHT SHIFT\n");
-						fprintf(stderr, "dsp.start->coord = %d\n", dsp.start->coord);
-						fprintf(stderr, "dsp.stop->coord = %d\n", dsp.stop->coord);
+						///fprintf(stderr, "RIGHT SHIFT\n");
+						///fprintf(stderr, "dsp.start->coord = %d\n", dsp.start->coord);
+						///fprintf(stderr, "dsp.stop->coord = %d\n", dsp.stop->coord);
 						}
 					}
 				r->bstart = 0;
@@ -10282,7 +10282,7 @@ else
 					double sf = dsp.entireLength * (1+zoomoutPerc) / hmSpan;
 					computeSummarySize(hm.dsp, ceil(hmSpan / (1+zoomoutPerc)));
 					int spnum = hmSpan*zoomoutPerc / (1+zoomoutPerc);
-					fprintf(stderr, "10189 spnum = %d\n", spnum);
+					///fprintf(stderr, "10189 spnum = %d\n", spnum);
 					if(dsp.runmode == RM_genome)
 						{
 						moveBoundary_genome(hm.dsp, 'l', dist, &spnum, sf);
@@ -10650,7 +10650,7 @@ if(hm.trackSl!=NULL)
 				if(p == 0)
 					{
 					/*** in a child process ***/
-					if(tk->ft==FT_bedgraph_c || tk->ft==FT_bedgraph_n || tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)// || tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n)
+					if(tk->ft==FT_bedgraph_c || tk->ft==FT_bedgraph_n || tk->ft==FT_bigwighmtk_n || tk->ft==FT_bigwighmtk_c)
 						{
 						double *data= tabixQuery_bedgraph_dsp(hm.dsp, tk);
 						if(data==NULL)
@@ -10671,63 +10671,63 @@ if(hm.trackSl!=NULL)
 						fclose(fout);
 						}
 					else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
-						fputs("10561\n", stderr);
-						fprintf(stderr, "New display head start = %d, new display head stop = %d, new display tail start = %d, new display tail stop = %d\n", hm.dsp->head->dstart, hm.dsp->head->dstop, hm.dsp->tail->dstart, hm.dsp->tail->dstop);
-						fprintf(stderr, "New genome head start = %d, new genome head stop = %d, new genome tail start = %d, new genome tail stop = %d\n", hm.dsp->head->bstart, hm.dsp->head->bstop, hm.dsp->tail->bstart, hm.dsp->tail->bstop);
-                        // int startCoord = cgiInt("startCoord");
-                        // int stopCoord = cgiInt("stopCoord");
+						///fputs("10561\n", stderr);
+						if (SQUAWK) fprintf(stderr, "New display head start = %d, new display head stop = %d, new display tail start = %d, new display tail stop = %d\n", hm.dsp->head->dstart, hm.dsp->head->dstop, hm.dsp->tail->dstart, hm.dsp->tail->dstop);
+						if (SQUAWK) fprintf(stderr, "New genome head start = %d, new genome head stop = %d, new genome tail start = %d, new genome tail stop = %d\n", hm.dsp->head->bstart, hm.dsp->head->bstop, hm.dsp->tail->bstart, hm.dsp->tail->bstop);
+                        /// int startCoord = cgiInt("startCoord");
+                        /// int stopCoord = cgiInt("stopCoord");
 						char *move = cgiString("move");
 						int mDistance = 0;
 						if (move != NULL) {
-							fprintf(stderr, "Move string = %s\n", move);
+							if (SQUAWK) fprintf(stderr, "Move string = %s\n", move);
 							mDistance = cgiInt("distance");
-							fprintf(stderr, "moving %s by %d\n", move, mDistance);
-                            // if (move[0] == 'r') {
-                            //     startCoord += mDistance;
-                            //     stopCoord += mDistance;
-                            // } else if (move[0] == 'l') {
-                            //     startCoord -= mDistance;
-                            //     stopCoord -= mDistance;
-                            // } else {
-                            //     ;
-                            // }
+							if (SQUAWK) fprintf(stderr, "moving %s by %d\n", move, mDistance);
+                            /// if (move[0] == 'r') {
+                            ///     startCoord += mDistance;
+                            ///     stopCoord += mDistance;
+                            /// } else if (move[0] == 'l') {
+                            ///     startCoord -= mDistance;
+                            ///     stopCoord -= mDistance;
+                            /// } else {
+                            ///     ;
+                            /// }
 						}
-                        // fprintf(stderr, "startCoord = %d, stopCoord = %d\n", startCoord, stopCoord);
-						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);//, startCoord, stopCoord);
-						fputs("10563\n", stderr);
+                        /// fprintf(stderr, "startCoord = %d, stopCoord = %d\n", startCoord, stopCoord);
+						struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);
+						///fputs("10563\n", stderr);
 						FILE *fout = fopen(tk->tmpfile, "w");
 						if(fout == NULL) {
-							fputs("10571\n", stderr);
+							///fputs("10571\n", stderr);
 							if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
 							_exit(0);
 						}
-						fputs("10568\n", stderr);
-						// if (ccData->xdata==NULL || ccData->ydata==NULL) {
-						// 	fputs("10565\n", stderr);
-						// 	if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
-						// 	_exit(0);
-						// }
-						fputs("10575\n", stderr);
+						///fputs("10568\n", stderr);
+						/// if (ccData->xdata==NULL || ccData->ydata==NULL) {
+						/// 	fputs("10565\n", stderr);
+						/// 	if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+						/// 	_exit(0);
+						/// }
+						///fputs("10575\n", stderr);
 						struct region *r;
 						struct callingCardData *current;// = ccData;
-						fputs("10578\n", stderr);
-						// fprintf(stderr, "ccData length = %d\n", ccData->length);
-						// fprintf(stderr, "ccData xdata[0] = %f\n", ccData->xdata[0]);
-						// fprintf(stderr, "ccData ydata[0] = %d\n", ccData->ydata[0]);
-						// fprintf(stderr, "Current points to %d\n", current);
-						// if (ccData == NULL) fputs("ccData is NULL\n", stderr);
+						///fputs("10578\n", stderr);
+						/// fprintf(stderr, "ccData length = %d\n", ccData->length);
+						/// fprintf(stderr, "ccData xdata[0] = %f\n", ccData->xdata[0]);
+						/// fprintf(stderr, "ccData ydata[0] = %d\n", ccData->ydata[0]);
+						/// fprintf(stderr, "Current points to %d\n", current);
+						/// if (ccData == NULL) fputs("ccData is NULL\n", stderr);
 						if (ccData != NULL && ccData->length > 0) {
 							for(current = ccData; current!=NULL; current=current->next) {
 								fprintf(stderr, "%d\n", current->length);
 								for (int i = 0; i < current->length; i++) {
 									fprintf(fout, "%f\t%lu\n", current->xdata[i], current->ydata[i]);
-									// lines++;
+									/// lines++;
 								}
 							}
 						}
 						fclose(fout);
-						// fprintf(stderr, "number lines written: %d\n", lines);
-						fputs("10585\n", stderr);
+						/// fprintf(stderr, "number lines written: %d\n", lines);
+						/// fputs("10585\n", stderr);
 						ccDataFree(ccData);
 					}
 					else if(tk->ft==FT_cat_c || tk->ft==FT_cat_n)
@@ -10775,13 +10775,13 @@ if(hm.trackSl!=NULL)
 				waitpid(tk->pid, &status, 0);
 				if(status == 0)
 					{
-					fputs("10637\n", stderr);
+					/// fputs("10637\n", stderr);
 					/* child process has finished successfully */
 					tk->pid = 0;
 					/* ft-specific treatment */
 					double *data = malloc(sizeof(double)*dsp.usedSummaryNumber);
 					FILE *fin = fopen(tk->tmpfile, "r");
-                    fputs("10784\n", stderr);
+                    /// fputs("10784\n", stderr);
 					if(fin == NULL) 
 						{
 						/* error! file missing!
@@ -10791,19 +10791,19 @@ if(hm.trackSl!=NULL)
 							{
 							data[i]=NAN;
 							}
-                        fputs("10794\n", stderr);
+                        /// fputs("10794\n", stderr);
 						}
 					else
 						{
-                            fputs("10798\n", stderr);
+                            /// fputs("10798\n", stderr);
 						if(tk->ft==FT_bedgraph_c||tk->ft==FT_bedgraph_n||tk->ft==FT_bigwighmtk_n||tk->ft==FT_bigwighmtk_c)
 							{
-                                fputs("10801\n", stderr);
+                                /// fputs("10801\n", stderr);
 							for(i=0; i<dsp.usedSummaryNumber; i++)
 								{
 								if(getline(&line, &s, fin) == -1)
 									{
-									fprintf(stderr, "truncated tmpfile: %s\n", tk->tmpfile);
+									if (SQUAWK) fprintf(stderr, "truncated tmpfile: %s\n", tk->tmpfile);
 									for(; i<dsp.usedSummaryNumber; i++)
 										{
 										data[i]=NAN;
@@ -10843,99 +10843,99 @@ if(hm.trackSl!=NULL)
 								i += j;
 								}
 							printf("]},");
-                            fprintf(stderr, "'name':'%s','ft':%d,",tk->name, tk->ft);
-                            fputs("10846\n", stderr);
+                            if (SQUAWK) fprintf(stderr, "'name':'%s','ft':%d,",tk->name, tk->ft);
+                            /// fputs("10846\n", stderr);
 							}
 						else if (tk->ft==FT_callingcard_c || tk->ft==FT_callingcard_n) {
-							// fprintf(stderr, "number lines to read = %d\n", lines);
-							// unsigned long *xdata = malloc(sizeof(unsigned long) * lines);
-							// unsigned long *ydata = malloc(sizeof(unsigned long) * lines);
-							fputs("10723\n", stderr);
+							/// fprintf(stderr, "number lines to read = %d\n", lines);
+							/// unsigned long *xdata = malloc(sizeof(unsigned long) * lines);
+							/// unsigned long *ydata = malloc(sizeof(unsigned long) * lines);
+							/// fputs("10723\n", stderr);
 							printf("{'name':'%s','ft':%d,",tk->name, tk->ft);
 							if(tk->ft==FT_callingcard_c)
 								printf("'label':'%s','url':'%s',", tk->label,tk->urlpath);
-							// for(int i=0; i < lines; i++) {
-							// 	if(getline(&line, &s, fin) == -1) {
-							// 		fprintf(stderr, "truncated tmpfile: %s\n", tk->tmpfile);
-							// 		for(; i < lines; i++) {
-							// 			xdata[i]=NAN;
-							// 			ydata[i]=NAN;
-							// 		}
-							// 		break;
-							// 	} else {
-							// 		fprintf(stderr, "%d line = %s\n", i, line);
-							// 		if(line[0]=='n') {
-							// 			xdata[i]=NAN; // is nan
-							// 			ydata[i]=NAN; // is nan
-							// 		} else {
-							// 			fputs("10741\n", stderr);
-							// 			sscanf(line, "%lu\t%lu", &xdata[i], &ydata[i]);
-							// 			fprintf(stderr, "xdata: %lu, ydata: %lu\n", xdata[i], ydata[i]);
-							// 		}
-							// 	}
-							// }
-							fputs("10744\n", stderr);
-							// printf("'xdata':[");
-							// int i = 0, j;
-							// struct callingCardData *current;
-							// for(current = ccData; current != NULL; current = current->next) {
-							// 	fputs("10749\n", stderr);
-							// 	printf("[");
-							// 	for(j = 0; i < current->length; j++) {
-							// 		printf("%lu,", xdata[i + j]);
-							// 	}
-							// 	printf("],");
-							// 	i += j;
-							// }
-							fputs("10756\n", stderr);
-							// printf("],'ydata':[");
-							// i = 0, j;
-							// for(current = ccData; current != NULL; current = current->next) {
-							// 	int i = 0;
-							// 	printf("[");
-							// 	for(int j = 0; i < current->length; j++) {
-							// 		printf("%lu,", ydata[i + j]);
-							// 	}
-							// 	printf("],");
-							// 	i += j;
-							// }
-							// printf("]},");
+							/// for(int i=0; i < lines; i++) {
+							/// 	if(getline(&line, &s, fin) == -1) {
+							/// 		fprintf(stderr, "truncated tmpfile: %s\n", tk->tmpfile);
+							/// 		for(; i < lines; i++) {
+							/// 			xdata[i]=NAN;
+							/// 			ydata[i]=NAN;
+							/// 		}
+							/// 		break;
+							/// 	} else {
+							/// 		fprintf(stderr, "%d line = %s\n", i, line);
+							/// 		if(line[0]=='n') {
+							/// 			xdata[i]=NAN; // is nan
+							/// 			ydata[i]=NAN; // is nan
+							/// 		} else {
+							/// 			fputs("10741\n", stderr);
+							/// 			sscanf(line, "%lu\t%lu", &xdata[i], &ydata[i]);
+							/// 			fprintf(stderr, "xdata: %lu, ydata: %lu\n", xdata[i], ydata[i]);
+							/// 		}
+							/// 	}
+							/// }
+                            /// fputs("10744\n", stderr);
+							/// printf("'xdata':[");
+							/// int i = 0, j;
+							/// struct callingCardData *current;
+							/// for(current = ccData; current != NULL; current = current->next) {
+							/// 	fputs("10749\n", stderr);
+							/// 	printf("[");
+							/// 	for(j = 0; i < current->length; j++) {
+							/// 		printf("%lu,", xdata[i + j]);
+							/// 	}
+							/// 	printf("],");
+							/// 	i += j;
+							/// }
+							/// fputs("10756\n", stderr);
+							/// printf("],'ydata':[");
+							/// i = 0, j;
+							/// for(current = ccData; current != NULL; current = current->next) {
+							/// 	int i = 0;
+							/// 	printf("[");
+							/// 	for(int j = 0; i < current->length; j++) {
+							/// 		printf("%lu,", ydata[i + j]);
+							/// 	}
+							/// 	printf("],");
+							/// 	i += j;
+							/// }
+							/// printf("]},");
 							
-                            // int startCoord = cgiInt("startCoord");
-                            // int stopCoord = cgiInt("stopCoord");
+                            /// int startCoord = cgiInt("startCoord");
+                            /// int stopCoord = cgiInt("stopCoord");
 							char *move = cgiString("move");
 							int mDistance = 0;
 							if (move != NULL) {
-								fprintf(stderr, "Move string = %s\n", move);
+								if (SQUAWK) fprintf(stderr, "Move string = %s\n", move);
 								mDistance = cgiInt("distance");
-								fprintf(stderr, "moving %s by %d\n", move, mDistance);
-                                // if (move[0] == 'r') {
-                                //     startCoord += mDistance;
-                                //     stopCoord += mDistance;
-                                // } else if (move[0] == 'l') {
-                                //     startCoord -= mDistance;
-                                //     stopCoord -= mDistance;
-                                // } else {
-                                //     ;
-                                // }
+								if (SQUAWK) fprintf(stderr, "moving %s by %d\n", move, mDistance);
+                                /// if (move[0] == 'r') {
+                                ///     startCoord += mDistance;
+                                ///     stopCoord += mDistance;
+                                /// } else if (move[0] == 'l') {
+                                ///     startCoord -= mDistance;
+                                ///     stopCoord -= mDistance;
+                                /// } else {
+                                ///     ;
+                                /// }
 							}
-							fputs("10883\n", stderr);
-							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);//, startCoord, stopCoord);
-							// if (ccData->xdata==NULL || ccData->ydata==NULL) {
-							// 	if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
-							// 	_exit(0);
-							// }
-							// FILE *fout = fopen(tk->tmpfile, "w");
-							// if(fout == NULL) {
-							// 	if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
-							// 	_exit(0);
-							// }
-							fputs("10894\n", stderr);
+							/// fputs("10883\n", stderr);
+							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);///, startCoord, stopCoord);
+							/// if (ccData->xdata==NULL || ccData->ydata==NULL) {
+							/// 	if(SQUAWK) fprintf(stderr, "numerical tk error (%s)\n", tk->urlpath);
+							/// 	_exit(0);
+							/// }
+							/// FILE *fout = fopen(tk->tmpfile, "w");
+							/// if(fout == NULL) {
+							/// 	if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
+							/// 	_exit(0);
+							/// }
+							/// fputs("10894\n", stderr);
 							int i = 0;
 							struct region *r;
 							struct callingCardData *current;// = ccData;
 							if (ccData->next == NULL) fprintf(stderr, "ccData->next is NULL\n");
-							fprintf(stderr, "printing xdata\n");
+							if (SQUAWK) fprintf(stderr, "printing xdata\n");
 							printf("'xdata':[");
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
@@ -10943,8 +10943,8 @@ if(hm.trackSl!=NULL)
 									printf("%f,", current->xdata[i]);
 								printf("],");
 							}
-							fputs("10907\n", stderr);
-							fprintf(stderr, "printing ydata\n");
+							/// fputs("10907\n", stderr);
+							if (SQUAWK) fprintf(stderr, "printing ydata\n");
 							printf("],'ydata':[");
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
@@ -10952,23 +10952,23 @@ if(hm.trackSl!=NULL)
 									printf("%d,", current->ydata[i]);
 								printf("],");
 							}
-							fputs("10916\n", stderr);
-							fprintf(stderr, "printing strand\n");
+							/// fputs("10916\n", stderr);
+							if (SQUAWK) fprintf(stderr, "printing strand\n");
 							printf("],'strand':[");
 							for(current = ccData; current != NULL; current=current->next) {
 								printf("[");
-								fputs("10940\n", stderr);
+								/// fputs("10940\n", stderr);
 								for (i = 0; i < current->length; i++) {
-									// fputs("10942\n", stderr);
+									/// fputs("10942\n", stderr);
 									if (current->strand[i] != '\0')
-										{/*fputs("10944\n", stderr); */printf("'%c',", current->strand[i]);}
+										{/*fputs("10944\n", stderr);/// */printf("'%c',", current->strand[i]);}
 									else
 										printf("'',");
 								}
 								printf("],");
 							}
-							fputs("10929\n", stderr);
-							fprintf(stderr, "printing barcode\n");
+							/// fputs("10929\n", stderr);
+							if (SQUAWK) fprintf(stderr, "printing barcode\n");
 							printf("],'barcode':[");
 							for(current = ccData; current != NULL; current=current->next) {
 								printf("[");
@@ -10980,11 +10980,11 @@ if(hm.trackSl!=NULL)
 								}
 								printf("],");
 							}
-							fputs("10942\n", stderr);
+							/// fputs("10942\n", stderr);
 							printf("]},");
-							fprintf(stderr, "done printing\n");
+							if (SQUAWK) fprintf(stderr, "done printing\n");
 							ccDataFree(ccData);
-							fputs("10946\n", stderr);
+							/// fputs("10946\n", stderr);
 						}
 						else if(tk->ft==FT_cat_n||tk->ft==FT_cat_c)
 							{
