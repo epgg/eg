@@ -10708,7 +10708,7 @@ if(hm.trackSl!=NULL)
 								if (SQUAWK) fprintf(stderr, "moving %s by %d\n", move, mDistance);
 							}
 
-							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);///, startCoord, stopCoord);
+							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);
 							int i = 0;
 							struct region *r;
 							struct callingCardData *current;// = ccData;
