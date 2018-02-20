@@ -293,9 +293,18 @@ var hicMatrixOptions = [{
 ];
 var hicNormOptions = [{
     value: 'NONE',
-    text: 'NONE',
+    text: 'NONE'
+}, {
+    value: 'VC',
+    text: 'VC'
+}, {
+    value: 'VC_SQRT',
+    text: 'VC_SQRT'
+}, {
+    value: 'KR',
+    text: 'KR',
     selected: true
-}];
+}, ];
 var hicUnitOptions = [{
     value: 'BP',
     text: 'BP',

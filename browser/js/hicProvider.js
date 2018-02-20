@@ -62,7 +62,7 @@ class HicProvider extends DataProvider {
             let binSizeOverride = hicTrack.qtc.bin_size == scale_auto ? // User-set bin size?
                 null : Number.parseInt(hicTrack.qtc.bin_size);
             promisesForEachRegion.push(this.getRecords(chromosome, startBasePair, endBasePair, chromosome,
-                startBasePair, endBasePair, "NONE", longestRegion, binSizeOverride));
+                startBasePair, endBasePair, hicTrack.qtc.norm, longestRegion, binSizeOverride));
         }
         let trackPromise = Promise.all(promisesForEachRegion)
             .then(recordsForEachRegion => this._constructTrackData(hicTrack, recordsForEachRegion));
@@ -108,8 +108,7 @@ class HicProvider extends DataProvider {
             bin_size: hicTrack.qtc.bin_size || scale_auto,
             d_binsize: binSize,
             matrix: "observed",
-            norm: "none",
-        };
+        }
         trackData[DataProvider.TRACK_PROP_NAME] = this;
         /*
         By putting `this` in the track data, we expect Browser.prototype.jsonTrackdata (in base.js) to attach `this` to
