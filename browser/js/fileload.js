@@ -954,45 +954,6 @@ Browser.prototype.fud_maketrack=function(key,tk) {
 	this.ajax('maketrack=on&key='+key,function(data){bbj.fud_maketrack_cb(data,key,tk)});
 }
 
-Browser.prototype.fud_maketrack_cb=function(data,key,tk) {
-	loading_done();
-	if(!data) {
-		print2console('Server crashed',2);
-		return;
-	}
-	if(data.abort) {
-		print2console('Error: '+data.abort,2);
-		return;
-	}
-	tk.url=window.location.origin+window.location.pathname+'t/'+key+'.gz';
-	tk.name=this.genome.newcustomtrackname();
-	this.genome.pending_custtkhash[tk.name]=tk;
-	print2console('Displaying track "'+tk.label+'"...',0);
-	// print2console(data,2);
-	// for (var name in data) {
-	// 	print2console(name,2);
-	// }
-	// print2console(key,2);
-	// print2console(tk,2);
-	// for (var name in tk) {
-	// 	print2console(name,2);
-	// }
-	// print2console(tk.ft,2);
-	// print2console(tk.label,2);
-	// print2console(tk.mode,2);
-	// print2console(tk.url,2);
-	// print2console(tk.name,2);
-	this.ajax_addtracks([tk]);
-}
-print2console('Making track...',0);
-// no need to tell cgi the ft, all will be processed in the same way
-var bbj=this;
-let paramsObj = {
-	maketrack: "on",
-	key: key
-}
-this.ajax(paramsObj,function(data){bbj.fud_maketrack_cb(data,key,tk)});
-
 Browser.prototype.fud_maketrack_cb=function(data,key,tk)
 {
 loading_done();
