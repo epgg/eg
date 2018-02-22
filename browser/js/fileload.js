@@ -79,7 +79,7 @@ d3.formatradio.push(make_radiobutton(td0,{value:'bed',label:'BED <span style="fo
 d3.formatradio.push(make_radiobutton(td0,{value:'gff',label:'GFF <span style="font-size:70%;">ANNOTATION DATA | <a href=http://genome.ucsc.edu/FAQ/FAQformat.html#format3 target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'lr',label:'Pairwise interaction <span style="font-size:70%;"><a href=http://wiki.wubrowse.org/Long-range target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'custom',label:'Custom <span style="font-size:70%;">ANNOTATION DATA</span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
-d3.formatradio.push(make_radiobutton(td0,{value:'callingcard',label:'GNASHY (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://www.google.com" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
+d3.formatradio.push(make_radiobutton(td0,{value:'callingcard',label:'Calling card (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://www.google.com" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 var t=dom_create('table',td0,'margin:10px 10px 10px 20px;border:1px solid white;display:none;');
 d3.customformatter=t;
 var tr=t.insertRow(0);
@@ -878,8 +878,8 @@ Browser.prototype.fud_load_callingcard=function() {
 			// // escape disgusting stuff
 			// if(lst[0].length==0 || lst[0]=='track' || lst[0]=='browser') continue;
 			// print2console(lst,2);
-			if(lst.length<3) {
-				print2console('Error at line '+(i+1)+': less than 3 fields',2);
+			if(lst.length<4) {
+				print2console('Error at line '+(i+1)+': less than 4 fields',2);
 				return;
 			}
 			if(!lst[0] || lst[0].length==0) {
@@ -887,10 +887,14 @@ Browser.prototype.fud_load_callingcard=function() {
 				return;
 			}
 			if(!lst[1] || lst[1].length==0) {
-				print2console('Error at line '+(i+1)+': no insertion site',2);
+				print2console('Error at line '+(i+1)+': no start coordinate',2);
 				return;
 			}
 			if(!lst[2] || lst[2].length==0) {
+				print2console('Error at line '+(i+1)+': no stop coordinate',2);
+				return;
+			}
+			if(!lst[3] || lst[3].length==0) {
 				print2console('Error at line '+(i+1)+': no read count',2);
 				return;
 			}
@@ -902,14 +906,15 @@ Browser.prototype.fud_load_callingcard=function() {
 			}
 			var c={
 				chr:t[0],
-				site:t[1],
-				count:parseInt(lst[2]),
+				start:t[1],
+				stop:parseInt(lst[2]),
+				count:parseInt(lst[3]),
 				isgene:false
 			};
-			if(lst[3]) {
-				c.strand=lst[3];
-			}
 			if(lst[4]) {
+				c.strand=lst[4];
+			}
+			if(lst[5]) {
 				c.barcode=lst[5];
 			}
 			data.push(c);
@@ -920,13 +925,13 @@ Browser.prototype.fud_load_callingcard=function() {
 		} else {
 			print2console('Read '+data.length+' lines',1);
 			var lst=[];
-			var id=1;
+            // var id=1;
 			for(var i=0; i<data.length; i++) {
 				var e=data[i];
-				lst.push(e.chr+'\t'+e.site+'\t'+e.count+'\t'+(e.strand?e.strand:'.')+'\t'+id+'\t'+(e.barcode?e.barcode:'.'));
-				id++;
+				lst.push(e.chr+'\t'+e.start+'\t'+e.stop+'\t'+e.count+'\t'+(e.strand?e.strand:'.')+'\t'+(e.barcode?e.barcode:'.'));
+                // id++;
 			}
-			bbj.fud_post_maketrack(lst.join('\n'), {ft:FT_callingcard_c,label:eui.file.name,mode:M_full});
+			bbj.fud_post_maketrack(lst.join('\n'), {ft:FT_callingcard_n,label:eui.file.name,mode:M_full});
 			fud_loaded_says(eui.file.name,true);
 		}
 		var fd=eui.parentNode.parentNode;
