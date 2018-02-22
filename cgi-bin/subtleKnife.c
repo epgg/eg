@@ -105,7 +105,8 @@
 #define ymdayfile "yearmonthday" // a bed file
 #define Rose_input_fn "input_bed_file"
 #define trashDir "/usr/lib/trash"
-#define WWWT "/var/www/browser/t"
+// #define WWWT "/var/www/browser/t" // Deployment version
+#define WWWT "/var/www/html/browser/t" // Docker version
 #define BINdir "."
 #define Mysqlserver "10.20.127.12"
 #define Mysqluser "hguser"
