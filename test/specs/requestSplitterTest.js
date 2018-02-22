@@ -1,9 +1,4 @@
-/**
- * Test specs for requestSplitter.js
- *
- * @author Silas Hsu
- */
-"use strict"
+"use strict";
 
 describe("Unit tests - RequestSplitter", function() {
     const INSTANCE = new RequestSplitter();

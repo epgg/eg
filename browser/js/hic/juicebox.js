@@ -13349,6 +13349,5571 @@ var widgetsDraggable = $.ui.draggable;
 
 
 }));
+/**
+ * @fileoverview Zlib namespace. Zlib の仕様に準拠した圧縮は Zlib.Deflate で実装
+ * されている. これは Inflate との共存を考慮している為.
+ */
+
+var USE_TYPEDARRAY = true;
+
+var Zlib = {
+  Huffman: {},
+  Util: {},
+  CRC32: {}
+};
+
+
+/**
+ * Compression Method
+ * @enum {number}
+ */
+Zlib.CompressionMethod = {
+  DEFLATE: 8,
+  RESERVED: 15
+};
+
+
+
+
+/**
+ * @param {Object=} opt_params options.
+ * @constructor
+ */
+Zlib.Zip = function(opt_params) {
+  opt_params = opt_params || {};
+  /** @type {Array.<{
+   *   buffer: !(Array.<number>|Uint8Array),
+   *   option: Object,
+   *   compressed: boolean,
+   *   encrypted: boolean,
+   *   size: number,
+   *   crc32: number
+   * }>} */
+  this.files = [];
+  /** @type {(Array.<number>|Uint8Array)} */
+  this.comment = opt_params['comment'];
+  /** @type {(Array.<number>|Uint8Array)} */
+  this.password;
+};
+
+
+/**
+ * @enum {number}
+ */
+Zlib.Zip.CompressionMethod = {
+  STORE: 0,
+  DEFLATE: 8
+};
+
+/**
+ * @enum {number}
+ */
+Zlib.Zip.OperatingSystem = {
+  MSDOS: 0,
+  UNIX: 3,
+  MACINTOSH: 7
+};
+
+/**
+ * @enum {number}
+ */
+Zlib.Zip.Flags = {
+  ENCRYPT:    0x0001,
+  DESCRIPTOR: 0x0008,
+  UTF8:       0x0800
+};
+
+/**
+ * @type {Array.<number>}
+ * @const
+ */
+Zlib.Zip.FileHeaderSignature = [0x50, 0x4b, 0x01, 0x02];
+
+/**
+ * @type {Array.<number>}
+ * @const
+ */
+Zlib.Zip.LocalFileHeaderSignature = [0x50, 0x4b, 0x03, 0x04];
+
+/**
+ * @type {Array.<number>}
+ * @const
+ */
+Zlib.Zip.CentralDirectorySignature = [0x50, 0x4b, 0x05, 0x06];
+
+/**
+ * @param {Array.<number>|Uint8Array} input
+ * @param {Object=} opt_params options.
+ */
+Zlib.Zip.prototype.addFile = function(input, opt_params) {
+  opt_params = opt_params || {};
+  /** @type {string} */
+  var filename = '' || opt_params['filename'];
+  /** @type {boolean} */
+  var compressed;
+  /** @type {number} */
+  var size = input.length;
+  /** @type {number} */
+  var crc32 = 0;
+
+  if (USE_TYPEDARRAY && input instanceof Array) {
+    input = new Uint8Array(input);
+  }
+
+  // default
+  if (typeof opt_params['compressionMethod'] !== 'number') {
+    opt_params['compressionMethod'] = Zlib.Zip.CompressionMethod.DEFLATE;
+  }
+
+  // その場で圧縮する場合
+  if (opt_params['compress']) {
+    switch (opt_params['compressionMethod']) {
+      case Zlib.Zip.CompressionMethod.STORE:
+        break;
+      case Zlib.Zip.CompressionMethod.DEFLATE:
+        crc32 = Zlib.CRC32.calc(input);
+        input = this.deflateWithOption(input, opt_params);
+        compressed = true;
+        break;
+      default:
+        throw new Error('unknown compression method:' + opt_params['compressionMethod']);
+    }
+  }
+
+  this.files.push({
+    buffer: input,
+    option: opt_params,
+    compressed: compressed,
+    encrypted: false,
+    size: size,
+    crc32: crc32
+  });
+};
+
+/**
+ * @param {(Array.<number>|Uint8Array)} password
+ */
+Zlib.Zip.prototype.setPassword = function(password) {
+  this.password = password;
+};
+
+Zlib.Zip.prototype.compress = function() {
+  /** @type {Array.<{
+   *   buffer: !(Array.<number>|Uint8Array),
+   *   option: Object,
+   *   compressed: boolean,
+   *   encrypted: boolean,
+   *   size: number,
+   *   crc32: number
+   * }>} */
+  var files = this.files;
+  /** @type {{
+   *   buffer: !(Array.<number>|Uint8Array),
+   *   option: Object,
+   *   compressed: boolean,
+   *   encrypted: boolean,
+   *   size: number,
+   *   crc32: number
+   * }} */
+  var file;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var output;
+  /** @type {number} */
+  var op1;
+  /** @type {number} */
+  var op2;
+  /** @type {number} */
+  var op3;
+  /** @type {number} */
+  var localFileSize = 0;
+  /** @type {number} */
+  var centralDirectorySize = 0;
+  /** @type {number} */
+  var endOfCentralDirectorySize;
+  /** @type {number} */
+  var offset;
+  /** @type {number} */
+  var needVersion;
+  /** @type {number} */
+  var flags;
+  /** @type {Zlib.Zip.CompressionMethod} */
+  var compressionMethod;
+  /** @type {Date} */
+  var date;
+  /** @type {number} */
+  var crc32;
+  /** @type {number} */
+  var size;
+  /** @type {number} */
+  var plainSize;
+  /** @type {number} */
+  var filenameLength;
+  /** @type {number} */
+  var extraFieldLength;
+  /** @type {number} */
+  var commentLength;
+  /** @type {(Array.<number>|Uint8Array)} */
+  var filename;
+  /** @type {(Array.<number>|Uint8Array)} */
+  var extraField;
+  /** @type {(Array.<number>|Uint8Array)} */
+  var comment;
+  /** @type {(Array.<number>|Uint8Array)} */
+  var buffer;
+  /** @type {*} */
+  var tmp;
+  /** @type {Array.<number>|Uint32Array|Object} */
+  var key;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+  /** @type {number} */
+  var j;
+  /** @type {number} */
+  var jl;
+
+  // ファイルの圧縮
+  for (i = 0, il = files.length; i < il; ++i) {
+    file = files[i];
+    filenameLength =
+      (file.option['filename']) ? file.option['filename'].length : 0;
+    extraFieldLength =
+      (file.option['extraField']) ? file.option['extraField'].length : 0;
+    commentLength =
+      (file.option['comment']) ? file.option['comment'].length : 0;
+
+    // 圧縮されていなかったら圧縮
+    if (!file.compressed) {
+      // 圧縮前に CRC32 の計算をしておく
+      file.crc32 = Zlib.CRC32.calc(file.buffer);
+
+      switch (file.option['compressionMethod']) {
+        case Zlib.Zip.CompressionMethod.STORE:
+          break;
+        case Zlib.Zip.CompressionMethod.DEFLATE:
+          file.buffer = this.deflateWithOption(file.buffer, file.option);
+          file.compressed = true;
+          break;
+        default:
+          throw new Error('unknown compression method:' + file.option['compressionMethod']);
+      }
+    }
+
+    // encryption
+    if (file.option['password'] !== void 0|| this.password !== void 0) {
+      // init encryption
+      key = this.createEncryptionKey(file.option['password'] || this.password);
+
+      // add header
+      buffer = file.buffer;
+      if (USE_TYPEDARRAY) {
+        tmp = new Uint8Array(buffer.length + 12);
+        tmp.set(buffer, 12);
+        buffer = tmp;
+      } else {
+        buffer.unshift(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      }
+
+      for (j = 0; j < 12; ++j) {
+        buffer[j] = this.encode(
+          key,
+          i === 11 ? (file.crc32 & 0xff) : (Math.random() * 256 | 0)
+        );
+      }
+
+      // data encryption
+      for (jl = buffer.length; j < jl; ++j) {
+        buffer[j] = this.encode(key, buffer[j]);
+      }
+      file.buffer = buffer;
+    }
+
+    // 必要バッファサイズの計算
+    localFileSize +=
+      // local file header
+      30 + filenameLength +
+      // file data
+      file.buffer.length;
+
+    centralDirectorySize +=
+      // file header
+      46 + filenameLength + commentLength;
+  }
+
+  // end of central directory
+  endOfCentralDirectorySize = 22 + (this.comment ? this.comment.length : 0);
+  output = new (USE_TYPEDARRAY ? Uint8Array : Array)(
+    localFileSize + centralDirectorySize + endOfCentralDirectorySize
+  );
+  op1 = 0;
+  op2 = localFileSize;
+  op3 = op2 + centralDirectorySize;
+
+  // ファイルの圧縮
+  for (i = 0, il = files.length; i < il; ++i) {
+    file = files[i];
+    filenameLength =
+      file.option['filename'] ? file.option['filename'].length :  0;
+    extraFieldLength = 0; // TODO
+    commentLength =
+      file.option['comment'] ? file.option['comment'].length : 0;
+
+    //-------------------------------------------------------------------------
+    // local file header & file header
+    //-------------------------------------------------------------------------
+
+    offset = op1;
+
+    // signature
+    // local file header
+    output[op1++] = Zlib.Zip.LocalFileHeaderSignature[0];
+    output[op1++] = Zlib.Zip.LocalFileHeaderSignature[1];
+    output[op1++] = Zlib.Zip.LocalFileHeaderSignature[2];
+    output[op1++] = Zlib.Zip.LocalFileHeaderSignature[3];
+    // file header
+    output[op2++] = Zlib.Zip.FileHeaderSignature[0];
+    output[op2++] = Zlib.Zip.FileHeaderSignature[1];
+    output[op2++] = Zlib.Zip.FileHeaderSignature[2];
+    output[op2++] = Zlib.Zip.FileHeaderSignature[3];
+
+    // compressor info
+    needVersion = 20;
+    output[op2++] = needVersion & 0xff;
+    output[op2++] =
+      /** @type {Zlib.Zip.OperatingSystem} */
+      (file.option['os']) ||
+      Zlib.Zip.OperatingSystem.MSDOS;
+
+    // need version
+    output[op1++] = output[op2++] =  needVersion       & 0xff;
+    output[op1++] = output[op2++] = (needVersion >> 8) & 0xff;
+
+    // general purpose bit flag
+    flags = 0;
+    if (file.option['password'] || this.password) {
+      flags |= Zlib.Zip.Flags.ENCRYPT;
+    }
+    output[op1++] = output[op2++] =  flags       & 0xff;
+    output[op1++] = output[op2++] = (flags >> 8) & 0xff;
+
+    // compression method
+    compressionMethod =
+      /** @type {Zlib.Zip.CompressionMethod} */
+      (file.option['compressionMethod']);
+    output[op1++] = output[op2++] =  compressionMethod       & 0xff;
+    output[op1++] = output[op2++] = (compressionMethod >> 8) & 0xff;
+
+    // date
+    date = /** @type {(Date|undefined)} */(file.option['date']) || new Date();
+    output[op1++] = output[op2++] =
+      ((date.getMinutes() & 0x7) << 5) |
+      (date.getSeconds() / 2 | 0);
+    output[op1++] = output[op2++] =
+      (date.getHours()   << 3) |
+      (date.getMinutes() >> 3);
+    //
+    output[op1++] = output[op2++] =
+      ((date.getMonth() + 1 & 0x7) << 5) |
+      (date.getDate());
+    output[op1++] = output[op2++] =
+      ((date.getFullYear() - 1980 & 0x7f) << 1) |
+      (date.getMonth() + 1 >> 3);
+
+    // CRC-32
+    crc32 = file.crc32;
+    output[op1++] = output[op2++] =  crc32        & 0xff;
+    output[op1++] = output[op2++] = (crc32 >>  8) & 0xff;
+    output[op1++] = output[op2++] = (crc32 >> 16) & 0xff;
+    output[op1++] = output[op2++] = (crc32 >> 24) & 0xff;
+
+    // compressed size
+    size = file.buffer.length;
+    output[op1++] = output[op2++] =  size        & 0xff;
+    output[op1++] = output[op2++] = (size >>  8) & 0xff;
+    output[op1++] = output[op2++] = (size >> 16) & 0xff;
+    output[op1++] = output[op2++] = (size >> 24) & 0xff;
+
+    // uncompressed size
+    plainSize = file.size;
+    output[op1++] = output[op2++] =  plainSize        & 0xff;
+    output[op1++] = output[op2++] = (plainSize >>  8) & 0xff;
+    output[op1++] = output[op2++] = (plainSize >> 16) & 0xff;
+    output[op1++] = output[op2++] = (plainSize >> 24) & 0xff;
+
+    // filename length
+    output[op1++] = output[op2++] =  filenameLength       & 0xff;
+    output[op1++] = output[op2++] = (filenameLength >> 8) & 0xff;
+
+    // extra field length
+    output[op1++] = output[op2++] =  extraFieldLength       & 0xff;
+    output[op1++] = output[op2++] = (extraFieldLength >> 8) & 0xff;
+
+    // file comment length
+    output[op2++] =  commentLength       & 0xff;
+    output[op2++] = (commentLength >> 8) & 0xff;
+
+    // disk number start
+    output[op2++] = 0;
+    output[op2++] = 0;
+
+    // internal file attributes
+    output[op2++] = 0;
+    output[op2++] = 0;
+
+    // external file attributes
+    output[op2++] = 0;
+    output[op2++] = 0;
+    output[op2++] = 0;
+    output[op2++] = 0;
+
+    // relative offset of local header
+    output[op2++] =  offset        & 0xff;
+    output[op2++] = (offset >>  8) & 0xff;
+    output[op2++] = (offset >> 16) & 0xff;
+    output[op2++] = (offset >> 24) & 0xff;
+
+    // filename
+    filename = file.option['filename'];
+    if (filename) {
+      if (USE_TYPEDARRAY) {
+        output.set(filename, op1);
+        output.set(filename, op2);
+        op1 += filenameLength;
+        op2 += filenameLength;
+      } else {
+        for (j = 0; j < filenameLength; ++j) {
+          output[op1++] = output[op2++] = filename[j];
+        }
+      }
+    }
+
+    // extra field
+    extraField = file.option['extraField'];
+    if (extraField) {
+      if (USE_TYPEDARRAY) {
+        output.set(extraField, op1);
+        output.set(extraField, op2);
+        op1 += extraFieldLength;
+        op2 += extraFieldLength;
+      } else {
+        for (j = 0; j < commentLength; ++j) {
+          output[op1++] = output[op2++] = extraField[j];
+        }
+      }
+    }
+
+    // comment
+    comment = file.option['comment'];
+    if (comment) {
+      if (USE_TYPEDARRAY) {
+        output.set(comment, op2);
+        op2 += commentLength;
+      } else {
+        for (j = 0; j < commentLength; ++j) {
+          output[op2++] = comment[j];
+        }
+      }
+    }
+
+    //-------------------------------------------------------------------------
+    // file data
+    //-------------------------------------------------------------------------
+
+    if (USE_TYPEDARRAY) {
+      output.set(file.buffer, op1);
+      op1 += file.buffer.length;
+    } else {
+      for (j = 0, jl = file.buffer.length; j < jl; ++j) {
+        output[op1++] = file.buffer[j];
+      }
+    }
+  }
+
+  //-------------------------------------------------------------------------
+  // end of central directory
+  //-------------------------------------------------------------------------
+
+  // signature
+  output[op3++] = Zlib.Zip.CentralDirectorySignature[0];
+  output[op3++] = Zlib.Zip.CentralDirectorySignature[1];
+  output[op3++] = Zlib.Zip.CentralDirectorySignature[2];
+  output[op3++] = Zlib.Zip.CentralDirectorySignature[3];
+
+  // number of this disk
+  output[op3++] = 0;
+  output[op3++] = 0;
+
+  // number of the disk with the start of the central directory
+  output[op3++] = 0;
+  output[op3++] = 0;
+
+  // total number of entries in the central directory on this disk
+  output[op3++] =  il       & 0xff;
+  output[op3++] = (il >> 8) & 0xff;
+
+  // total number of entries in the central directory
+  output[op3++] =  il       & 0xff;
+  output[op3++] = (il >> 8) & 0xff;
+
+  // size of the central directory
+  output[op3++] =  centralDirectorySize        & 0xff;
+  output[op3++] = (centralDirectorySize >>  8) & 0xff;
+  output[op3++] = (centralDirectorySize >> 16) & 0xff;
+  output[op3++] = (centralDirectorySize >> 24) & 0xff;
+
+  // offset of start of central directory with respect to the starting disk number
+  output[op3++] =  localFileSize        & 0xff;
+  output[op3++] = (localFileSize >>  8) & 0xff;
+  output[op3++] = (localFileSize >> 16) & 0xff;
+  output[op3++] = (localFileSize >> 24) & 0xff;
+
+  // .ZIP file comment length
+  commentLength = this.comment ? this.comment.length : 0;
+  output[op3++] =  commentLength       & 0xff;
+  output[op3++] = (commentLength >> 8) & 0xff;
+
+  // .ZIP file comment
+  if (this.comment) {
+    if (USE_TYPEDARRAY) {
+      output.set(this.comment, op3);
+      op3 += commentLength;
+    } else {
+      for (j = 0, jl = commentLength; j < jl; ++j) {
+        output[op3++] = this.comment[j];
+      }
+    }
+  }
+
+  return output;
+};
+
+/**
+ * @param {!(Array.<number>|Uint8Array)} input
+ * @param {Object=} opt_params options.
+ * @return {!(Array.<number>|Uint8Array)}
+ */
+Zlib.Zip.prototype.deflateWithOption = function(input, opt_params) {
+  /** @type {Zlib.RawDeflate} */
+  var deflator = new Zlib.RawDeflate(input, opt_params['deflateOption']);
+
+  return deflator.compress();
+};
+
+/**
+ * @param {(Array.<number>|Uint32Array)} key
+ * @return {number}
+ */
+Zlib.Zip.prototype.getByte = function(key) {
+  /** @type {number} */
+  var tmp = ((key[2] & 0xffff) | 2);
+
+  return ((tmp * (tmp ^ 1)) >> 8) & 0xff;
+};
+
+/**
+ * @param {(Array.<number>|Uint32Array|Object)} key
+ * @param {number} n
+ * @return {number}
+ */
+Zlib.Zip.prototype.encode = function(key, n) {
+  /** @type {number} */
+  var tmp = this.getByte(/** @type {(Array.<number>|Uint32Array)} */(key));
+
+  this.updateKeys(/** @type {(Array.<number>|Uint32Array)} */(key), n);
+
+  return tmp ^ n;
+};
+
+/**
+ * @param {(Array.<number>|Uint32Array)} key
+ * @param {number} n
+ */
+Zlib.Zip.prototype.updateKeys = function(key, n) {
+  key[0] = Zlib.CRC32.single(key[0], n);
+  key[1] =
+    (((((key[1] + (key[0] & 0xff)) * 20173 >>> 0) * 6681) >>> 0) + 1) >>> 0;
+  key[2] = Zlib.CRC32.single(key[2], key[1] >>> 24);
+};
+
+/**
+ * @param {(Array.<number>|Uint8Array)} password
+ * @return {!(Array.<number>|Uint32Array|Object)}
+ */
+Zlib.Zip.prototype.createEncryptionKey = function(password) {
+  /** @type {!(Array.<number>|Uint32Array)} */
+  var key = [305419896, 591751049, 878082192];
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+
+  if (USE_TYPEDARRAY) {
+    key = new Uint32Array(key);
+  }
+
+  for (i = 0, il = password.length; i < il; ++i) {
+    this.updateKeys(key, password[i] & 0xff);
+  }
+
+  return key;
+};
+
+
+
+/**
+ * build huffman table from length list.
+ * @param {!(Array.<number>|Uint8Array)} lengths length list.
+ * @return {!Array} huffman table.
+ */
+Zlib.Huffman.buildHuffmanTable = function(lengths) {
+  /** @type {number} length list size. */
+  var listSize = lengths.length;
+  /** @type {number} max code length for table size. */
+  var maxCodeLength = 0;
+  /** @type {number} min code length for table size. */
+  var minCodeLength = Number.POSITIVE_INFINITY;
+  /** @type {number} table size. */
+  var size;
+  /** @type {!(Array|Uint8Array)} huffman code table. */
+  var table;
+  /** @type {number} bit length. */
+  var bitLength;
+  /** @type {number} huffman code. */
+  var code;
+  /**
+   * サイズが 2^maxlength 個のテーブルを埋めるためのスキップ長.
+   * @type {number} skip length for table filling.
+   */
+  var skip;
+  /** @type {number} reversed code. */
+  var reversed;
+  /** @type {number} reverse temp. */
+  var rtemp;
+  /** @type {number} loop counter. */
+  var i;
+  /** @type {number} loop limit. */
+  var il;
+  /** @type {number} loop counter. */
+  var j;
+  /** @type {number} table value. */
+  var value;
+
+  // Math.max は遅いので最長の値は for-loop で取得する
+  for (i = 0, il = listSize; i < il; ++i) {
+    if (lengths[i] > maxCodeLength) {
+      maxCodeLength = lengths[i];
+    }
+    if (lengths[i] < minCodeLength) {
+      minCodeLength = lengths[i];
+    }
+  }
+
+  size = 1 << maxCodeLength;
+  table = new (USE_TYPEDARRAY ? Uint32Array : Array)(size);
+
+  // ビット長の短い順からハフマン符号を割り当てる
+  for (bitLength = 1, code = 0, skip = 2; bitLength <= maxCodeLength;) {
+    for (i = 0; i < listSize; ++i) {
+      if (lengths[i] === bitLength) {
+        // ビットオーダーが逆になるためビット長分並びを反転する
+        for (reversed = 0, rtemp = code, j = 0; j < bitLength; ++j) {
+          reversed = (reversed << 1) | (rtemp & 1);
+          rtemp >>= 1;
+        }
+
+        // 最大ビット長をもとにテーブルを作るため、
+        // 最大ビット長以外では 0 / 1 どちらでも良い箇所ができる
+        // そのどちらでも良い場所は同じ値で埋めることで
+        // 本来のビット長以上のビット数取得しても問題が起こらないようにする
+        value = (bitLength << 16) | i;
+        for (j = reversed; j < size; j += skip) {
+          table[j] = value;
+        }
+
+        ++code;
+      }
+    }
+
+    // 次のビット長へ
+    ++bitLength;
+    code <<= 1;
+    skip <<= 1;
+  }
+
+  return [table, maxCodeLength, minCodeLength];
+};
+
+
+
+
+//-----------------------------------------------------------------------------
+
+/** @define {number} buffer block size. */
+var ZLIB_RAW_INFLATE_BUFFER_SIZE = 0x8000; // [ 0x8000 >= ZLIB_BUFFER_BLOCK_SIZE ]
+
+//-----------------------------------------------------------------------------
+
+
+var buildHuffmanTable = Zlib.Huffman.buildHuffmanTable;
+
+/**
+ * @constructor
+ * @param {!(Uint8Array|Array.<number>)} input input buffer.
+ * @param {Object} opt_params option parameter.
+ *
+ * opt_params は以下のプロパティを指定する事ができます。
+ *   - index: input buffer の deflate コンテナの開始位置.
+ *   - blockSize: バッファのブロックサイズ.
+ *   - bufferType: Zlib.RawInflate.BufferType の値によってバッファの管理方法を指定する.
+ *   - resize: 確保したバッファが実際の大きさより大きかった場合に切り詰める.
+ */
+Zlib.RawInflate = function(input, opt_params) {
+  /** @type {!(Array.<number>|Uint8Array)} inflated buffer */
+  this.buffer;
+  /** @type {!Array.<(Array.<number>|Uint8Array)>} */
+  this.blocks = [];
+  /** @type {number} block size. */
+  this.bufferSize = ZLIB_RAW_INFLATE_BUFFER_SIZE;
+  /** @type {!number} total output buffer pointer. */
+  this.totalpos = 0;
+  /** @type {!number} input buffer pointer. */
+  this.ip = 0;
+  /** @type {!number} bit stream reader buffer. */
+  this.bitsbuf = 0;
+  /** @type {!number} bit stream reader buffer size. */
+  this.bitsbuflen = 0;
+  /** @type {!(Array.<number>|Uint8Array)} input buffer. */
+  this.input = USE_TYPEDARRAY ? new Uint8Array(input) : input;
+  /** @type {!(Uint8Array|Array.<number>)} output buffer. */
+  this.output;
+  /** @type {!number} output buffer pointer. */
+  this.op;
+  /** @type {boolean} is final block flag. */
+  this.bfinal = false;
+  /** @type {Zlib.RawInflate.BufferType} buffer management. */
+  this.bufferType = Zlib.RawInflate.BufferType.ADAPTIVE;
+  /** @type {boolean} resize flag for memory size optimization. */
+  this.resize = false;
+
+  // option parameters
+  if (opt_params || !(opt_params = {})) {
+    if (opt_params['index']) {
+      this.ip = opt_params['index'];
+    }
+    if (opt_params['bufferSize']) {
+      this.bufferSize = opt_params['bufferSize'];
+    }
+    if (opt_params['bufferType']) {
+      this.bufferType = opt_params['bufferType'];
+    }
+    if (opt_params['resize']) {
+      this.resize = opt_params['resize'];
+    }
+  }
+
+  // initialize
+  switch (this.bufferType) {
+    case Zlib.RawInflate.BufferType.BLOCK:
+      this.op = Zlib.RawInflate.MaxBackwardLength;
+      this.output =
+        new (USE_TYPEDARRAY ? Uint8Array : Array)(
+          Zlib.RawInflate.MaxBackwardLength +
+          this.bufferSize +
+          Zlib.RawInflate.MaxCopyLength
+        );
+      break;
+    case Zlib.RawInflate.BufferType.ADAPTIVE:
+      this.op = 0;
+      this.output = new (USE_TYPEDARRAY ? Uint8Array : Array)(this.bufferSize);
+      break;
+    default:
+      throw new Error('invalid inflate mode');
+  }
+};
+
+/**
+ * @enum {number}
+ */
+Zlib.RawInflate.BufferType = {
+  BLOCK: 0,
+  ADAPTIVE: 1
+};
+
+/**
+ * decompress.
+ * @return {!(Uint8Array|Array.<number>)} inflated buffer.
+ */
+Zlib.RawInflate.prototype.decompress = function() {
+  while (!this.bfinal) {
+    this.parseBlock();
+  }
+
+  switch (this.bufferType) {
+    case Zlib.RawInflate.BufferType.BLOCK:
+      return this.concatBufferBlock();
+    case Zlib.RawInflate.BufferType.ADAPTIVE:
+      return this.concatBufferDynamic();
+    default:
+      throw new Error('invalid inflate mode');
+  }
+};
+
+/**
+ * @const
+ * @type {number} max backward length for LZ77.
+ */
+Zlib.RawInflate.MaxBackwardLength = 32768;
+
+/**
+ * @const
+ * @type {number} max copy length for LZ77.
+ */
+Zlib.RawInflate.MaxCopyLength = 258;
+
+/**
+ * huffman order
+ * @const
+ * @type {!(Array.<number>|Uint8Array)}
+ */
+Zlib.RawInflate.Order = (function(table) {
+  return USE_TYPEDARRAY ? new Uint16Array(table) : table;
+})([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
+
+/**
+ * huffman length code table.
+ * @const
+ * @type {!(Array.<number>|Uint16Array)}
+ */
+Zlib.RawInflate.LengthCodeTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint16Array(table) : table;
+})([
+  0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000a, 0x000b,
+  0x000d, 0x000f, 0x0011, 0x0013, 0x0017, 0x001b, 0x001f, 0x0023, 0x002b,
+  0x0033, 0x003b, 0x0043, 0x0053, 0x0063, 0x0073, 0x0083, 0x00a3, 0x00c3,
+  0x00e3, 0x0102, 0x0102, 0x0102
+]);
+
+/**
+ * huffman length extra-bits table.
+ * @const
+ * @type {!(Array.<number>|Uint8Array)}
+ */
+Zlib.RawInflate.LengthExtraTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint8Array(table) : table;
+})([
+  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5,
+  5, 5, 0, 0, 0
+]);
+
+/**
+ * huffman dist code table.
+ * @const
+ * @type {!(Array.<number>|Uint16Array)}
+ */
+Zlib.RawInflate.DistCodeTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint16Array(table) : table;
+})([
+  0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0007, 0x0009, 0x000d, 0x0011,
+  0x0019, 0x0021, 0x0031, 0x0041, 0x0061, 0x0081, 0x00c1, 0x0101, 0x0181,
+  0x0201, 0x0301, 0x0401, 0x0601, 0x0801, 0x0c01, 0x1001, 0x1801, 0x2001,
+  0x3001, 0x4001, 0x6001
+]);
+
+/**
+ * huffman dist extra-bits table.
+ * @const
+ * @type {!(Array.<number>|Uint8Array)}
+ */
+Zlib.RawInflate.DistExtraTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint8Array(table) : table;
+})([
+  0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11,
+  11, 12, 12, 13, 13
+]);
+
+/**
+ * fixed huffman length code table
+ * @const
+ * @type {!Array}
+ */
+Zlib.RawInflate.FixedLiteralLengthTable = (function(table) {
+  return table;
+})((function() {
+  var lengths = new (USE_TYPEDARRAY ? Uint8Array : Array)(288);
+  var i, il;
+
+  for (i = 0, il = lengths.length; i < il; ++i) {
+    lengths[i] =
+      (i <= 143) ? 8 :
+      (i <= 255) ? 9 :
+      (i <= 279) ? 7 :
+      8;
+  }
+
+  return buildHuffmanTable(lengths);
+})());
+
+/**
+ * fixed huffman distance code table
+ * @const
+ * @type {!Array}
+ */
+Zlib.RawInflate.FixedDistanceTable = (function(table) {
+  return table;
+})((function() {
+  var lengths = new (USE_TYPEDARRAY ? Uint8Array : Array)(30);
+  var i, il;
+
+  for (i = 0, il = lengths.length; i < il; ++i) {
+    lengths[i] = 5;
+  }
+
+  return buildHuffmanTable(lengths);
+})());
+
+/**
+ * parse deflated block.
+ */
+Zlib.RawInflate.prototype.parseBlock = function() {
+  /** @type {number} header */
+  var hdr = this.readBits(3);
+
+  // BFINAL
+  if (hdr & 0x1) {
+    this.bfinal = true;
+  }
+
+  // BTYPE
+  hdr >>>= 1;
+  switch (hdr) {
+    // uncompressed
+    case 0:
+      this.parseUncompressedBlock();
+      break;
+    // fixed huffman
+    case 1:
+      this.parseFixedHuffmanBlock();
+      break;
+    // dynamic huffman
+    case 2:
+      this.parseDynamicHuffmanBlock();
+      break;
+    // reserved or other
+    default:
+      throw new Error('unknown BTYPE: ' + hdr);
+  }
+};
+
+/**
+ * read inflate bits
+ * @param {number} length bits length.
+ * @return {number} read bits.
+ */
+Zlib.RawInflate.prototype.readBits = function(length) {
+  var bitsbuf = this.bitsbuf;
+  var bitsbuflen = this.bitsbuflen;
+  var input = this.input;
+  var ip = this.ip;
+
+  /** @type {number} */
+  var inputLength = input.length;
+  /** @type {number} input and output byte. */
+  var octet;
+
+  // input byte
+  if (ip + ((length - bitsbuflen + 7) >> 3) >= inputLength) {
+    throw new Error('input buffer is broken');
+  }
+
+  // not enough buffer
+  while (bitsbuflen < length) {
+    bitsbuf |= input[ip++] << bitsbuflen;
+    bitsbuflen += 8;
+  }
+
+  // output byte
+  octet = bitsbuf & /* MASK */ ((1 << length) - 1);
+  bitsbuf >>>= length;
+  bitsbuflen -= length;
+
+  this.bitsbuf = bitsbuf;
+  this.bitsbuflen = bitsbuflen;
+  this.ip = ip;
+
+  return octet;
+};
+
+/**
+ * read huffman code using table
+ * @param {!(Array.<number>|Uint8Array|Uint16Array)} table huffman code table.
+ * @return {number} huffman code.
+ */
+Zlib.RawInflate.prototype.readCodeByTable = function(table) {
+  var bitsbuf = this.bitsbuf;
+  var bitsbuflen = this.bitsbuflen;
+  var input = this.input;
+  var ip = this.ip;
+
+  /** @type {number} */
+  var inputLength = input.length;
+  /** @type {!(Array.<number>|Uint8Array)} huffman code table */
+  var codeTable = table[0];
+  /** @type {number} */
+  var maxCodeLength = table[1];
+  /** @type {number} code length & code (16bit, 16bit) */
+  var codeWithLength;
+  /** @type {number} code bits length */
+  var codeLength;
+
+  // not enough buffer
+  while (bitsbuflen < maxCodeLength) {
+    if (ip >= inputLength) {
+      break;
+    }
+    bitsbuf |= input[ip++] << bitsbuflen;
+    bitsbuflen += 8;
+  }
+
+  // read max length
+  codeWithLength = codeTable[bitsbuf & ((1 << maxCodeLength) - 1)];
+  codeLength = codeWithLength >>> 16;
+
+  if (codeLength > bitsbuflen) {
+    throw new Error('invalid code length: ' + codeLength);
+  }
+
+  this.bitsbuf = bitsbuf >> codeLength;
+  this.bitsbuflen = bitsbuflen - codeLength;
+  this.ip = ip;
+
+  return codeWithLength & 0xffff;
+};
+
+/**
+ * parse uncompressed block.
+ */
+Zlib.RawInflate.prototype.parseUncompressedBlock = function() {
+  var input = this.input;
+  var ip = this.ip;
+  var output = this.output;
+  var op = this.op;
+
+  /** @type {number} */
+  var inputLength = input.length;
+  /** @type {number} block length */
+  var len;
+  /** @type {number} number for check block length */
+  var nlen;
+  /** @type {number} output buffer length */
+  var olength = output.length;
+  /** @type {number} copy counter */
+  var preCopy;
+
+  // skip buffered header bits
+  this.bitsbuf = 0;
+  this.bitsbuflen = 0;
+
+  // len
+  if (ip + 1 >= inputLength) {
+    throw new Error('invalid uncompressed block header: LEN');
+  }
+  len = input[ip++] | (input[ip++] << 8);
+
+  // nlen
+  if (ip + 1 >= inputLength) {
+    throw new Error('invalid uncompressed block header: NLEN');
+  }
+  nlen = input[ip++] | (input[ip++] << 8);
+
+  // check len & nlen
+  if (len === ~nlen) {
+    throw new Error('invalid uncompressed block header: length verify');
+  }
+
+  // check size
+  if (ip + len > input.length) { throw new Error('input buffer is broken'); }
+
+  // expand buffer
+  switch (this.bufferType) {
+    case Zlib.RawInflate.BufferType.BLOCK:
+      // pre copy
+      while (op + len > output.length) {
+        preCopy = olength - op;
+        len -= preCopy;
+        if (USE_TYPEDARRAY) {
+          output.set(input.subarray(ip, ip + preCopy), op);
+          op += preCopy;
+          ip += preCopy;
+        } else {
+          while (preCopy--) {
+            output[op++] = input[ip++];
+          }
+        }
+        this.op = op;
+        output = this.expandBufferBlock();
+        op = this.op;
+      }
+      break;
+    case Zlib.RawInflate.BufferType.ADAPTIVE:
+      while (op + len > output.length) {
+        output = this.expandBufferAdaptive({fixRatio: 2});
+      }
+      break;
+    default:
+      throw new Error('invalid inflate mode');
+  }
+
+  // copy
+  if (USE_TYPEDARRAY) {
+    output.set(input.subarray(ip, ip + len), op);
+    op += len;
+    ip += len;
+  } else {
+    while (len--) {
+      output[op++] = input[ip++];
+    }
+  }
+
+  this.ip = ip;
+  this.op = op;
+  this.output = output;
+};
+
+/**
+ * parse fixed huffman block.
+ */
+Zlib.RawInflate.prototype.parseFixedHuffmanBlock = function() {
+  switch (this.bufferType) {
+    case Zlib.RawInflate.BufferType.ADAPTIVE:
+      this.decodeHuffmanAdaptive(
+        Zlib.RawInflate.FixedLiteralLengthTable,
+        Zlib.RawInflate.FixedDistanceTable
+      );
+      break;
+    case Zlib.RawInflate.BufferType.BLOCK:
+      this.decodeHuffmanBlock(
+        Zlib.RawInflate.FixedLiteralLengthTable,
+        Zlib.RawInflate.FixedDistanceTable
+      );
+      break;
+    default:
+      throw new Error('invalid inflate mode');
+  }
+};
+
+/**
+ * parse dynamic huffman block.
+ */
+Zlib.RawInflate.prototype.parseDynamicHuffmanBlock = function() {
+  /** @type {number} number of literal and length codes. */
+  var hlit = this.readBits(5) + 257;
+  /** @type {number} number of distance codes. */
+  var hdist = this.readBits(5) + 1;
+  /** @type {number} number of code lengths. */
+  var hclen = this.readBits(4) + 4;
+  /** @type {!(Uint8Array|Array.<number>)} code lengths. */
+  var codeLengths =
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(Zlib.RawInflate.Order.length);
+  /** @type {!Array} code lengths table. */
+  var codeLengthsTable;
+  /** @type {!(Uint8Array|Array.<number>)} literal and length code table. */
+  var litlenTable;
+  /** @type {!(Uint8Array|Array.<number>)} distance code table. */
+  var distTable;
+  /** @type {!(Uint8Array|Array.<number>)} code length table. */
+  var lengthTable;
+  /** @type {number} */
+  var code;
+  /** @type {number} */
+  var prev;
+  /** @type {number} */
+  var repeat;
+  /** @type {number} loop counter. */
+  var i;
+  /** @type {number} loop limit. */
+  var il;
+
+  // decode code lengths
+  for (i = 0; i < hclen; ++i) {
+    codeLengths[Zlib.RawInflate.Order[i]] = this.readBits(3);
+  }
+  if (!USE_TYPEDARRAY) {
+    for (i = hclen, hclen = codeLengths.length; i < hclen; ++i) {
+      codeLengths[Zlib.RawInflate.Order[i]] = 0;
+    }
+  }
+
+  // decode length table
+  codeLengthsTable = buildHuffmanTable(codeLengths);
+  lengthTable = new (USE_TYPEDARRAY ? Uint8Array : Array)(hlit + hdist);
+  for (i = 0, il = hlit + hdist; i < il;) {
+    code = this.readCodeByTable(codeLengthsTable);
+    switch (code) {
+      case 16:
+        repeat = 3 + this.readBits(2);
+        while (repeat--) { lengthTable[i++] = prev; }
+        break;
+      case 17:
+        repeat = 3 + this.readBits(3);
+        while (repeat--) { lengthTable[i++] = 0; }
+        prev = 0;
+        break;
+      case 18:
+        repeat = 11 + this.readBits(7);
+        while (repeat--) { lengthTable[i++] = 0; }
+        prev = 0;
+        break;
+      default:
+        lengthTable[i++] = code;
+        prev = code;
+        break;
+    }
+  }
+
+  litlenTable = USE_TYPEDARRAY
+    ? buildHuffmanTable(lengthTable.subarray(0, hlit))
+    : buildHuffmanTable(lengthTable.slice(0, hlit));
+  distTable = USE_TYPEDARRAY
+    ? buildHuffmanTable(lengthTable.subarray(hlit))
+    : buildHuffmanTable(lengthTable.slice(hlit));
+
+  switch (this.bufferType) {
+    case Zlib.RawInflate.BufferType.ADAPTIVE:
+      this.decodeHuffmanAdaptive(litlenTable, distTable);
+      break;
+    case Zlib.RawInflate.BufferType.BLOCK:
+      this.decodeHuffmanBlock(litlenTable, distTable);
+      break;
+    default:
+      throw new Error('invalid inflate mode');
+  }
+};
+
+/**
+ * decode huffman code
+ * @param {!(Array.<number>|Uint16Array)} litlen literal and length code table.
+ * @param {!(Array.<number>|Uint8Array)} dist distination code table.
+ */
+Zlib.RawInflate.prototype.decodeHuffmanBlock = function(litlen, dist) {
+  var output = this.output;
+  var op = this.op;
+
+  this.currentLitlenTable = litlen;
+
+  /** @type {number} output position limit. */
+  var olength = output.length - Zlib.RawInflate.MaxCopyLength;
+  /** @type {number} huffman code. */
+  var code;
+  /** @type {number} table index. */
+  var ti;
+  /** @type {number} huffman code distination. */
+  var codeDist;
+  /** @type {number} huffman code length. */
+  var codeLength;
+
+  var lengthCodeTable = Zlib.RawInflate.LengthCodeTable;
+  var lengthExtraTable = Zlib.RawInflate.LengthExtraTable;
+  var distCodeTable = Zlib.RawInflate.DistCodeTable;
+  var distExtraTable = Zlib.RawInflate.DistExtraTable;
+
+  while ((code = this.readCodeByTable(litlen)) !== 256) {
+    // literal
+    if (code < 256) {
+      if (op >= olength) {
+        this.op = op;
+        output = this.expandBufferBlock();
+        op = this.op;
+      }
+      output[op++] = code;
+
+      continue;
+    }
+
+    // length code
+    ti = code - 257;
+    codeLength = lengthCodeTable[ti];
+    if (lengthExtraTable[ti] > 0) {
+      codeLength += this.readBits(lengthExtraTable[ti]);
+    }
+
+    // dist code
+    code = this.readCodeByTable(dist);
+    codeDist = distCodeTable[code];
+    if (distExtraTable[code] > 0) {
+      codeDist += this.readBits(distExtraTable[code]);
+    }
+
+    // lz77 decode
+    if (op >= olength) {
+      this.op = op;
+      output = this.expandBufferBlock();
+      op = this.op;
+    }
+    while (codeLength--) {
+      output[op] = output[(op++) - codeDist];
+    }
+  }
+
+  while (this.bitsbuflen >= 8) {
+    this.bitsbuflen -= 8;
+    this.ip--;
+  }
+  this.op = op;
+};
+
+/**
+ * decode huffman code (adaptive)
+ * @param {!(Array.<number>|Uint16Array)} litlen literal and length code table.
+ * @param {!(Array.<number>|Uint8Array)} dist distination code table.
+ */
+Zlib.RawInflate.prototype.decodeHuffmanAdaptive = function(litlen, dist) {
+  var output = this.output;
+  var op = this.op;
+
+  this.currentLitlenTable = litlen;
+
+  /** @type {number} output position limit. */
+  var olength = output.length;
+  /** @type {number} huffman code. */
+  var code;
+  /** @type {number} table index. */
+  var ti;
+  /** @type {number} huffman code distination. */
+  var codeDist;
+  /** @type {number} huffman code length. */
+  var codeLength;
+
+  var lengthCodeTable = Zlib.RawInflate.LengthCodeTable;
+  var lengthExtraTable = Zlib.RawInflate.LengthExtraTable;
+  var distCodeTable = Zlib.RawInflate.DistCodeTable;
+  var distExtraTable = Zlib.RawInflate.DistExtraTable;
+
+  while ((code = this.readCodeByTable(litlen)) !== 256) {
+    // literal
+    if (code < 256) {
+      if (op >= olength) {
+        output = this.expandBufferAdaptive();
+        olength = output.length;
+      }
+      output[op++] = code;
+
+      continue;
+    }
+
+    // length code
+    ti = code - 257;
+    codeLength = lengthCodeTable[ti];
+    if (lengthExtraTable[ti] > 0) {
+      codeLength += this.readBits(lengthExtraTable[ti]);
+    }
+
+    // dist code
+    code = this.readCodeByTable(dist);
+    codeDist = distCodeTable[code];
+    if (distExtraTable[code] > 0) {
+      codeDist += this.readBits(distExtraTable[code]);
+    }
+
+    // lz77 decode
+    if (op + codeLength > olength) {
+      output = this.expandBufferAdaptive();
+      olength = output.length;
+    }
+    while (codeLength--) {
+      output[op] = output[(op++) - codeDist];
+    }
+  }
+
+  while (this.bitsbuflen >= 8) {
+    this.bitsbuflen -= 8;
+    this.ip--;
+  }
+  this.op = op;
+};
+
+/**
+ * expand output buffer.
+ * @param {Object=} opt_param option parameters.
+ * @return {!(Array.<number>|Uint8Array)} output buffer.
+ */
+Zlib.RawInflate.prototype.expandBufferBlock = function(opt_param) {
+  /** @type {!(Array.<number>|Uint8Array)} store buffer. */
+  var buffer =
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(
+        this.op - Zlib.RawInflate.MaxBackwardLength
+    );
+  /** @type {number} backward base point */
+  var backward = this.op - Zlib.RawInflate.MaxBackwardLength;
+  /** @type {number} copy index. */
+  var i;
+  /** @type {number} copy limit */
+  var il;
+
+  var output = this.output;
+
+  // copy to output buffer
+  if (USE_TYPEDARRAY) {
+    buffer.set(output.subarray(Zlib.RawInflate.MaxBackwardLength, buffer.length));
+  } else {
+    for (i = 0, il = buffer.length; i < il; ++i) {
+      buffer[i] = output[i + Zlib.RawInflate.MaxBackwardLength];
+    }
+  }
+
+  this.blocks.push(buffer);
+  this.totalpos += buffer.length;
+
+  // copy to backward buffer
+  if (USE_TYPEDARRAY) {
+    output.set(
+      output.subarray(backward, backward + Zlib.RawInflate.MaxBackwardLength)
+    );
+  } else {
+    for (i = 0; i < Zlib.RawInflate.MaxBackwardLength; ++i) {
+      output[i] = output[backward + i];
+    }
+  }
+
+  this.op = Zlib.RawInflate.MaxBackwardLength;
+
+  return output;
+};
+
+/**
+ * expand output buffer. (adaptive)
+ * @param {Object=} opt_param option parameters.
+ * @return {!(Array.<number>|Uint8Array)} output buffer pointer.
+ */
+Zlib.RawInflate.prototype.expandBufferAdaptive = function(opt_param) {
+  /** @type {!(Array.<number>|Uint8Array)} store buffer. */
+  var buffer;
+  /** @type {number} expantion ratio. */
+  var ratio = (this.input.length / this.ip + 1) | 0;
+  /** @type {number} maximum number of huffman code. */
+  var maxHuffCode;
+  /** @type {number} new output buffer size. */
+  var newSize;
+  /** @type {number} max inflate size. */
+  var maxInflateSize;
+
+  var input = this.input;
+  var output = this.output;
+
+  if (opt_param) {
+    if (typeof opt_param.fixRatio === 'number') {
+      ratio = opt_param.fixRatio;
+    }
+    if (typeof opt_param.addRatio === 'number') {
+      ratio += opt_param.addRatio;
+    }
+  }
+
+  // calculate new buffer size
+  if (ratio < 2) {
+    maxHuffCode =
+      (input.length - this.ip) / this.currentLitlenTable[2];
+    maxInflateSize = (maxHuffCode / 2 * 258) | 0;
+    newSize = maxInflateSize < output.length ?
+      output.length + maxInflateSize :
+      output.length << 1;
+  } else {
+    newSize = output.length * ratio;
+  }
+
+  // buffer expantion
+  if (USE_TYPEDARRAY) {
+    buffer = new Uint8Array(newSize);
+    buffer.set(output);
+  } else {
+    buffer = output;
+  }
+
+  this.output = buffer;
+
+  return this.output;
+};
+
+/**
+ * concat output buffer.
+ * @return {!(Array.<number>|Uint8Array)} output buffer.
+ */
+Zlib.RawInflate.prototype.concatBufferBlock = function() {
+  /** @type {number} buffer pointer. */
+  var pos = 0;
+  /** @type {number} buffer pointer. */
+  var limit = this.totalpos + (this.op - Zlib.RawInflate.MaxBackwardLength);
+  /** @type {!(Array.<number>|Uint8Array)} output block array. */
+  var output = this.output;
+  /** @type {!Array} blocks array. */
+  var blocks = this.blocks;
+  /** @type {!(Array.<number>|Uint8Array)} output block array. */
+  var block;
+  /** @type {!(Array.<number>|Uint8Array)} output buffer. */
+  var buffer = new (USE_TYPEDARRAY ? Uint8Array : Array)(limit);
+  /** @type {number} loop counter. */
+  var i;
+  /** @type {number} loop limiter. */
+  var il;
+  /** @type {number} loop counter. */
+  var j;
+  /** @type {number} loop limiter. */
+  var jl;
+
+  // single buffer
+  if (blocks.length === 0) {
+    return USE_TYPEDARRAY ?
+      this.output.subarray(Zlib.RawInflate.MaxBackwardLength, this.op) :
+      this.output.slice(Zlib.RawInflate.MaxBackwardLength, this.op);
+  }
+
+  // copy to buffer
+  for (i = 0, il = blocks.length; i < il; ++i) {
+    block = blocks[i];
+    for (j = 0, jl = block.length; j < jl; ++j) {
+      buffer[pos++] = block[j];
+    }
+  }
+
+  // current buffer
+  for (i = Zlib.RawInflate.MaxBackwardLength, il = this.op; i < il; ++i) {
+    buffer[pos++] = output[i];
+  }
+
+  this.blocks = [];
+  this.buffer = buffer;
+
+  return this.buffer;
+};
+
+/**
+ * concat output buffer. (dynamic)
+ * @return {!(Array.<number>|Uint8Array)} output buffer.
+ */
+Zlib.RawInflate.prototype.concatBufferDynamic = function() {
+  /** @type {Array.<number>|Uint8Array} output buffer. */
+  var buffer;
+  var op = this.op;
+
+  if (USE_TYPEDARRAY) {
+    if (this.resize) {
+      buffer = new Uint8Array(op);
+      buffer.set(this.output.subarray(0, op));
+    } else {
+      buffer = this.output.subarray(0, op);
+    }
+  } else {
+    if (this.output.length > op) {
+      this.output.length = op;
+    }
+    buffer = this.output;
+  }
+
+  this.buffer = buffer;
+
+  return this.buffer;
+};
+
+
+
+
+var buildHuffmanTable = Zlib.Huffman.buildHuffmanTable;
+
+/**
+ * @param {!(Uint8Array|Array.<number>)} input input buffer.
+ * @param {number} ip input buffer pointer.
+ * @param {number=} opt_buffersize buffer block size.
+ * @constructor
+ */
+Zlib.RawInflateStream = function(input, ip, opt_buffersize) {
+  /** @type {!Array.<(Array|Uint8Array)>} */
+  this.blocks = [];
+  /** @type {number} block size. */
+  this.bufferSize =
+    opt_buffersize ? opt_buffersize : ZLIB_STREAM_RAW_INFLATE_BUFFER_SIZE;
+  /** @type {!number} total output buffer pointer. */
+  this.totalpos = 0;
+  /** @type {!number} input buffer pointer. */
+  this.ip = ip === void 0 ? 0 : ip;
+  /** @type {!number} bit stream reader buffer. */
+  this.bitsbuf = 0;
+  /** @type {!number} bit stream reader buffer size. */
+  this.bitsbuflen = 0;
+  /** @type {!(Array|Uint8Array)} input buffer. */
+  this.input = USE_TYPEDARRAY ? new Uint8Array(input) : input;
+  /** @type {!(Uint8Array|Array)} output buffer. */
+  this.output = new (USE_TYPEDARRAY ? Uint8Array : Array)(this.bufferSize);
+  /** @type {!number} output buffer pointer. */
+  this.op = 0;
+  /** @type {boolean} is final block flag. */
+  this.bfinal = false;
+  /** @type {number} uncompressed block length. */
+  this.blockLength;
+  /** @type {boolean} resize flag for memory size optimization. */
+  this.resize = false;
+  /** @type {Array} */
+  this.litlenTable;
+  /** @type {Array} */
+  this.distTable;
+  /** @type {number} */
+  this.sp = 0; // stream pointer
+  /** @type {Zlib.RawInflateStream.Status} */
+  this.status = Zlib.RawInflateStream.Status.INITIALIZED;
+
+  //
+  // backup
+  //
+  /** @type {!number} */
+  this.ip_;
+  /** @type {!number} */
+  this.bitsbuflen_;
+  /** @type {!number} */
+  this.bitsbuf_;
+};
+
+/**
+ * @enum {number}
+ */
+Zlib.RawInflateStream.BlockType = {
+  UNCOMPRESSED: 0,
+  FIXED: 1,
+  DYNAMIC: 2
+};
+
+/**
+ * @enum {number}
+ */
+Zlib.RawInflateStream.Status = {
+  INITIALIZED: 0,
+  BLOCK_HEADER_START: 1,
+  BLOCK_HEADER_END: 2,
+  BLOCK_BODY_START: 3,
+  BLOCK_BODY_END: 4,
+  DECODE_BLOCK_START: 5,
+  DECODE_BLOCK_END: 6
+};
+
+/**
+ * decompress.
+ * @return {!(Uint8Array|Array)} inflated buffer.
+ */
+Zlib.RawInflateStream.prototype.decompress = function(newInput, ip) {
+  /** @type {boolean} */
+  var stop = false;
+
+  if (newInput !== void 0) {
+    this.input = newInput;
+  }
+
+  if (ip !== void 0) {
+    this.ip = ip;
+  }
+
+  // decompress
+  while (!stop) {
+    switch (this.status) {
+      // block header
+      case Zlib.RawInflateStream.Status.INITIALIZED:
+      case Zlib.RawInflateStream.Status.BLOCK_HEADER_START:
+        if (this.readBlockHeader() < 0) {
+          stop = true;
+        }
+        break;
+      // block body
+      case Zlib.RawInflateStream.Status.BLOCK_HEADER_END: /* FALLTHROUGH */
+      case Zlib.RawInflateStream.Status.BLOCK_BODY_START:
+        switch(this.currentBlockType) {
+          case Zlib.RawInflateStream.BlockType.UNCOMPRESSED:
+            if (this.readUncompressedBlockHeader() < 0) {
+              stop = true;
+            }
+            break;
+          case Zlib.RawInflateStream.BlockType.FIXED:
+            if (this.parseFixedHuffmanBlock() < 0) {
+              stop = true;
+            }
+            break;
+          case Zlib.RawInflateStream.BlockType.DYNAMIC:
+            if (this.parseDynamicHuffmanBlock() < 0) {
+              stop = true;
+            }
+            break;
+        }
+        break;
+      // decode data
+      case Zlib.RawInflateStream.Status.BLOCK_BODY_END:
+      case Zlib.RawInflateStream.Status.DECODE_BLOCK_START:
+        switch(this.currentBlockType) {
+          case Zlib.RawInflateStream.BlockType.UNCOMPRESSED:
+            if (this.parseUncompressedBlock() < 0) {
+              stop = true;
+            }
+            break;
+          case Zlib.RawInflateStream.BlockType.FIXED: /* FALLTHROUGH */
+          case Zlib.RawInflateStream.BlockType.DYNAMIC:
+            if (this.decodeHuffman() < 0) {
+              stop = true;
+            }
+            break;
+        }
+        break;
+      case Zlib.RawInflateStream.Status.DECODE_BLOCK_END:
+        if (this.bfinal) {
+          stop = true;
+        } else {
+          this.status = Zlib.RawInflateStream.Status.INITIALIZED;
+        }
+        break;
+    }
+  }
+
+  return this.concatBuffer();
+};
+
+/**
+ * @const
+ * @type {number} max backward length for LZ77.
+ */
+Zlib.RawInflateStream.MaxBackwardLength = 32768;
+
+/**
+ * @const
+ * @type {number} max copy length for LZ77.
+ */
+Zlib.RawInflateStream.MaxCopyLength = 258;
+
+/**
+ * huffman order
+ * @const
+ * @type {!(Array.<number>|Uint8Array)}
+ */
+Zlib.RawInflateStream.Order = (function(table) {
+  return USE_TYPEDARRAY ? new Uint16Array(table) : table;
+})([16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15]);
+
+/**
+ * huffman length code table.
+ * @const
+ * @type {!(Array.<number>|Uint16Array)}
+ */
+Zlib.RawInflateStream.LengthCodeTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint16Array(table) : table;
+})([
+  0x0003, 0x0004, 0x0005, 0x0006, 0x0007, 0x0008, 0x0009, 0x000a, 0x000b,
+  0x000d, 0x000f, 0x0011, 0x0013, 0x0017, 0x001b, 0x001f, 0x0023, 0x002b,
+  0x0033, 0x003b, 0x0043, 0x0053, 0x0063, 0x0073, 0x0083, 0x00a3, 0x00c3,
+  0x00e3, 0x0102, 0x0102, 0x0102
+]);
+
+/**
+ * huffman length extra-bits table.
+ * @const
+ * @type {!(Array.<number>|Uint8Array)}
+ */
+Zlib.RawInflateStream.LengthExtraTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint8Array(table) : table;
+})([
+  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5,
+  5, 5, 0, 0, 0
+]);
+
+/**
+ * huffman dist code table.
+ * @const
+ * @type {!(Array.<number>|Uint16Array)}
+ */
+Zlib.RawInflateStream.DistCodeTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint16Array(table) : table;
+})([
+  0x0001, 0x0002, 0x0003, 0x0004, 0x0005, 0x0007, 0x0009, 0x000d, 0x0011,
+  0x0019, 0x0021, 0x0031, 0x0041, 0x0061, 0x0081, 0x00c1, 0x0101, 0x0181,
+  0x0201, 0x0301, 0x0401, 0x0601, 0x0801, 0x0c01, 0x1001, 0x1801, 0x2001,
+  0x3001, 0x4001, 0x6001
+]);
+
+/**
+ * huffman dist extra-bits table.
+ * @const
+ * @type {!(Array.<number>|Uint8Array)}
+ */
+Zlib.RawInflateStream.DistExtraTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint8Array(table) : table;
+})([
+  0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11,
+  11, 12, 12, 13, 13
+]);
+
+/**
+ * fixed huffman length code table
+ * @const
+ * @type {!Array}
+ */
+Zlib.RawInflateStream.FixedLiteralLengthTable = (function(table) {
+  return table;
+})((function() {
+  var lengths = new (USE_TYPEDARRAY ? Uint8Array : Array)(288);
+  var i, il;
+
+  for (i = 0, il = lengths.length; i < il; ++i) {
+    lengths[i] =
+      (i <= 143) ? 8 :
+      (i <= 255) ? 9 :
+      (i <= 279) ? 7 :
+      8;
+  }
+
+  return buildHuffmanTable(lengths);
+})());
+
+/**
+ * fixed huffman distance code table
+ * @const
+ * @type {!Array}
+ */
+Zlib.RawInflateStream.FixedDistanceTable = (function(table) {
+  return table;
+})((function() {
+  var lengths = new (USE_TYPEDARRAY ? Uint8Array : Array)(30);
+  var i, il;
+
+  for (i = 0, il = lengths.length; i < il; ++i) {
+    lengths[i] = 5;
+  }
+
+  return buildHuffmanTable(lengths);
+})());
+
+/**
+ * parse deflated block.
+ */
+Zlib.RawInflateStream.prototype.readBlockHeader = function() {
+  /** @type {number} header */
+  var hdr;
+
+  this.status = Zlib.RawInflateStream.Status.BLOCK_HEADER_START;
+
+  this.save_();
+  if ((hdr = this.readBits(3)) < 0) {
+    this.restore_();
+    return -1;
+  }
+
+  // BFINAL
+  if (hdr & 0x1) {
+    this.bfinal = true;
+  }
+
+  // BTYPE
+  hdr >>>= 1;
+  switch (hdr) {
+    case 0: // uncompressed
+      this.currentBlockType = Zlib.RawInflateStream.BlockType.UNCOMPRESSED;
+      break;
+    case 1: // fixed huffman
+      this.currentBlockType = Zlib.RawInflateStream.BlockType.FIXED;
+      break;
+    case 2: // dynamic huffman
+      this.currentBlockType = Zlib.RawInflateStream.BlockType.DYNAMIC;
+      break;
+    default: // reserved or other
+      throw new Error('unknown BTYPE: ' + hdr);
+  }
+
+  this.status = Zlib.RawInflateStream.Status.BLOCK_HEADER_END;
+};
+
+/**
+ * read inflate bits
+ * @param {number} length bits length.
+ * @return {number} read bits.
+ */
+Zlib.RawInflateStream.prototype.readBits = function(length) {
+  var bitsbuf = this.bitsbuf;
+  var bitsbuflen = this.bitsbuflen;
+  var input = this.input;
+  var ip = this.ip;
+
+  /** @type {number} input and output byte. */
+  var octet;
+
+  // not enough buffer
+  while (bitsbuflen < length) {
+    // input byte
+    if (input.length <= ip) {
+      return -1;
+    }
+    octet = input[ip++];
+
+    // concat octet
+    bitsbuf |= octet << bitsbuflen;
+    bitsbuflen += 8;
+  }
+
+  // output byte
+  octet = bitsbuf & /* MASK */ ((1 << length) - 1);
+  bitsbuf >>>= length;
+  bitsbuflen -= length;
+
+  this.bitsbuf = bitsbuf;
+  this.bitsbuflen = bitsbuflen;
+  this.ip = ip;
+
+  return octet;
+};
+
+/**
+ * read huffman code using table
+ * @param {Array} table huffman code table.
+ * @return {number} huffman code.
+ */
+Zlib.RawInflateStream.prototype.readCodeByTable = function(table) {
+  var bitsbuf = this.bitsbuf;
+  var bitsbuflen = this.bitsbuflen;
+  var input = this.input;
+  var ip = this.ip;
+
+  /** @type {!(Array|Uint8Array)} huffman code table */
+  var codeTable = table[0];
+  /** @type {number} */
+  var maxCodeLength = table[1];
+  /** @type {number} input byte */
+  var octet;
+  /** @type {number} code length & code (16bit, 16bit) */
+  var codeWithLength;
+  /** @type {number} code bits length */
+  var codeLength;
+
+  // not enough buffer
+  while (bitsbuflen < maxCodeLength) {
+    if (input.length <= ip) {
+      return -1;
+    }
+    octet = input[ip++];
+    bitsbuf |= octet << bitsbuflen;
+    bitsbuflen += 8;
+  }
+
+  // read max length
+  codeWithLength = codeTable[bitsbuf & ((1 << maxCodeLength) - 1)];
+  codeLength = codeWithLength >>> 16;
+
+  if (codeLength > bitsbuflen) {
+    throw new Error('invalid code length: ' + codeLength);
+  }
+
+  this.bitsbuf = bitsbuf >> codeLength;
+  this.bitsbuflen = bitsbuflen - codeLength;
+  this.ip = ip;
+
+  return codeWithLength & 0xffff;
+};
+
+/**
+ * read uncompressed block header
+ */
+Zlib.RawInflateStream.prototype.readUncompressedBlockHeader = function() {
+  /** @type {number} block length */
+  var len;
+  /** @type {number} number for check block length */
+  var nlen;
+
+  var input = this.input;
+  var ip = this.ip;
+
+  this.status = Zlib.RawInflateStream.Status.BLOCK_BODY_START;
+
+  if (ip + 4 >= input.length) {
+    return -1;
+  }
+
+  len = input[ip++] | (input[ip++] << 8);
+  nlen = input[ip++] | (input[ip++] << 8);
+
+  // check len & nlen
+  if (len === ~nlen) {
+    throw new Error('invalid uncompressed block header: length verify');
+  }
+
+  // skip buffered header bits
+  this.bitsbuf = 0;
+  this.bitsbuflen = 0;
+
+  this.ip = ip;
+  this.blockLength = len;
+  this.status = Zlib.RawInflateStream.Status.BLOCK_BODY_END;
+};
+
+/**
+ * parse uncompressed block.
+ */
+Zlib.RawInflateStream.prototype.parseUncompressedBlock = function() {
+  var input = this.input;
+  var ip = this.ip;
+  var output = this.output;
+  var op = this.op;
+  var len = this.blockLength;
+
+  this.status = Zlib.RawInflateStream.Status.DECODE_BLOCK_START;
+
+  // copy
+  // XXX: とりあえず素直にコピー
+  while (len--) {
+    if (op === output.length) {
+      output = this.expandBuffer({fixRatio: 2});
+    }
+
+    // not enough input buffer
+    if (ip >= input.length) {
+      this.ip = ip;
+      this.op = op;
+      this.blockLength = len + 1; // コピーしてないので戻す
+      return -1;
+    }
+
+    output[op++] = input[ip++];
+  }
+
+  if (len < 0) {
+    this.status = Zlib.RawInflateStream.Status.DECODE_BLOCK_END;
+  }
+
+  this.ip = ip;
+  this.op = op;
+
+  return 0;
+};
+
+/**
+ * parse fixed huffman block.
+ */
+Zlib.RawInflateStream.prototype.parseFixedHuffmanBlock = function() {
+  this.status = Zlib.RawInflateStream.Status.BLOCK_BODY_START;
+
+  this.litlenTable = Zlib.RawInflateStream.FixedLiteralLengthTable;
+  this.distTable = Zlib.RawInflateStream.FixedDistanceTable;
+
+  this.status = Zlib.RawInflateStream.Status.BLOCK_BODY_END;
+
+  return 0;
+};
+
+/**
+ * オブジェクトのコンテキストを別のプロパティに退避する.
+ * @private
+ */
+Zlib.RawInflateStream.prototype.save_ = function() {
+  this.ip_ = this.ip;
+  this.bitsbuflen_ = this.bitsbuflen;
+  this.bitsbuf_ = this.bitsbuf;
+};
+
+/**
+ * 別のプロパティに退避したコンテキストを復元する.
+ * @private
+ */
+Zlib.RawInflateStream.prototype.restore_ = function() {
+  this.ip = this.ip_;
+  this.bitsbuflen = this.bitsbuflen_;
+  this.bitsbuf = this.bitsbuf_;
+};
+
+/**
+ * parse dynamic huffman block.
+ */
+Zlib.RawInflateStream.prototype.parseDynamicHuffmanBlock = function() {
+  /** @type {number} number of literal and length codes. */
+  var hlit;
+  /** @type {number} number of distance codes. */
+  var hdist;
+  /** @type {number} number of code lengths. */
+  var hclen;
+  /** @type {!(Uint8Array|Array)} code lengths. */
+  var codeLengths =
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(Zlib.RawInflateStream.Order.length);
+  /** @type {!Array} code lengths table. */
+  var codeLengthsTable;
+  /** @type {!(Uint32Array|Array)} literal and length code lengths. */
+  var litlenLengths;
+  /** @type {!(Uint32Array|Array)} distance code lengths. */
+  var distLengths;
+
+  this.status = Zlib.RawInflateStream.Status.BLOCK_BODY_START;
+
+  this.save_();
+  hlit = this.readBits(5) + 257;
+  hdist = this.readBits(5) + 1;
+  hclen = this.readBits(4) + 4;
+  if (hlit < 0 || hdist < 0 || hclen < 0) {
+    this.restore_();
+    return -1;
+  }
+
+  try {
+    parseDynamicHuffmanBlockImpl.call(this);
+  } catch(e) {
+    this.restore_();
+    return -1;
+  }
+
+  function parseDynamicHuffmanBlockImpl() {
+    /** @type {number} */
+    var bits;
+    var code;
+    var prev = 0;
+    var repeat;
+    /** @type {!(Uint8Array|Array.<number>)} code length table. */
+    var lengthTable;
+    /** @type {number} loop counter. */
+    var i;
+    /** @type {number} loop limit. */
+    var il;
+
+    // decode code lengths
+    for (i = 0; i < hclen; ++i) {
+      if ((bits = this.readBits(3)) < 0) {
+        throw new Error('not enough input');
+      }
+      codeLengths[Zlib.RawInflateStream.Order[i]] = bits;
+    }
+
+    // decode length table
+    codeLengthsTable = buildHuffmanTable(codeLengths);
+    lengthTable = new (USE_TYPEDARRAY ? Uint8Array : Array)(hlit + hdist);
+    for (i = 0, il = hlit + hdist; i < il;) {
+      code = this.readCodeByTable(codeLengthsTable);
+      if (code < 0) {
+        throw new Error('not enough input');
+      }
+      switch (code) {
+        case 16:
+          if ((bits = this.readBits(2)) < 0) {
+            throw new Error('not enough input');
+          }
+          repeat = 3 + bits;
+          while (repeat--) { lengthTable[i++] = prev; }
+          break;
+        case 17:
+          if ((bits = this.readBits(3)) < 0) {
+            throw new Error('not enough input');
+          }
+          repeat = 3 + bits;
+          while (repeat--) { lengthTable[i++] = 0; }
+          prev = 0;
+          break;
+        case 18:
+          if ((bits = this.readBits(7)) < 0) {
+            throw new Error('not enough input');
+          }
+          repeat = 11 + bits;
+          while (repeat--) { lengthTable[i++] = 0; }
+          prev = 0;
+          break;
+        default:
+          lengthTable[i++] = code;
+          prev = code;
+          break;
+      }
+    }
+
+    // literal and length code
+    litlenLengths = new (USE_TYPEDARRAY ? Uint8Array : Array)(hlit);
+
+    // distance code
+    distLengths = new (USE_TYPEDARRAY ? Uint8Array : Array)(hdist);
+
+    this.litlenTable = USE_TYPEDARRAY
+      ? buildHuffmanTable(lengthTable.subarray(0, hlit))
+      : buildHuffmanTable(lengthTable.slice(0, hlit));
+    this.distTable = USE_TYPEDARRAY
+      ? buildHuffmanTable(lengthTable.subarray(hlit))
+      : buildHuffmanTable(lengthTable.slice(hlit));
+  }
+
+  this.status = Zlib.RawInflateStream.Status.BLOCK_BODY_END;
+
+  return 0;
+};
+
+/**
+ * decode huffman code (dynamic)
+ * @return {(number|undefined)} -1 is error.
+ */
+Zlib.RawInflateStream.prototype.decodeHuffman = function() {
+  var output = this.output;
+  var op = this.op;
+
+  /** @type {number} huffman code. */
+  var code;
+  /** @type {number} table index. */
+  var ti;
+  /** @type {number} huffman code distination. */
+  var codeDist;
+  /** @type {number} huffman code length. */
+  var codeLength;
+
+  var litlen = this.litlenTable;
+  var dist = this.distTable;
+
+  var olength = output.length;
+  var bits;
+
+  this.status = Zlib.RawInflateStream.Status.DECODE_BLOCK_START;
+
+  while (true) {
+    this.save_();
+
+    code = this.readCodeByTable(litlen);
+    if (code < 0) {
+      this.op = op;
+      this.restore_();
+      return -1;
+    }
+
+    if (code === 256) {
+      break;
+    }
+
+    // literal
+    if (code < 256) {
+      if (op === olength) {
+        output = this.expandBuffer();
+        olength = output.length;
+      }
+      output[op++] = code;
+
+      continue;
+    }
+
+    // length code
+    ti = code - 257;
+    codeLength = Zlib.RawInflateStream.LengthCodeTable[ti];
+    if (Zlib.RawInflateStream.LengthExtraTable[ti] > 0) {
+      bits = this.readBits(Zlib.RawInflateStream.LengthExtraTable[ti]);
+      if (bits < 0) {
+        this.op = op;
+        this.restore_();
+        return -1;
+      }
+      codeLength += bits;
+    }
+
+    // dist code
+    code = this.readCodeByTable(dist);
+    if (code < 0) {
+      this.op = op;
+      this.restore_();
+      return -1;
+    }
+    codeDist = Zlib.RawInflateStream.DistCodeTable[code];
+    if (Zlib.RawInflateStream.DistExtraTable[code] > 0) {
+      bits = this.readBits(Zlib.RawInflateStream.DistExtraTable[code]);
+      if (bits < 0) {
+        this.op = op;
+        this.restore_();
+        return -1;
+      }
+      codeDist += bits;
+    }
+
+    // lz77 decode
+    if (op + codeLength >= olength) {
+      output = this.expandBuffer();
+      olength = output.length;
+    }
+
+    while (codeLength--) {
+      output[op] = output[(op++) - codeDist];
+    }
+
+    // break
+    if (this.ip === this.input.length) {
+      this.op = op;
+      return -1;
+    }
+  }
+
+  while (this.bitsbuflen >= 8) {
+    this.bitsbuflen -= 8;
+    this.ip--;
+  }
+
+  this.op = op;
+  this.status = Zlib.RawInflateStream.Status.DECODE_BLOCK_END;
+};
+
+/**
+ * expand output buffer. (dynamic)
+ * @param {Object=} opt_param option parameters.
+ * @return {!(Array|Uint8Array)} output buffer pointer.
+ */
+Zlib.RawInflateStream.prototype.expandBuffer = function(opt_param) {
+  /** @type {!(Array|Uint8Array)} store buffer. */
+  var buffer;
+  /** @type {number} expantion ratio. */
+  var ratio = (this.input.length / this.ip + 1) | 0;
+  /** @type {number} maximum number of huffman code. */
+  var maxHuffCode;
+  /** @type {number} new output buffer size. */
+  var newSize;
+  /** @type {number} max inflate size. */
+  var maxInflateSize;
+
+  var input = this.input;
+  var output = this.output;
+
+  if (opt_param) {
+    if (typeof opt_param.fixRatio === 'number') {
+      ratio = opt_param.fixRatio;
+    }
+    if (typeof opt_param.addRatio === 'number') {
+      ratio += opt_param.addRatio;
+    }
+  }
+
+  // calculate new buffer size
+  if (ratio < 2) {
+    maxHuffCode =
+      (input.length - this.ip) / this.litlenTable[2];
+    maxInflateSize = (maxHuffCode / 2 * 258) | 0;
+    newSize = maxInflateSize < output.length ?
+      output.length + maxInflateSize :
+      output.length << 1;
+  } else {
+    newSize = output.length * ratio;
+  }
+
+  // buffer expantion
+  if (USE_TYPEDARRAY) {
+    buffer = new Uint8Array(newSize);
+    buffer.set(output);
+  } else {
+    buffer = output;
+  }
+
+  this.output = buffer;
+
+  return this.output;
+};
+
+/**
+ * concat output buffer. (dynamic)
+ * @return {!(Array|Uint8Array)} output buffer.
+ */
+Zlib.RawInflateStream.prototype.concatBuffer = function() {
+  /** @type {!(Array|Uint8Array)} output buffer. */
+  var buffer;
+  /** @type {number} */
+  var op = this.op;
+  /** @type {Uint8Array} */
+  var tmp;
+
+  if (this.resize) {
+    if (USE_TYPEDARRAY) {
+      buffer = new Uint8Array(this.output.subarray(this.sp, op));
+    } else {
+      buffer = this.output.slice(this.sp, op);
+    }
+  } else {
+    buffer =
+      USE_TYPEDARRAY ? this.output.subarray(this.sp, op) : this.output.slice(this.sp, op);
+  }
+
+  this.sp = op;
+
+  // compaction
+  if (op > Zlib.RawInflateStream.MaxBackwardLength + this.bufferSize) {
+    this.op = this.sp = Zlib.RawInflateStream.MaxBackwardLength;
+    if (USE_TYPEDARRAY) {
+      tmp = /** @type {Uint8Array} */(this.output);
+      this.output = new Uint8Array(this.bufferSize + Zlib.RawInflateStream.MaxBackwardLength);
+      this.output.set(tmp.subarray(op - Zlib.RawInflateStream.MaxBackwardLength, op));
+    } else {
+      this.output = this.output.slice(op - Zlib.RawInflateStream.MaxBackwardLength);
+    }
+  }
+
+  return buffer;
+};
+
+
+/**
+ * @constructor
+ * @param {!(Uint8Array|Array)} input deflated buffer.
+ * @param {Object=} opt_params option parameters.
+ *
+ * opt_params は以下のプロパティを指定する事ができます。
+ *   - index: input buffer の deflate コンテナの開始位置.
+ *   - blockSize: バッファのブロックサイズ.
+ *   - verify: 伸張が終わった後 adler-32 checksum の検証を行うか.
+ *   - bufferType: Zlib.Inflate.BufferType の値によってバッファの管理方法を指定する.
+ *       Zlib.Inflate.BufferType は Zlib.RawInflate.BufferType のエイリアス.
+ */
+Zlib.Inflate = function(input, opt_params) {
+  /** @type {number} */
+  var bufferSize;
+  /** @type {Zlib.Inflate.BufferType} */
+  var bufferType;
+  /** @type {number} */
+  var cmf;
+  /** @type {number} */
+  var flg;
+
+  /** @type {!(Uint8Array|Array)} */
+  this.input = input;
+  /** @type {number} */
+  this.ip = 0;
+  /** @type {Zlib.RawInflate} */
+  this.rawinflate;
+  /** @type {(boolean|undefined)} verify flag. */
+  this.verify;
+
+  // option parameters
+  if (opt_params || !(opt_params = {})) {
+    if (opt_params['index']) {
+      this.ip = opt_params['index'];
+    }
+    if (opt_params['verify']) {
+      this.verify = opt_params['verify'];
+    }
+  }
+
+  // Compression Method and Flags
+  cmf = input[this.ip++];
+  flg = input[this.ip++];
+
+  // compression method
+  switch (cmf & 0x0f) {
+    case Zlib.CompressionMethod.DEFLATE:
+      this.method = Zlib.CompressionMethod.DEFLATE;
+      break;
+    default:
+      throw new Error('unsupported compression method');
+  }
+
+  // fcheck
+  if (((cmf << 8) + flg) % 31 !== 0) {
+    throw new Error('invalid fcheck flag:' + ((cmf << 8) + flg) % 31);
+  }
+
+  // fdict (not supported)
+  if (flg & 0x20) {
+    throw new Error('fdict flag is not supported');
+  }
+
+  // RawInflate
+  this.rawinflate = new Zlib.RawInflate(input, {
+    'index': this.ip,
+    'bufferSize': opt_params['bufferSize'],
+    'bufferType': opt_params['bufferType'],
+    'resize': opt_params['resize']
+  });
+}
+
+/**
+ * @enum {number}
+ */
+Zlib.Inflate.BufferType = Zlib.RawInflate.BufferType;
+
+/**
+ * decompress.
+ * @return {!(Uint8Array|Array)} inflated buffer.
+ */
+Zlib.Inflate.prototype.decompress = function() {
+  /** @type {!(Array|Uint8Array)} input buffer. */
+  var input = this.input;
+  /** @type {!(Uint8Array|Array)} inflated buffer. */
+  var buffer;
+  /** @type {number} adler-32 checksum */
+  var adler32;
+
+  buffer = this.rawinflate.decompress();
+  this.ip = this.rawinflate.ip;
+
+  // verify adler-32
+  if (this.verify) {
+    adler32 = (
+      input[this.ip++] << 24 | input[this.ip++] << 16 |
+      input[this.ip++] << 8 | input[this.ip++]
+    ) >>> 0;
+
+    if (adler32 !== Zlib.Adler32(buffer)) {
+      throw new Error('invalid adler-32 checksum');
+    }
+  }
+
+  return buffer;
+};
+
+
+/* vim:set expandtab ts=2 sw=2 tw=80: */
+
+
+/**
+ * @param {!(Uint8Array|Array)} input deflated buffer.
+ * @constructor
+ */
+Zlib.InflateStream = function(input) {
+  /** @type {!(Uint8Array|Array)} */
+  this.input = input === void 0 ? new (USE_TYPEDARRAY ? Uint8Array : Array)() : input;
+  /** @type {number} */
+  this.ip = 0;
+  /** @type {Zlib.RawInflateStream} */
+  this.rawinflate = new Zlib.RawInflateStream(this.input, this.ip);
+  /** @type {Zlib.CompressionMethod} */
+  this.method;
+  /** @type {!(Array|Uint8Array)} */
+  this.output = this.rawinflate.output;
+};
+
+/**
+ * decompress.
+ * @return {!(Uint8Array|Array)} inflated buffer.
+ */
+Zlib.InflateStream.prototype.decompress = function(input) {
+  /** @type {!(Uint8Array|Array)} inflated buffer. */
+  var buffer;
+  /** @type {number} adler-32 checksum */
+  var adler32;
+
+  // 新しい入力を入力バッファに結合する
+  // XXX Array, Uint8Array のチェックを行うか確認する
+  if (input !== void 0) {
+    if (USE_TYPEDARRAY) {
+      var tmp = new Uint8Array(this.input.length + input.length);
+      tmp.set(this.input, 0);
+      tmp.set(input, this.input.length);
+      this.input = tmp;
+    } else {
+      this.input = this.input.concat(input);
+    }
+  }
+
+  if (this.method === void 0) {
+    if(this.readHeader() < 0) {
+      return new (USE_TYPEDARRAY ? Uint8Array : Array)();
+    }
+  }
+
+  buffer = this.rawinflate.decompress(this.input, this.ip);
+  if (this.rawinflate.ip !== 0) {
+    this.input = USE_TYPEDARRAY ?
+      this.input.subarray(this.rawinflate.ip) :
+      this.input.slice(this.rawinflate.ip);
+    this.ip = 0;
+  }
+
+  // verify adler-32
+  /*
+  if (this.verify) {
+    adler32 =
+      input[this.ip++] << 24 | input[this.ip++] << 16 |
+      input[this.ip++] << 8 | input[this.ip++];
+
+    if (adler32 !== Zlib.Adler32(buffer)) {
+      throw new Error('invalid adler-32 checksum');
+    }
+  }
+  */
+
+  return buffer;
+};
+
+Zlib.InflateStream.prototype.readHeader = function() {
+  var ip = this.ip;
+  var input = this.input;
+
+  // Compression Method and Flags
+  var cmf = input[ip++];
+  var flg = input[ip++];
+
+  if (cmf === void 0 || flg === void 0) {
+    return -1;
+  }
+
+  // compression method
+  switch (cmf & 0x0f) {
+    case Zlib.CompressionMethod.DEFLATE:
+      this.method = Zlib.CompressionMethod.DEFLATE;
+      break;
+    default:
+      throw new Error('unsupported compression method');
+  }
+
+  // fcheck
+  if (((cmf << 8) + flg) % 31 !== 0) {
+    throw new Error('invalid fcheck flag:' + ((cmf << 8) + flg) % 31);
+  }
+
+  // fdict (not supported)
+  if (flg & 0x20) {
+    throw new Error('fdict flag is not supported');
+  }
+
+  this.ip = ip;
+};
+
+
+/**
+ * @fileoverview GZIP (RFC1952) 展開コンテナ実装.
+ */
+
+/**
+ * @constructor
+ * @param {!(Array|Uint8Array)} input input buffer.
+ * @param {Object=} opt_params option parameters.
+ */
+Zlib.Gunzip = function(input, opt_params) {
+  /** @type {!(Array.<number>|Uint8Array)} input buffer. */
+  this.input = input;
+  /** @type {number} input buffer pointer. */
+  this.ip = 0;
+  /** @type {Array.<Zlib.GunzipMember>} */
+  this.member = [];
+  /** @type {boolean} */
+  this.decompressed = false;
+};
+
+/**
+ * @return {Array.<Zlib.GunzipMember>}
+ */
+Zlib.Gunzip.prototype.getMembers = function() {
+  if (!this.decompressed) {
+    this.decompress();
+  }
+
+  return this.member.slice();
+};
+
+/**
+ * inflate gzip data.
+ * @return {!(Array.<number>|Uint8Array)} inflated buffer.
+ */
+Zlib.Gunzip.prototype.decompress = function() {
+  /** @type {number} input length. */
+  var il = this.input.length;
+
+  while (this.ip < il) {
+    this.decodeMember();
+  }
+
+  this.decompressed = true;
+
+  return this.concatMember();
+};
+
+/**
+ * decode gzip member.
+ */
+Zlib.Gunzip.prototype.decodeMember = function() {
+  /** @type {Zlib.GunzipMember} */
+  var member = new Zlib.GunzipMember();
+  /** @type {number} */
+  var isize;
+  /** @type {Zlib.RawInflate} RawInflate implementation. */
+  var rawinflate;
+  /** @type {!(Array.<number>|Uint8Array)} inflated data. */
+  var inflated;
+  /** @type {number} inflate size */
+  var inflen;
+  /** @type {number} character code */
+  var c;
+  /** @type {number} character index in string. */
+  var ci;
+  /** @type {Array.<string>} character array. */
+  var str;
+  /** @type {number} modification time. */
+  var mtime;
+  /** @type {number} */
+  var crc32;
+
+  var input = this.input;
+  var ip = this.ip;
+
+  member.id1 = input[ip++];
+  member.id2 = input[ip++];
+
+  // check signature
+  if (member.id1 !== 0x1f || member.id2 !== 0x8b) {
+    throw new Error('invalid file signature:' + member.id1 + ',' + member.id2);
+  }
+
+  // check compression method
+  member.cm = input[ip++];
+  switch (member.cm) {
+    case 8: /* XXX: use Zlib const */
+      break;
+    default:
+      throw new Error('unknown compression method: ' + member.cm);
+  }
+
+  // flags
+  member.flg = input[ip++];
+
+  // modification time
+  mtime = (input[ip++])       |
+          (input[ip++] << 8)  |
+          (input[ip++] << 16) |
+          (input[ip++] << 24);
+  member.mtime = new Date(mtime * 1000);
+
+  // extra flags
+  member.xfl = input[ip++];
+
+  // operating system
+  member.os = input[ip++];
+
+  // extra
+  if ((member.flg & Zlib.Gzip.FlagsMask.FEXTRA) > 0) {
+    member.xlen = input[ip++] | (input[ip++] << 8);
+    ip = this.decodeSubField(ip, member.xlen);
+  }
+
+  // fname
+  if ((member.flg & Zlib.Gzip.FlagsMask.FNAME) > 0) {
+    for(str = [], ci = 0; (c = input[ip++]) > 0;) {
+      str[ci++] = String.fromCharCode(c);
+    }
+    member.name = str.join('');
+  }
+
+  // fcomment
+  if ((member.flg & Zlib.Gzip.FlagsMask.FCOMMENT) > 0) {
+    for(str = [], ci = 0; (c = input[ip++]) > 0;) {
+      str[ci++] = String.fromCharCode(c);
+    }
+    member.comment = str.join('');
+  }
+
+  // fhcrc
+  if ((member.flg & Zlib.Gzip.FlagsMask.FHCRC) > 0) {
+    member.crc16 = Zlib.CRC32.calc(input, 0, ip) & 0xffff;
+    if (member.crc16 !== (input[ip++] | (input[ip++] << 8))) {
+      throw new Error('invalid header crc16');
+    }
+  }
+
+  // isize を事前に取得すると展開後のサイズが分かるため、
+  // inflate処理のバッファサイズが事前に分かり、高速になる
+  isize = (input[input.length - 4])       | (input[input.length - 3] << 8) |
+          (input[input.length - 2] << 16) | (input[input.length - 1] << 24);
+
+  // isize の妥当性チェック
+  // ハフマン符号では最小 2-bit のため、最大で 1/4 になる
+  // LZ77 符号では 長さと距離 2-Byte で最大 258-Byte を表現できるため、
+  // 1/128 になるとする
+  // ここから入力バッファの残りが isize の 512 倍以上だったら
+  // サイズ指定のバッファ確保は行わない事とする
+  if (input.length - ip - /* CRC-32 */4 - /* ISIZE */4 < isize * 512) {
+    inflen = isize;
+  }
+
+  // compressed block
+  rawinflate = new Zlib.RawInflate(input, {'index': ip, 'bufferSize': inflen});
+  member.data = inflated = rawinflate.decompress();
+  ip = rawinflate.ip;
+
+  // crc32
+  member.crc32 = crc32 =
+    ((input[ip++])       | (input[ip++] << 8) |
+     (input[ip++] << 16) | (input[ip++] << 24)) >>> 0;
+  if (Zlib.CRC32.calc(inflated) !== crc32) {
+    throw new Error('invalid CRC-32 checksum: 0x' +
+        Zlib.CRC32.calc(inflated).toString(16) + ' / 0x' + crc32.toString(16));
+  }
+
+  // input size
+  member.isize = isize =
+    ((input[ip++])       | (input[ip++] << 8) |
+     (input[ip++] << 16) | (input[ip++] << 24)) >>> 0;
+  if ((inflated.length & 0xffffffff) !== isize) {
+    throw new Error('invalid input size: ' +
+        (inflated.length & 0xffffffff) + ' / ' + isize);
+  }
+
+  this.member.push(member);
+  this.ip = ip;
+};
+
+/**
+ * サブフィールドのデコード
+ * XXX: 現在は何もせずスキップする
+ */
+Zlib.Gunzip.prototype.decodeSubField = function(ip, length) {
+  return ip + length;
+};
+
+/**
+ * @return {!(Array.<number>|Uint8Array)}
+ */
+Zlib.Gunzip.prototype.concatMember = function() {
+  /** @type {Array.<Zlib.GunzipMember>} */
+  var member = this.member;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+  /** @type {number} */
+  var p = 0;
+  /** @type {number} */
+  var size = 0;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var buffer;
+
+  for (i = 0, il = member.length; i < il; ++i) {
+    size += member[i].data.length;
+  }
+
+  if (USE_TYPEDARRAY) {
+    buffer = new Uint8Array(size);
+    for (i = 0; i < il; ++i) {
+      buffer.set(member[i].data, p);
+      p += member[i].data.length;
+    }
+  } else {
+    buffer = [];
+    for (i = 0; i < il; ++i) {
+      buffer[i] = member[i].data;
+    }
+    buffer = Array.prototype.concat.apply([], buffer);
+  }
+
+  return buffer;
+};
+
+
+
+/**
+ * @constructor
+ */
+Zlib.GunzipMember = function() {
+  /** @type {number} signature first byte. */
+  this.id1;
+  /** @type {number} signature second byte. */
+  this.id2;
+  /** @type {number} compression method. */
+  this.cm;
+  /** @type {number} flags. */
+  this.flg;
+  /** @type {Date} modification time. */
+  this.mtime;
+  /** @type {number} extra flags. */
+  this.xfl;
+  /** @type {number} operating system number. */
+  this.os;
+  /** @type {number} CRC-16 value for FHCRC flag. */
+  this.crc16;
+  /** @type {number} extra length. */
+  this.xlen;
+  /** @type {number} CRC-32 value for verification. */
+  this.crc32;
+  /** @type {number} input size modulo 32 value. */
+  this.isize;
+  /** @type {string} filename. */
+  this.name;
+  /** @type {string} comment. */
+  this.comment;
+  /** @type {!(Uint8Array|Array.<number>)} */
+  this.data;
+};
+
+Zlib.GunzipMember.prototype.getName = function() {
+  return this.name;
+};
+
+Zlib.GunzipMember.prototype.getData = function() {
+  return this.data;
+};
+
+Zlib.GunzipMember.prototype.getMtime = function() {
+  return this.mtime;
+}
+
+/**
+ * @fileoverview GZIP (RFC1952) 実装.
+ */
+
+/**
+ * @constructor
+ * @param {!(Array|Uint8Array)} input input buffer.
+ * @param {Object=} opt_params option parameters.
+ */
+Zlib.Gzip = function(input, opt_params) {
+  /** @type {!(Array.<number>|Uint8Array)} input buffer. */
+  this.input = input;
+  /** @type {number} input buffer pointer. */
+  this.ip = 0;
+  /** @type {!(Array.<number>|Uint8Array)} output buffer. */
+  this.output;
+  /** @type {number} output buffer. */
+  this.op = 0;
+  /** @type {!Object} flags option flags. */
+  this.flags = {};
+  /** @type {!string} filename. */
+  this.filename;
+  /** @type {!string} comment. */
+  this.comment;
+  /** @type {!Object} deflate options. */
+  this.deflateOptions;
+
+  // option parameters
+  if (opt_params) {
+    if (opt_params['flags']) {
+      this.flags = opt_params['flags'];
+    }
+    if (typeof opt_params['filename'] === 'string') {
+      this.filename = opt_params['filename'];
+    }
+    if (typeof opt_params['comment'] === 'string') {
+      this.comment = opt_params['comment'];
+    }
+    if (opt_params['deflateOptions']) {
+      this.deflateOptions = opt_params['deflateOptions'];
+    }
+  }
+
+  if (!this.deflateOptions) {
+    this.deflateOptions = {};
+  }
+};
+
+/**
+ * @type {number}
+ * @const
+ */
+Zlib.Gzip.DefaultBufferSize = 0x8000;
+
+/**
+ * encode gzip members.
+ * @return {!(Array|Uint8Array)} gzip binary array.
+ */
+Zlib.Gzip.prototype.compress = function() {
+  /** @type {number} flags. */
+  var flg;
+  /** @type {number} modification time. */
+  var mtime;
+  /** @type {number} CRC-16 value for FHCRC flag. */
+  var crc16;
+  /** @type {number} CRC-32 value for verification. */
+  var crc32;
+  /** @type {!Zlib.RawDeflate} raw deflate object. */
+  var rawdeflate;
+  /** @type {number} character code */
+  var c;
+  /** @type {number} loop counter. */
+  var i;
+  /** @type {number} loop limiter. */
+  var il;
+  /** @type {!(Array|Uint8Array)} output buffer. */
+  var output =
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(Zlib.Gzip.DefaultBufferSize);
+  /** @type {number} output buffer pointer. */
+  var op = 0;
+
+  var input = this.input;
+  var ip = this.ip;
+  var filename = this.filename;
+  var comment = this.comment;
+
+  // check signature
+  output[op++] = 0x1f;
+  output[op++] = 0x8b;
+
+  // check compression method
+  output[op++] = 8; /* XXX: use Zlib const */
+
+  // flags
+  flg = 0;
+  if (this.flags['fname'])    flg |= Zlib.Gzip.FlagsMask.FNAME;
+  if (this.flags['fcomment']) flg |= Zlib.Gzip.FlagsMask.FCOMMENT;
+  if (this.flags['fhcrc'])    flg |= Zlib.Gzip.FlagsMask.FHCRC;
+  // XXX: FTEXT
+  // XXX: FEXTRA
+  output[op++] = flg;
+
+  // modification time
+  mtime = (Date.now ? Date.now() : +new Date()) / 1000 | 0;
+  output[op++] = mtime        & 0xff;
+  output[op++] = mtime >>>  8 & 0xff;
+  output[op++] = mtime >>> 16 & 0xff;
+  output[op++] = mtime >>> 24 & 0xff;
+
+  // extra flags
+  output[op++] = 0;
+
+  // operating system
+  output[op++] = Zlib.Gzip.OperatingSystem.UNKNOWN;
+
+  // extra
+  /* NOP */
+
+  // fname
+  if (this.flags['fname'] !== void 0) {
+    for (i = 0, il = filename.length; i < il; ++i) {
+      c = filename.charCodeAt(i);
+      if (c > 0xff) { output[op++] = (c >>> 8) & 0xff; }
+      output[op++] = c & 0xff;
+    }
+    output[op++] = 0; // null termination
+  }
+
+  // fcomment
+  if (this.flags['comment']) {
+    for (i = 0, il = comment.length; i < il; ++i) {
+      c = comment.charCodeAt(i);
+      if (c > 0xff) { output[op++] = (c >>> 8) & 0xff; }
+      output[op++] = c & 0xff;
+    }
+    output[op++] = 0; // null termination
+  }
+
+  // fhcrc
+  if (this.flags['fhcrc']) {
+    crc16 = Zlib.CRC32.calc(output, 0, op) & 0xffff;
+    output[op++] = (crc16      ) & 0xff;
+    output[op++] = (crc16 >>> 8) & 0xff;
+  }
+
+  // add compress option
+  this.deflateOptions['outputBuffer'] = output;
+  this.deflateOptions['outputIndex'] = op;
+
+  // compress
+  rawdeflate = new Zlib.RawDeflate(input, this.deflateOptions);
+  output = rawdeflate.compress();
+  op = rawdeflate.op;
+
+  // expand buffer
+  if (USE_TYPEDARRAY) {
+    if (op + 8 > output.buffer.byteLength) {
+      this.output = new Uint8Array(op + 8);
+      this.output.set(new Uint8Array(output.buffer));
+      output = this.output;
+    } else {
+      output = new Uint8Array(output.buffer);
+    }
+  }
+
+  // crc32
+  crc32 = Zlib.CRC32.calc(input);
+  output[op++] = (crc32       ) & 0xff;
+  output[op++] = (crc32 >>>  8) & 0xff;
+  output[op++] = (crc32 >>> 16) & 0xff;
+  output[op++] = (crc32 >>> 24) & 0xff;
+
+  // input size
+  il = input.length;
+  output[op++] = (il       ) & 0xff;
+  output[op++] = (il >>>  8) & 0xff;
+  output[op++] = (il >>> 16) & 0xff;
+  output[op++] = (il >>> 24) & 0xff;
+
+  this.ip = ip;
+
+  if (USE_TYPEDARRAY && op < output.length) {
+    this.output = output = output.subarray(0, op);
+  }
+
+  return output;
+};
+
+/** @enum {number} */
+Zlib.Gzip.OperatingSystem = {
+  FAT: 0,
+  AMIGA: 1,
+  VMS: 2,
+  UNIX: 3,
+  VM_CMS: 4,
+  ATARI_TOS: 5,
+  HPFS: 6,
+  MACINTOSH: 7,
+  Z_SYSTEM: 8,
+  CP_M: 9,
+  TOPS_20: 10,
+  NTFS: 11,
+  QDOS: 12,
+  ACORN_RISCOS: 13,
+  UNKNOWN: 255
+};
+
+/** @enum {number} */
+Zlib.Gzip.FlagsMask = {
+  FTEXT: 0x01,
+  FHCRC: 0x02,
+  FEXTRA: 0x04,
+  FNAME: 0x08,
+  FCOMMENT: 0x10
+};
+
+
+/**
+ * @fileoverview Heap Sort 実装. ハフマン符号化で使用する.
+ */
+
+/**
+ * カスタムハフマン符号で使用するヒープ実装
+ * @param {number} length ヒープサイズ.
+ * @constructor
+ */
+Zlib.Heap = function(length) {
+  this.buffer = new (USE_TYPEDARRAY ? Uint16Array : Array)(length * 2);
+  this.length = 0;
+};
+
+/**
+ * 親ノードの index 取得
+ * @param {number} index 子ノードの index.
+ * @return {number} 親ノードの index.
+ *
+ */
+Zlib.Heap.prototype.getParent = function(index) {
+  return ((index - 2) / 4 | 0) * 2;
+};
+
+/**
+ * 子ノードの index 取得
+ * @param {number} index 親ノードの index.
+ * @return {number} 子ノードの index.
+ */
+Zlib.Heap.prototype.getChild = function(index) {
+  return 2 * index + 2;
+};
+
+/**
+ * Heap に値を追加する
+ * @param {number} index キー index.
+ * @param {number} value 値.
+ * @return {number} 現在のヒープ長.
+ */
+Zlib.Heap.prototype.push = function(index, value) {
+  var current, parent,
+      heap = this.buffer,
+      swap;
+
+  current = this.length;
+  heap[this.length++] = value;
+  heap[this.length++] = index;
+
+  // ルートノードにたどり着くまで入れ替えを試みる
+  while (current > 0) {
+    parent = this.getParent(current);
+
+    // 親ノードと比較して親の方が小さければ入れ替える
+    if (heap[current] > heap[parent]) {
+      swap = heap[current];
+      heap[current] = heap[parent];
+      heap[parent] = swap;
+
+      swap = heap[current + 1];
+      heap[current + 1] = heap[parent + 1];
+      heap[parent + 1] = swap;
+
+      current = parent;
+    // 入れ替えが必要なくなったらそこで抜ける
+    } else {
+      break;
+    }
+  }
+
+  return this.length;
+};
+
+/**
+ * Heapから一番大きい値を返す
+ * @return {{index: number, value: number, length: number}} {index: キーindex,
+ *     value: 値, length: ヒープ長} の Object.
+ */
+Zlib.Heap.prototype.pop = function() {
+  var index, value,
+      heap = this.buffer, swap,
+      current, parent;
+
+  value = heap[0];
+  index = heap[1];
+
+  // 後ろから値を取る
+  this.length -= 2;
+  heap[0] = heap[this.length];
+  heap[1] = heap[this.length + 1];
+
+  parent = 0;
+  // ルートノードから下がっていく
+  while (true) {
+    current = this.getChild(parent);
+
+    // 範囲チェック
+    if (current >= this.length) {
+      break;
+    }
+
+    // 隣のノードと比較して、隣の方が値が大きければ隣を現在ノードとして選択
+    if (current + 2 < this.length && heap[current + 2] > heap[current]) {
+      current += 2;
+    }
+
+    // 親ノードと比較して親の方が小さい場合は入れ替える
+    if (heap[current] > heap[parent]) {
+      swap = heap[parent];
+      heap[parent] = heap[current];
+      heap[current] = swap;
+
+      swap = heap[parent + 1];
+      heap[parent + 1] = heap[current + 1];
+      heap[current + 1] = swap;
+    } else {
+      break;
+    }
+
+    parent = current;
+  }
+
+  return {index: index, value: value, length: this.length};
+};
+
+
+/* vim:set expandtab ts=2 sw=2 tw=80: */
+
+/**
+ * @fileoverview Deflate (RFC1951) 符号化アルゴリズム実装.
+ */
+
+
+/**
+ * Raw Deflate 実装
+ *
+ * @constructor
+ * @param {!(Array.<number>|Uint8Array)} input 符号化する対象のバッファ.
+ * @param {Object=} opt_params option parameters.
+ *
+ * typed array が使用可能なとき、outputBuffer が Array は自動的に Uint8Array に
+ * 変換されます.
+ * 別のオブジェクトになるため出力バッファを参照している変数などは
+ * 更新する必要があります.
+ */
+Zlib.RawDeflate = function(input, opt_params) {
+  /** @type {Zlib.RawDeflate.CompressionType} */
+  this.compressionType = Zlib.RawDeflate.CompressionType.DYNAMIC;
+  /** @type {number} */
+  this.lazy = 0;
+  /** @type {!(Array.<number>|Uint32Array)} */
+  this.freqsLitLen;
+  /** @type {!(Array.<number>|Uint32Array)} */
+  this.freqsDist;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.input =
+    (USE_TYPEDARRAY && input instanceof Array) ? new Uint8Array(input) : input;
+  /** @type {!(Array.<number>|Uint8Array)} output output buffer. */
+  this.output;
+  /** @type {number} pos output buffer position. */
+  this.op = 0;
+
+  // option parameters
+  if (opt_params) {
+    if (opt_params['lazy']) {
+      this.lazy = opt_params['lazy'];
+    }
+    if (typeof opt_params['compressionType'] === 'number') {
+      this.compressionType = opt_params['compressionType'];
+    }
+    if (opt_params['outputBuffer']) {
+      this.output =
+        (USE_TYPEDARRAY && opt_params['outputBuffer'] instanceof Array) ?
+        new Uint8Array(opt_params['outputBuffer']) : opt_params['outputBuffer'];
+    }
+    if (typeof opt_params['outputIndex'] === 'number') {
+      this.op = opt_params['outputIndex'];
+    }
+  }
+
+  if (!this.output) {
+    this.output = new (USE_TYPEDARRAY ? Uint8Array : Array)(0x8000);
+  }
+};
+
+/**
+ * @enum {number}
+ */
+Zlib.RawDeflate.CompressionType = {
+  NONE: 0,
+  FIXED: 1,
+  DYNAMIC: 2,
+  RESERVED: 3
+};
+
+
+/**
+ * LZ77 の最小マッチ長
+ * @const
+ * @type {number}
+ */
+Zlib.RawDeflate.Lz77MinLength = 3;
+
+/**
+ * LZ77 の最大マッチ長
+ * @const
+ * @type {number}
+ */
+Zlib.RawDeflate.Lz77MaxLength = 258;
+
+/**
+ * LZ77 のウィンドウサイズ
+ * @const
+ * @type {number}
+ */
+Zlib.RawDeflate.WindowSize = 0x8000;
+
+/**
+ * 最長の符号長
+ * @const
+ * @type {number}
+ */
+Zlib.RawDeflate.MaxCodeLength = 16;
+
+/**
+ * ハフマン符号の最大数値
+ * @const
+ * @type {number}
+ */
+Zlib.RawDeflate.HUFMAX = 286;
+
+/**
+ * 固定ハフマン符号の符号化テーブル
+ * @const
+ * @type {Array.<Array.<number, number>>}
+ */
+Zlib.RawDeflate.FixedHuffmanTable = (function() {
+  var table = [], i;
+
+  for (i = 0; i < 288; i++) {
+    switch (true) {
+      case (i <= 143): table.push([i       + 0x030, 8]); break;
+      case (i <= 255): table.push([i - 144 + 0x190, 9]); break;
+      case (i <= 279): table.push([i - 256 + 0x000, 7]); break;
+      case (i <= 287): table.push([i - 280 + 0x0C0, 8]); break;
+      default:
+        throw 'invalid literal: ' + i;
+    }
+  }
+
+  return table;
+})();
+
+/**
+ * DEFLATE ブロックの作成
+ * @return {!(Array.<number>|Uint8Array)} 圧縮済み byte array.
+ */
+Zlib.RawDeflate.prototype.compress = function() {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var blockArray;
+  /** @type {number} */
+  var position;
+  /** @type {number} */
+  var length;
+
+  var input = this.input;
+
+  // compression
+  switch (this.compressionType) {
+    case Zlib.RawDeflate.CompressionType.NONE:
+      // each 65535-Byte (length header: 16-bit)
+      for (position = 0, length = input.length; position < length;) {
+        blockArray = USE_TYPEDARRAY ?
+          input.subarray(position, position + 0xffff) :
+          input.slice(position, position + 0xffff);
+        position += blockArray.length;
+        this.makeNocompressBlock(blockArray, (position === length));
+      }
+      break;
+    case Zlib.RawDeflate.CompressionType.FIXED:
+      this.output = this.makeFixedHuffmanBlock(input, true);
+      this.op = this.output.length;
+      break;
+    case Zlib.RawDeflate.CompressionType.DYNAMIC:
+      this.output = this.makeDynamicHuffmanBlock(input, true);
+      this.op = this.output.length;
+      break;
+    default:
+      throw 'invalid compression type';
+  }
+
+  return this.output;
+};
+
+/**
+ * 非圧縮ブロックの作成
+ * @param {!(Array.<number>|Uint8Array)} blockArray ブロックデータ byte array.
+ * @param {!boolean} isFinalBlock 最後のブロックならばtrue.
+ * @return {!(Array.<number>|Uint8Array)} 非圧縮ブロック byte array.
+ */
+Zlib.RawDeflate.prototype.makeNocompressBlock =
+function(blockArray, isFinalBlock) {
+  /** @type {number} */
+  var bfinal;
+  /** @type {Zlib.RawDeflate.CompressionType} */
+  var btype;
+  /** @type {number} */
+  var len;
+  /** @type {number} */
+  var nlen;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+
+  var output = this.output;
+  var op = this.op;
+
+  // expand buffer
+  if (USE_TYPEDARRAY) {
+    output = new Uint8Array(this.output.buffer);
+    while (output.length <= op + blockArray.length + 5) {
+      output = new Uint8Array(output.length << 1);
+    }
+    output.set(this.output);
+  }
+
+  // header
+  bfinal = isFinalBlock ? 1 : 0;
+  btype = Zlib.RawDeflate.CompressionType.NONE;
+  output[op++] = (bfinal) | (btype << 1);
+
+  // length
+  len = blockArray.length;
+  nlen = (~len + 0x10000) & 0xffff;
+  output[op++] =          len & 0xff;
+  output[op++] =  (len >>> 8) & 0xff;
+  output[op++] =         nlen & 0xff;
+  output[op++] = (nlen >>> 8) & 0xff;
+
+  // copy buffer
+  if (USE_TYPEDARRAY) {
+     output.set(blockArray, op);
+     op += blockArray.length;
+     output = output.subarray(0, op);
+  } else {
+    for (i = 0, il = blockArray.length; i < il; ++i) {
+      output[op++] = blockArray[i];
+    }
+    output.length = op;
+  }
+
+  this.op = op;
+  this.output = output;
+
+  return output;
+};
+
+/**
+ * 固定ハフマンブロックの作成
+ * @param {!(Array.<number>|Uint8Array)} blockArray ブロックデータ byte array.
+ * @param {!boolean} isFinalBlock 最後のブロックならばtrue.
+ * @return {!(Array.<number>|Uint8Array)} 固定ハフマン符号化ブロック byte array.
+ */
+Zlib.RawDeflate.prototype.makeFixedHuffmanBlock =
+function(blockArray, isFinalBlock) {
+  /** @type {Zlib.BitStream} */
+  var stream = new Zlib.BitStream(USE_TYPEDARRAY ?
+    new Uint8Array(this.output.buffer) : this.output, this.op);
+  /** @type {number} */
+  var bfinal;
+  /** @type {Zlib.RawDeflate.CompressionType} */
+  var btype;
+  /** @type {!(Array.<number>|Uint16Array)} */
+  var data;
+
+  // header
+  bfinal = isFinalBlock ? 1 : 0;
+  btype = Zlib.RawDeflate.CompressionType.FIXED;
+
+  stream.writeBits(bfinal, 1, true);
+  stream.writeBits(btype, 2, true);
+
+  data = this.lz77(blockArray);
+  this.fixedHuffman(data, stream);
+
+  return stream.finish();
+};
+
+/**
+ * 動的ハフマンブロックの作成
+ * @param {!(Array.<number>|Uint8Array)} blockArray ブロックデータ byte array.
+ * @param {!boolean} isFinalBlock 最後のブロックならばtrue.
+ * @return {!(Array.<number>|Uint8Array)} 動的ハフマン符号ブロック byte array.
+ */
+Zlib.RawDeflate.prototype.makeDynamicHuffmanBlock =
+function(blockArray, isFinalBlock) {
+  /** @type {Zlib.BitStream} */
+  var stream = new Zlib.BitStream(USE_TYPEDARRAY ?
+    new Uint8Array(this.output.buffer) : this.output, this.op);
+  /** @type {number} */
+  var bfinal;
+  /** @type {Zlib.RawDeflate.CompressionType} */
+  var btype;
+  /** @type {!(Array.<number>|Uint16Array)} */
+  var data;
+  /** @type {number} */
+  var hlit;
+  /** @type {number} */
+  var hdist;
+  /** @type {number} */
+  var hclen;
+  /** @const @type {Array.<number>} */
+  var hclenOrder =
+        [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var litLenLengths;
+  /** @type {!(Array.<number>|Uint16Array)} */
+  var litLenCodes;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var distLengths;
+  /** @type {!(Array.<number>|Uint16Array)} */
+  var distCodes;
+  /** @type {{
+   *   codes: !(Array.<number>|Uint32Array),
+   *   freqs: !(Array.<number>|Uint8Array)
+   * }} */
+  var treeSymbols;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var treeLengths;
+  /** @type {Array} */
+  var transLengths = new Array(19);
+  /** @type {!(Array.<number>|Uint16Array)} */
+  var treeCodes;
+  /** @type {number} */
+  var code;
+  /** @type {number} */
+  var bitlen;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+
+  // header
+  bfinal = isFinalBlock ? 1 : 0;
+  btype = Zlib.RawDeflate.CompressionType.DYNAMIC;
+
+  stream.writeBits(bfinal, 1, true);
+  stream.writeBits(btype, 2, true);
+
+  data = this.lz77(blockArray);
+
+  // リテラル・長さ, 距離のハフマン符号と符号長の算出
+  litLenLengths = this.getLengths_(this.freqsLitLen, 15);
+  litLenCodes = this.getCodesFromLengths_(litLenLengths);
+  distLengths = this.getLengths_(this.freqsDist, 7);
+  distCodes = this.getCodesFromLengths_(distLengths);
+
+  // HLIT, HDIST の決定
+  for (hlit = 286; hlit > 257 && litLenLengths[hlit - 1] === 0; hlit--) {}
+  for (hdist = 30; hdist > 1 && distLengths[hdist - 1] === 0; hdist--) {}
+
+  // HCLEN
+  treeSymbols =
+    this.getTreeSymbols_(hlit, litLenLengths, hdist, distLengths);
+  treeLengths = this.getLengths_(treeSymbols.freqs, 7);
+  for (i = 0; i < 19; i++) {
+    transLengths[i] = treeLengths[hclenOrder[i]];
+  }
+  for (hclen = 19; hclen > 4 && transLengths[hclen - 1] === 0; hclen--) {}
+
+  treeCodes = this.getCodesFromLengths_(treeLengths);
+
+  // 出力
+  stream.writeBits(hlit - 257, 5, true);
+  stream.writeBits(hdist - 1, 5, true);
+  stream.writeBits(hclen - 4, 4, true);
+  for (i = 0; i < hclen; i++) {
+    stream.writeBits(transLengths[i], 3, true);
+  }
+
+  // ツリーの出力
+  for (i = 0, il = treeSymbols.codes.length; i < il; i++) {
+    code = treeSymbols.codes[i];
+
+    stream.writeBits(treeCodes[code], treeLengths[code], true);
+
+    // extra bits
+    if (code >= 16) {
+      i++;
+      switch (code) {
+        case 16: bitlen = 2; break;
+        case 17: bitlen = 3; break;
+        case 18: bitlen = 7; break;
+        default:
+          throw 'invalid code: ' + code;
+      }
+
+      stream.writeBits(treeSymbols.codes[i], bitlen, true);
+    }
+  }
+
+  this.dynamicHuffman(
+    data,
+    [litLenCodes, litLenLengths],
+    [distCodes, distLengths],
+    stream
+  );
+
+  return stream.finish();
+};
+
+
+/**
+ * 動的ハフマン符号化(カスタムハフマンテーブル)
+ * @param {!(Array.<number>|Uint16Array)} dataArray LZ77 符号化済み byte array.
+ * @param {!Zlib.BitStream} stream 書き込み用ビットストリーム.
+ * @return {!Zlib.BitStream} ハフマン符号化済みビットストリームオブジェクト.
+ */
+Zlib.RawDeflate.prototype.dynamicHuffman =
+function(dataArray, litLen, dist, stream) {
+  /** @type {number} */
+  var index;
+  /** @type {number} */
+  var length;
+  /** @type {number} */
+  var literal;
+  /** @type {number} */
+  var code;
+  /** @type {number} */
+  var litLenCodes;
+  /** @type {number} */
+  var litLenLengths;
+  /** @type {number} */
+  var distCodes;
+  /** @type {number} */
+  var distLengths;
+
+  litLenCodes = litLen[0];
+  litLenLengths = litLen[1];
+  distCodes = dist[0];
+  distLengths = dist[1];
+
+  // 符号を BitStream に書き込んでいく
+  for (index = 0, length = dataArray.length; index < length; ++index) {
+    literal = dataArray[index];
+
+    // literal or length
+    stream.writeBits(litLenCodes[literal], litLenLengths[literal], true);
+
+    // 長さ・距離符号
+    if (literal > 256) {
+      // length extra
+      stream.writeBits(dataArray[++index], dataArray[++index], true);
+      // distance
+      code = dataArray[++index];
+      stream.writeBits(distCodes[code], distLengths[code], true);
+      // distance extra
+      stream.writeBits(dataArray[++index], dataArray[++index], true);
+    // 終端
+    } else if (literal === 256) {
+      break;
+    }
+  }
+
+  return stream;
+};
+
+/**
+ * 固定ハフマン符号化
+ * @param {!(Array.<number>|Uint16Array)} dataArray LZ77 符号化済み byte array.
+ * @param {!Zlib.BitStream} stream 書き込み用ビットストリーム.
+ * @return {!Zlib.BitStream} ハフマン符号化済みビットストリームオブジェクト.
+ */
+Zlib.RawDeflate.prototype.fixedHuffman = function(dataArray, stream) {
+  /** @type {number} */
+  var index;
+  /** @type {number} */
+  var length;
+  /** @type {number} */
+  var literal;
+
+  // 符号を BitStream に書き込んでいく
+  for (index = 0, length = dataArray.length; index < length; index++) {
+    literal = dataArray[index];
+
+    // 符号の書き込み
+    Zlib.BitStream.prototype.writeBits.apply(
+      stream,
+      Zlib.RawDeflate.FixedHuffmanTable[literal]
+    );
+
+    // 長さ・距離符号
+    if (literal > 0x100) {
+      // length extra
+      stream.writeBits(dataArray[++index], dataArray[++index], true);
+      // distance
+      stream.writeBits(dataArray[++index], 5);
+      // distance extra
+      stream.writeBits(dataArray[++index], dataArray[++index], true);
+    // 終端
+    } else if (literal === 0x100) {
+      break;
+    }
+  }
+
+  return stream;
+};
+
+/**
+ * マッチ情報
+ * @param {!number} length マッチした長さ.
+ * @param {!number} backwardDistance マッチ位置との距離.
+ * @constructor
+ */
+Zlib.RawDeflate.Lz77Match = function(length, backwardDistance) {
+  /** @type {number} match length. */
+  this.length = length;
+  /** @type {number} backward distance. */
+  this.backwardDistance = backwardDistance;
+};
+
+/**
+ * 長さ符号テーブル.
+ * [コード, 拡張ビット, 拡張ビット長] の配列となっている.
+ * @const
+ * @type {!(Array.<number>|Uint32Array)}
+ */
+Zlib.RawDeflate.Lz77Match.LengthCodeTable = (function(table) {
+  return USE_TYPEDARRAY ? new Uint32Array(table) : table;
+})((function() {
+  /** @type {!Array} */
+  var table = [];
+  /** @type {number} */
+  var i;
+  /** @type {!Array.<number>} */
+  var c;
+
+  for (i = 3; i <= 258; i++) {
+    c = code(i);
+    table[i] = (c[2] << 24) | (c[1] << 16) | c[0];
+  }
+
+  /**
+   * @param {number} length lz77 length.
+   * @return {!Array.<number>} lz77 codes.
+   */
+  function code(length) {
+    switch (true) {
+      case (length === 3): return [257, length - 3, 0]; break;
+      case (length === 4): return [258, length - 4, 0]; break;
+      case (length === 5): return [259, length - 5, 0]; break;
+      case (length === 6): return [260, length - 6, 0]; break;
+      case (length === 7): return [261, length - 7, 0]; break;
+      case (length === 8): return [262, length - 8, 0]; break;
+      case (length === 9): return [263, length - 9, 0]; break;
+      case (length === 10): return [264, length - 10, 0]; break;
+      case (length <= 12): return [265, length - 11, 1]; break;
+      case (length <= 14): return [266, length - 13, 1]; break;
+      case (length <= 16): return [267, length - 15, 1]; break;
+      case (length <= 18): return [268, length - 17, 1]; break;
+      case (length <= 22): return [269, length - 19, 2]; break;
+      case (length <= 26): return [270, length - 23, 2]; break;
+      case (length <= 30): return [271, length - 27, 2]; break;
+      case (length <= 34): return [272, length - 31, 2]; break;
+      case (length <= 42): return [273, length - 35, 3]; break;
+      case (length <= 50): return [274, length - 43, 3]; break;
+      case (length <= 58): return [275, length - 51, 3]; break;
+      case (length <= 66): return [276, length - 59, 3]; break;
+      case (length <= 82): return [277, length - 67, 4]; break;
+      case (length <= 98): return [278, length - 83, 4]; break;
+      case (length <= 114): return [279, length - 99, 4]; break;
+      case (length <= 130): return [280, length - 115, 4]; break;
+      case (length <= 162): return [281, length - 131, 5]; break;
+      case (length <= 194): return [282, length - 163, 5]; break;
+      case (length <= 226): return [283, length - 195, 5]; break;
+      case (length <= 257): return [284, length - 227, 5]; break;
+      case (length === 258): return [285, length - 258, 0]; break;
+      default: throw 'invalid length: ' + length;
+    }
+  }
+
+  return table;
+})());
+
+/**
+ * 距離符号テーブル
+ * @param {!number} dist 距離.
+ * @return {!Array.<number>} コード、拡張ビット、拡張ビット長の配列.
+ * @private
+ */
+Zlib.RawDeflate.Lz77Match.prototype.getDistanceCode_ = function(dist) {
+  /** @type {!Array.<number>} distance code table. */
+  var r;
+
+  switch (true) {
+    case (dist === 1): r = [0, dist - 1, 0]; break;
+    case (dist === 2): r = [1, dist - 2, 0]; break;
+    case (dist === 3): r = [2, dist - 3, 0]; break;
+    case (dist === 4): r = [3, dist - 4, 0]; break;
+    case (dist <= 6): r = [4, dist - 5, 1]; break;
+    case (dist <= 8): r = [5, dist - 7, 1]; break;
+    case (dist <= 12): r = [6, dist - 9, 2]; break;
+    case (dist <= 16): r = [7, dist - 13, 2]; break;
+    case (dist <= 24): r = [8, dist - 17, 3]; break;
+    case (dist <= 32): r = [9, dist - 25, 3]; break;
+    case (dist <= 48): r = [10, dist - 33, 4]; break;
+    case (dist <= 64): r = [11, dist - 49, 4]; break;
+    case (dist <= 96): r = [12, dist - 65, 5]; break;
+    case (dist <= 128): r = [13, dist - 97, 5]; break;
+    case (dist <= 192): r = [14, dist - 129, 6]; break;
+    case (dist <= 256): r = [15, dist - 193, 6]; break;
+    case (dist <= 384): r = [16, dist - 257, 7]; break;
+    case (dist <= 512): r = [17, dist - 385, 7]; break;
+    case (dist <= 768): r = [18, dist - 513, 8]; break;
+    case (dist <= 1024): r = [19, dist - 769, 8]; break;
+    case (dist <= 1536): r = [20, dist - 1025, 9]; break;
+    case (dist <= 2048): r = [21, dist - 1537, 9]; break;
+    case (dist <= 3072): r = [22, dist - 2049, 10]; break;
+    case (dist <= 4096): r = [23, dist - 3073, 10]; break;
+    case (dist <= 6144): r = [24, dist - 4097, 11]; break;
+    case (dist <= 8192): r = [25, dist - 6145, 11]; break;
+    case (dist <= 12288): r = [26, dist - 8193, 12]; break;
+    case (dist <= 16384): r = [27, dist - 12289, 12]; break;
+    case (dist <= 24576): r = [28, dist - 16385, 13]; break;
+    case (dist <= 32768): r = [29, dist - 24577, 13]; break;
+    default: throw 'invalid distance';
+  }
+
+  return r;
+};
+
+/**
+ * マッチ情報を LZ77 符号化配列で返す.
+ * なお、ここでは以下の内部仕様で符号化している
+ * [ CODE, EXTRA-BIT-LEN, EXTRA, CODE, EXTRA-BIT-LEN, EXTRA ]
+ * @return {!Array.<number>} LZ77 符号化 byte array.
+ */
+Zlib.RawDeflate.Lz77Match.prototype.toLz77Array = function() {
+  /** @type {number} */
+  var length = this.length;
+  /** @type {number} */
+  var dist = this.backwardDistance;
+  /** @type {Array} */
+  var codeArray = [];
+  /** @type {number} */
+  var pos = 0;
+  /** @type {!Array.<number>} */
+  var code;
+
+  // length
+  code = Zlib.RawDeflate.Lz77Match.LengthCodeTable[length];
+  codeArray[pos++] = code & 0xffff;
+  codeArray[pos++] = (code >> 16) & 0xff;
+  codeArray[pos++] = code >> 24;
+
+  // distance
+  code = this.getDistanceCode_(dist);
+  codeArray[pos++] = code[0];
+  codeArray[pos++] = code[1];
+  codeArray[pos++] = code[2];
+
+  return codeArray;
+};
+
+/**
+ * LZ77 実装
+ * @param {!(Array.<number>|Uint8Array)} dataArray LZ77 符号化するバイト配列.
+ * @return {!(Array.<number>|Uint16Array)} LZ77 符号化した配列.
+ */
+Zlib.RawDeflate.prototype.lz77 = function(dataArray) {
+  /** @type {number} input position */
+  var position;
+  /** @type {number} input length */
+  var length;
+  /** @type {number} loop counter */
+  var i;
+  /** @type {number} loop limiter */
+  var il;
+  /** @type {number} chained-hash-table key */
+  var matchKey;
+  /** @type {Object.<number, Array.<number>>} chained-hash-table */
+  var table = {};
+  /** @const @type {number} */
+  var windowSize = Zlib.RawDeflate.WindowSize;
+  /** @type {Array.<number>} match list */
+  var matchList;
+  /** @type {Zlib.RawDeflate.Lz77Match} longest match */
+  var longestMatch;
+  /** @type {Zlib.RawDeflate.Lz77Match} previous longest match */
+  var prevMatch;
+  /** @type {!(Array.<number>|Uint16Array)} lz77 buffer */
+  var lz77buf = USE_TYPEDARRAY ?
+    new Uint16Array(dataArray.length * 2) : [];
+  /** @type {number} lz77 output buffer pointer */
+  var pos = 0;
+  /** @type {number} lz77 skip length */
+  var skipLength = 0;
+  /** @type {!(Array.<number>|Uint32Array)} */
+  var freqsLitLen = new (USE_TYPEDARRAY ? Uint32Array : Array)(286);
+  /** @type {!(Array.<number>|Uint32Array)} */
+  var freqsDist = new (USE_TYPEDARRAY ? Uint32Array : Array)(30);
+  /** @type {number} */
+  var lazy = this.lazy;
+  /** @type {*} temporary variable */
+  var tmp;
+
+  // 初期化
+  if (!USE_TYPEDARRAY) {
+    for (i = 0; i <= 285;) { freqsLitLen[i++] = 0; }
+    for (i = 0; i <= 29;) { freqsDist[i++] = 0; }
+  }
+  freqsLitLen[256] = 1; // EOB の最低出現回数は 1
+
+  /**
+   * マッチデータの書き込み
+   * @param {Zlib.RawDeflate.Lz77Match} match LZ77 Match data.
+   * @param {!number} offset スキップ開始位置(相対指定).
+   * @private
+   */
+  function writeMatch(match, offset) {
+    /** @type {Array.<number>} */
+    var lz77Array = match.toLz77Array();
+    /** @type {number} */
+    var i;
+    /** @type {number} */
+    var il;
+
+    for (i = 0, il = lz77Array.length; i < il; ++i) {
+      lz77buf[pos++] = lz77Array[i];
+    }
+    freqsLitLen[lz77Array[0]]++;
+    freqsDist[lz77Array[3]]++;
+    skipLength = match.length + offset - 1;
+    prevMatch = null;
+  }
+
+  // LZ77 符号化
+  for (position = 0, length = dataArray.length; position < length; ++position) {
+    // ハッシュキーの作成
+    for (matchKey = 0, i = 0, il = Zlib.RawDeflate.Lz77MinLength; i < il; ++i) {
+      if (position + i === length) {
+        break;
+      }
+      matchKey = (matchKey << 8) | dataArray[position + i];
+    }
+
+    // テーブルが未定義だったら作成する
+    if (table[matchKey] === void 0) { table[matchKey] = []; }
+    matchList = table[matchKey];
+
+    // skip
+    if (skipLength-- > 0) {
+      matchList.push(position);
+      continue;
+    }
+
+    // マッチテーブルの更新 (最大戻り距離を超えているものを削除する)
+    while (matchList.length > 0 && position - matchList[0] > windowSize) {
+      matchList.shift();
+    }
+
+    // データ末尾でマッチしようがない場合はそのまま流しこむ
+    if (position + Zlib.RawDeflate.Lz77MinLength >= length) {
+      if (prevMatch) {
+        writeMatch(prevMatch, -1);
+      }
+
+      for (i = 0, il = length - position; i < il; ++i) {
+        tmp = dataArray[position + i];
+        lz77buf[pos++] = tmp;
+        ++freqsLitLen[tmp];
+      }
+      break;
+    }
+
+    // マッチ候補から最長のものを探す
+    if (matchList.length > 0) {
+      longestMatch = this.searchLongestMatch_(dataArray, position, matchList);
+
+      if (prevMatch) {
+        // 現在のマッチの方が前回のマッチよりも長い
+        if (prevMatch.length < longestMatch.length) {
+          // write previous literal
+          tmp = dataArray[position - 1];
+          lz77buf[pos++] = tmp;
+          ++freqsLitLen[tmp];
+
+          // write current match
+          writeMatch(longestMatch, 0);
+        } else {
+          // write previous match
+          writeMatch(prevMatch, -1);
+        }
+      } else if (longestMatch.length < lazy) {
+        prevMatch = longestMatch;
+      } else {
+        writeMatch(longestMatch, 0);
+      }
+    // 前回マッチしていて今回マッチがなかったら前回のを採用
+    } else if (prevMatch) {
+      writeMatch(prevMatch, -1);
+    } else {
+      tmp = dataArray[position];
+      lz77buf[pos++] = tmp;
+      ++freqsLitLen[tmp];
+    }
+
+    matchList.push(position); // マッチテーブルに現在の位置を保存
+  }
+
+  // 終端処理
+  lz77buf[pos++] = 256;
+  freqsLitLen[256]++;
+  this.freqsLitLen = freqsLitLen;
+  this.freqsDist = freqsDist;
+
+  return /** @type {!(Uint16Array|Array.<number>)} */ (
+    USE_TYPEDARRAY ?  lz77buf.subarray(0, pos) : lz77buf
+  );
+};
+
+/**
+ * マッチした候補の中から最長一致を探す
+ * @param {!Object} data plain data byte array.
+ * @param {!number} position plain data byte array position.
+ * @param {!Array.<number>} matchList 候補となる位置の配列.
+ * @return {!Zlib.RawDeflate.Lz77Match} 最長かつ最短距離のマッチオブジェクト.
+ * @private
+ */
+Zlib.RawDeflate.prototype.searchLongestMatch_ =
+function(data, position, matchList) {
+  var match,
+      currentMatch,
+      matchMax = 0, matchLength,
+      i, j, l, dl = data.length;
+
+  // 候補を後ろから 1 つずつ絞り込んでゆく
+  permatch:
+  for (i = 0, l = matchList.length; i < l; i++) {
+    match = matchList[l - i - 1];
+    matchLength = Zlib.RawDeflate.Lz77MinLength;
+
+    // 前回までの最長一致を末尾から一致検索する
+    if (matchMax > Zlib.RawDeflate.Lz77MinLength) {
+      for (j = matchMax; j > Zlib.RawDeflate.Lz77MinLength; j--) {
+        if (data[match + j - 1] !== data[position + j - 1]) {
+          continue permatch;
+        }
+      }
+      matchLength = matchMax;
+    }
+
+    // 最長一致探索
+    while (matchLength < Zlib.RawDeflate.Lz77MaxLength &&
+           position + matchLength < dl &&
+           data[match + matchLength] === data[position + matchLength]) {
+      ++matchLength;
+    }
+
+    // マッチ長が同じ場合は後方を優先
+    if (matchLength > matchMax) {
+      currentMatch = match;
+      matchMax = matchLength;
+    }
+
+    // 最長が確定したら後の処理は省略
+    if (matchLength === Zlib.RawDeflate.Lz77MaxLength) {
+      break;
+    }
+  }
+
+  return new Zlib.RawDeflate.Lz77Match(matchMax, position - currentMatch);
+};
+
+/**
+ * Tree-Transmit Symbols の算出
+ * reference: PuTTY Deflate implementation
+ * @param {number} hlit HLIT.
+ * @param {!(Array.<number>|Uint8Array)} litlenLengths リテラルと長さ符号の符号長配列.
+ * @param {number} hdist HDIST.
+ * @param {!(Array.<number>|Uint8Array)} distLengths 距離符号の符号長配列.
+ * @return {{
+ *   codes: !(Array.<number>|Uint32Array),
+ *   freqs: !(Array.<number>|Uint8Array)
+ * }} Tree-Transmit Symbols.
+ */
+Zlib.RawDeflate.prototype.getTreeSymbols_ =
+function(hlit, litlenLengths, hdist, distLengths) {
+  var src = new (USE_TYPEDARRAY ? Uint32Array : Array)(hlit + hdist),
+      i, j, runLength, l,
+      result = new (USE_TYPEDARRAY ? Uint32Array : Array)(286 + 30),
+      nResult,
+      rpt,
+      freqs = new (USE_TYPEDARRAY ? Uint8Array : Array)(19);
+
+  j = 0;
+  for (i = 0; i < hlit; i++) {
+    src[j++] = litlenLengths[i];
+  }
+  for (i = 0; i < hdist; i++) {
+    src[j++] = distLengths[i];
+  }
+
+  // 初期化
+  if (!USE_TYPEDARRAY) {
+    for (i = 0, l = freqs.length; i < l; ++i) {
+      freqs[i] = 0;
+    }
+  }
+
+  // 符号化
+  nResult = 0;
+  for (i = 0, l = src.length; i < l; i += j) {
+    // Run Length Encoding
+    for (j = 1; i + j < l && src[i + j] === src[i]; ++j) {}
+
+    runLength = j;
+
+    if (src[i] === 0) {
+      // 0 の繰り返しが 3 回未満ならばそのまま
+      if (runLength < 3) {
+        while (runLength-- > 0) {
+          result[nResult++] = 0;
+          freqs[0]++;
+        }
+      } else {
+        while (runLength > 0) {
+          // 繰り返しは最大 138 までなので切り詰める
+          rpt = (runLength < 138 ? runLength : 138);
+
+          if (rpt > runLength - 3 && rpt < runLength) {
+            rpt = runLength - 3;
+          }
+
+          // 3-10 回 -> 17
+          if (rpt <= 10) {
+            result[nResult++] = 17;
+            result[nResult++] = rpt - 3;
+            freqs[17]++;
+          // 11-138 回 -> 18
+          } else {
+            result[nResult++] = 18;
+            result[nResult++] = rpt - 11;
+            freqs[18]++;
+          }
+
+          runLength -= rpt;
+        }
+      }
+    } else {
+      result[nResult++] = src[i];
+      freqs[src[i]]++;
+      runLength--;
+
+      // 繰り返し回数が3回未満ならばランレングス符号は要らない
+      if (runLength < 3) {
+        while (runLength-- > 0) {
+          result[nResult++] = src[i];
+          freqs[src[i]]++;
+        }
+      // 3 回以上ならばランレングス符号化
+      } else {
+        while (runLength > 0) {
+          // runLengthを 3-6 で分割
+          rpt = (runLength < 6 ? runLength : 6);
+
+          if (rpt > runLength - 3 && rpt < runLength) {
+            rpt = runLength - 3;
+          }
+
+          result[nResult++] = 16;
+          result[nResult++] = rpt - 3;
+          freqs[16]++;
+
+          runLength -= rpt;
+        }
+      }
+    }
+  }
+
+  return {
+    codes:
+      USE_TYPEDARRAY ? result.subarray(0, nResult) : result.slice(0, nResult),
+    freqs: freqs
+  };
+};
+
+/**
+ * ハフマン符号の長さを取得する
+ * @param {!(Array.<number>|Uint8Array|Uint32Array)} freqs 出現カウント.
+ * @param {number} limit 符号長の制限.
+ * @return {!(Array.<number>|Uint8Array)} 符号長配列.
+ * @private
+ */
+Zlib.RawDeflate.prototype.getLengths_ = function(freqs, limit) {
+  /** @type {number} */
+  var nSymbols = freqs.length;
+  /** @type {Zlib.Heap} */
+  var heap = new Zlib.Heap(2 * Zlib.RawDeflate.HUFMAX);
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var length = new (USE_TYPEDARRAY ? Uint8Array : Array)(nSymbols);
+  /** @type {Array} */
+  var nodes;
+  /** @type {!(Array.<number>|Uint32Array)} */
+  var values;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var codeLength;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+
+  // 配列の初期化
+  if (!USE_TYPEDARRAY) {
+    for (i = 0; i < nSymbols; i++) {
+      length[i] = 0;
+    }
+  }
+
+  // ヒープの構築
+  for (i = 0; i < nSymbols; ++i) {
+    if (freqs[i] > 0) {
+      heap.push(i, freqs[i]);
+    }
+  }
+  nodes = new Array(heap.length / 2);
+  values = new (USE_TYPEDARRAY ? Uint32Array : Array)(heap.length / 2);
+
+  // 非 0 の要素が一つだけだった場合は、そのシンボルに符号長 1 を割り当てて終了
+  if (nodes.length === 1) {
+    length[heap.pop().index] = 1;
+    return length;
+  }
+
+  // Reverse Package Merge Algorithm による Canonical Huffman Code の符号長決定
+  for (i = 0, il = heap.length / 2; i < il; ++i) {
+    nodes[i] = heap.pop();
+    values[i] = nodes[i].value;
+  }
+  codeLength = this.reversePackageMerge_(values, values.length, limit);
+
+  for (i = 0, il = nodes.length; i < il; ++i) {
+    length[nodes[i].index] = codeLength[i];
+  }
+
+  return length;
+};
+
+/**
+ * Reverse Package Merge Algorithm.
+ * @param {!(Array.<number>|Uint32Array)} freqs sorted probability.
+ * @param {number} symbols number of symbols.
+ * @param {number} limit code length limit.
+ * @return {!(Array.<number>|Uint8Array)} code lengths.
+ */
+Zlib.RawDeflate.prototype.reversePackageMerge_ = function(freqs, symbols, limit) {
+  /** @type {!(Array.<number>|Uint16Array)} */
+  var minimumCost = new (USE_TYPEDARRAY ? Uint16Array : Array)(limit);
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var flag = new (USE_TYPEDARRAY ? Uint8Array : Array)(limit);
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var codeLength = new (USE_TYPEDARRAY ? Uint8Array : Array)(symbols);
+  /** @type {Array} */
+  var value = new Array(limit);
+  /** @type {Array} */
+  var type  = new Array(limit);
+  /** @type {Array.<number>} */
+  var currentPosition = new Array(limit);
+  /** @type {number} */
+  var excess = (1 << limit) - symbols;
+  /** @type {number} */
+  var half = (1 << (limit - 1));
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var j;
+  /** @type {number} */
+  var t;
+  /** @type {number} */
+  var weight;
+  /** @type {number} */
+  var next;
+
+  /**
+   * @param {number} j
+   */
+  function takePackage(j) {
+    /** @type {number} */
+    var x = type[j][currentPosition[j]];
+
+    if (x === symbols) {
+      takePackage(j+1);
+      takePackage(j+1);
+    } else {
+      --codeLength[x];
+    }
+
+    ++currentPosition[j];
+  }
+
+  minimumCost[limit-1] = symbols;
+
+  for (j = 0; j < limit; ++j) {
+    if (excess < half) {
+      flag[j] = 0;
+    } else {
+      flag[j] = 1;
+      excess -= half;
+    }
+    excess <<= 1;
+    minimumCost[limit-2-j] = (minimumCost[limit-1-j] / 2 | 0) + symbols;
+  }
+  minimumCost[0] = flag[0];
+
+  value[0] = new Array(minimumCost[0]);
+  type[0]  = new Array(minimumCost[0]);
+  for (j = 1; j < limit; ++j) {
+    if (minimumCost[j] > 2 * minimumCost[j-1] + flag[j]) {
+      minimumCost[j] = 2 * minimumCost[j-1] + flag[j];
+    }
+    value[j] = new Array(minimumCost[j]);
+    type[j]  = new Array(minimumCost[j]);
+  }
+
+  for (i = 0; i < symbols; ++i) {
+    codeLength[i] = limit;
+  }
+
+  for (t = 0; t < minimumCost[limit-1]; ++t) {
+    value[limit-1][t] = freqs[t];
+    type[limit-1][t]  = t;
+  }
+
+  for (i = 0; i < limit; ++i) {
+    currentPosition[i] = 0;
+  }
+  if (flag[limit-1] === 1) {
+    --codeLength[0];
+    ++currentPosition[limit-1];
+  }
+
+  for (j = limit-2; j >= 0; --j) {
+    i = 0;
+    weight = 0;
+    next = currentPosition[j+1];
+
+    for (t = 0; t < minimumCost[j]; t++) {
+      weight = value[j+1][next] + value[j+1][next+1];
+
+      if (weight > freqs[i]) {
+        value[j][t] = weight;
+        type[j][t] = symbols;
+        next += 2;
+      } else {
+        value[j][t] = freqs[i];
+        type[j][t] = i;
+        ++i;
+      }
+    }
+
+    currentPosition[j] = 0;
+    if (flag[j] === 1) {
+      takePackage(j);
+    }
+  }
+
+  return codeLength;
+};
+
+/**
+ * 符号長配列からハフマン符号を取得する
+ * reference: PuTTY Deflate implementation
+ * @param {!(Array.<number>|Uint8Array)} lengths 符号長配列.
+ * @return {!(Array.<number>|Uint16Array)} ハフマン符号配列.
+ * @private
+ */
+Zlib.RawDeflate.prototype.getCodesFromLengths_ = function(lengths) {
+  var codes = new (USE_TYPEDARRAY ? Uint16Array : Array)(lengths.length),
+      count = [],
+      startCode = [],
+      code = 0, i, il, j, m;
+
+  // Count the codes of each length.
+  for (i = 0, il = lengths.length; i < il; i++) {
+    count[lengths[i]] = (count[lengths[i]] | 0) + 1;
+  }
+
+  // Determine the starting code for each length block.
+  for (i = 1, il = Zlib.RawDeflate.MaxCodeLength; i <= il; i++) {
+    startCode[i] = code;
+    code += count[i] | 0;
+    code <<= 1;
+  }
+
+  // Determine the code for each symbol. Mirrored, of course.
+  for (i = 0, il = lengths.length; i < il; i++) {
+    code = startCode[lengths[i]];
+    startCode[lengths[i]] += 1;
+    codes[i] = 0;
+
+    for (j = 0, m = lengths[i]; j < m; j++) {
+      codes[i] = (codes[i] << 1) | (code & 1);
+      code >>>= 1;
+    }
+  }
+
+  return codes;
+};
+
+
+/**
+ * @param {!(Array.<number>|Uint8Array)} input input buffer.
+ * @param {Object=} opt_params options.
+ * @constructor
+ */
+Zlib.Unzip = function(input, opt_params) {
+  opt_params = opt_params || {};
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.input =
+    (USE_TYPEDARRAY && (input instanceof Array)) ?
+    new Uint8Array(input) : input;
+  /** @type {number} */
+  this.ip = 0;
+  /** @type {number} */
+  this.eocdrOffset;
+  /** @type {number} */
+  this.numberOfThisDisk;
+  /** @type {number} */
+  this.startDisk;
+  /** @type {number} */
+  this.totalEntriesThisDisk;
+  /** @type {number} */
+  this.totalEntries;
+  /** @type {number} */
+  this.centralDirectorySize;
+  /** @type {number} */
+  this.centralDirectoryOffset;
+  /** @type {number} */
+  this.commentLength;
+  /** @type {(Array.<number>|Uint8Array)} */
+  this.comment;
+  /** @type {Array.<Zlib.Unzip.FileHeader>} */
+  this.fileHeaderList;
+  /** @type {Object.<string, number>} */
+  this.filenameToIndex;
+  /** @type {boolean} */
+  this.verify = opt_params['verify'] || false;
+  /** @type {(Array.<number>|Uint8Array)} */
+  this.password = opt_params['password'];
+};
+
+Zlib.Unzip.CompressionMethod = Zlib.Zip.CompressionMethod;
+
+/**
+ * @type {Array.<number>}
+ * @const
+ */
+Zlib.Unzip.FileHeaderSignature = Zlib.Zip.FileHeaderSignature;
+
+/**
+ * @type {Array.<number>}
+ * @const
+ */
+Zlib.Unzip.LocalFileHeaderSignature = Zlib.Zip.LocalFileHeaderSignature;
+
+/**
+ * @type {Array.<number>}
+ * @const
+ */
+Zlib.Unzip.CentralDirectorySignature = Zlib.Zip.CentralDirectorySignature;
+
+/**
+ * @param {!(Array.<number>|Uint8Array)} input input buffer.
+ * @param {number} ip input position.
+ * @constructor
+ */
+Zlib.Unzip.FileHeader = function(input, ip) {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.input = input;
+  /** @type {number} */
+  this.offset = ip;
+  /** @type {number} */
+  this.length;
+  /** @type {number} */
+  this.version;
+  /** @type {number} */
+  this.os;
+  /** @type {number} */
+  this.needVersion;
+  /** @type {number} */
+  this.flags;
+  /** @type {number} */
+  this.compression;
+  /** @type {number} */
+  this.time;
+  /** @type {number} */
+  this.date;
+  /** @type {number} */
+  this.crc32;
+  /** @type {number} */
+  this.compressedSize;
+  /** @type {number} */
+  this.plainSize;
+  /** @type {number} */
+  this.fileNameLength;
+  /** @type {number} */
+  this.extraFieldLength;
+  /** @type {number} */
+  this.fileCommentLength;
+  /** @type {number} */
+  this.diskNumberStart;
+  /** @type {number} */
+  this.internalFileAttributes;
+  /** @type {number} */
+  this.externalFileAttributes;
+  /** @type {number} */
+  this.relativeOffset;
+  /** @type {string} */
+  this.filename;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.extraField;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.comment;
+};
+
+Zlib.Unzip.FileHeader.prototype.parse = function() {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var input = this.input;
+  /** @type {number} */
+  var ip = this.offset;
+
+  // central file header signature
+  if (input[ip++] !== Zlib.Unzip.FileHeaderSignature[0] ||
+      input[ip++] !== Zlib.Unzip.FileHeaderSignature[1] ||
+      input[ip++] !== Zlib.Unzip.FileHeaderSignature[2] ||
+      input[ip++] !== Zlib.Unzip.FileHeaderSignature[3]) {
+    throw new Error('invalid file header signature');
+  }
+
+  // version made by
+  this.version = input[ip++];
+  this.os = input[ip++];
+
+  // version needed to extract
+  this.needVersion = input[ip++] | (input[ip++] << 8);
+
+  // general purpose bit flag
+  this.flags = input[ip++] | (input[ip++] << 8);
+
+  // compression method
+  this.compression = input[ip++] | (input[ip++] << 8);
+
+  // last mod file time
+  this.time = input[ip++] | (input[ip++] << 8);
+
+  //last mod file date
+  this.date = input[ip++] | (input[ip++] << 8);
+
+  // crc-32
+  this.crc32 = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // compressed size
+  this.compressedSize = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // uncompressed size
+  this.plainSize = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // file name length
+  this.fileNameLength = input[ip++] | (input[ip++] << 8);
+
+  // extra field length
+  this.extraFieldLength = input[ip++] | (input[ip++] << 8);
+
+  // file comment length
+  this.fileCommentLength = input[ip++] | (input[ip++] << 8);
+
+  // disk number start
+  this.diskNumberStart = input[ip++] | (input[ip++] << 8);
+
+  // internal file attributes
+  this.internalFileAttributes = input[ip++] | (input[ip++] << 8);
+
+  // external file attributes
+  this.externalFileAttributes =
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24);
+
+  // relative offset of local header
+  this.relativeOffset = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // file name
+  this.filename = String.fromCharCode.apply(null, USE_TYPEDARRAY ?
+    input.subarray(ip, ip += this.fileNameLength) :
+    input.slice(ip, ip += this.fileNameLength)
+  );
+
+  // extra field
+  this.extraField = USE_TYPEDARRAY ?
+    input.subarray(ip, ip += this.extraFieldLength) :
+    input.slice(ip, ip += this.extraFieldLength);
+
+  // file comment
+  this.comment = USE_TYPEDARRAY ?
+    input.subarray(ip, ip + this.fileCommentLength) :
+    input.slice(ip, ip + this.fileCommentLength);
+
+  this.length = ip - this.offset;
+};
+
+/**
+ * @param {!(Array.<number>|Uint8Array)} input input buffer.
+ * @param {number} ip input position.
+ * @constructor
+ */
+Zlib.Unzip.LocalFileHeader = function(input, ip) {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.input = input;
+  /** @type {number} */
+  this.offset = ip;
+  /** @type {number} */
+  this.length;
+  /** @type {number} */
+  this.needVersion;
+  /** @type {number} */
+  this.flags;
+  /** @type {number} */
+  this.compression;
+  /** @type {number} */
+  this.time;
+  /** @type {number} */
+  this.date;
+  /** @type {number} */
+  this.crc32;
+  /** @type {number} */
+  this.compressedSize;
+  /** @type {number} */
+  this.plainSize;
+  /** @type {number} */
+  this.fileNameLength;
+  /** @type {number} */
+  this.extraFieldLength;
+  /** @type {string} */
+  this.filename;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  this.extraField;
+};
+
+Zlib.Unzip.LocalFileHeader.Flags = Zlib.Zip.Flags;
+
+Zlib.Unzip.LocalFileHeader.prototype.parse = function() {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var input = this.input;
+  /** @type {number} */
+  var ip = this.offset;
+
+  // local file header signature
+  if (input[ip++] !== Zlib.Unzip.LocalFileHeaderSignature[0] ||
+      input[ip++] !== Zlib.Unzip.LocalFileHeaderSignature[1] ||
+      input[ip++] !== Zlib.Unzip.LocalFileHeaderSignature[2] ||
+      input[ip++] !== Zlib.Unzip.LocalFileHeaderSignature[3]) {
+    throw new Error('invalid local file header signature');
+  }
+
+  // version needed to extract
+  this.needVersion = input[ip++] | (input[ip++] << 8);
+
+  // general purpose bit flag
+  this.flags = input[ip++] | (input[ip++] << 8);
+
+  // compression method
+  this.compression = input[ip++] | (input[ip++] << 8);
+
+  // last mod file time
+  this.time = input[ip++] | (input[ip++] << 8);
+
+  //last mod file date
+  this.date = input[ip++] | (input[ip++] << 8);
+
+  // crc-32
+  this.crc32 = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // compressed size
+  this.compressedSize = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // uncompressed size
+  this.plainSize = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // file name length
+  this.fileNameLength = input[ip++] | (input[ip++] << 8);
+
+  // extra field length
+  this.extraFieldLength = input[ip++] | (input[ip++] << 8);
+
+  // file name
+  this.filename = String.fromCharCode.apply(null, USE_TYPEDARRAY ?
+    input.subarray(ip, ip += this.fileNameLength) :
+    input.slice(ip, ip += this.fileNameLength)
+  );
+
+  // extra field
+  this.extraField = USE_TYPEDARRAY ?
+    input.subarray(ip, ip += this.extraFieldLength) :
+    input.slice(ip, ip += this.extraFieldLength);
+
+  this.length = ip - this.offset;
+};
+
+
+Zlib.Unzip.prototype.searchEndOfCentralDirectoryRecord = function() {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var input = this.input;
+  /** @type {number} */
+  var ip;
+
+  for (ip = input.length - 12; ip > 0; --ip) {
+    if (input[ip  ] === Zlib.Unzip.CentralDirectorySignature[0] &&
+        input[ip+1] === Zlib.Unzip.CentralDirectorySignature[1] &&
+        input[ip+2] === Zlib.Unzip.CentralDirectorySignature[2] &&
+        input[ip+3] === Zlib.Unzip.CentralDirectorySignature[3]) {
+      this.eocdrOffset = ip;
+      return;
+    }
+  }
+
+  throw new Error('End of Central Directory Record not found');
+};
+
+Zlib.Unzip.prototype.parseEndOfCentralDirectoryRecord = function() {
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var input = this.input;
+  /** @type {number} */
+  var ip;
+
+  if (!this.eocdrOffset) {
+    this.searchEndOfCentralDirectoryRecord();
+  }
+  ip = this.eocdrOffset;
+
+  // signature
+  if (input[ip++] !== Zlib.Unzip.CentralDirectorySignature[0] ||
+      input[ip++] !== Zlib.Unzip.CentralDirectorySignature[1] ||
+      input[ip++] !== Zlib.Unzip.CentralDirectorySignature[2] ||
+      input[ip++] !== Zlib.Unzip.CentralDirectorySignature[3]) {
+    throw new Error('invalid signature');
+  }
+
+  // number of this disk
+  this.numberOfThisDisk = input[ip++] | (input[ip++] << 8);
+
+  // number of the disk with the start of the central directory
+  this.startDisk = input[ip++] | (input[ip++] << 8);
+
+  // total number of entries in the central directory on this disk
+  this.totalEntriesThisDisk = input[ip++] | (input[ip++] << 8);
+
+  // total number of entries in the central directory
+  this.totalEntries = input[ip++] | (input[ip++] << 8);
+
+  // size of the central directory
+  this.centralDirectorySize = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // offset of start of central directory with respect to the starting disk number
+  this.centralDirectoryOffset = (
+    (input[ip++]      ) | (input[ip++] <<  8) |
+    (input[ip++] << 16) | (input[ip++] << 24)
+  ) >>> 0;
+
+  // .ZIP file comment length
+  this.commentLength = input[ip++] | (input[ip++] << 8);
+
+  // .ZIP file comment
+  this.comment = USE_TYPEDARRAY ?
+    input.subarray(ip, ip + this.commentLength) :
+    input.slice(ip, ip + this.commentLength);
+};
+
+Zlib.Unzip.prototype.parseFileHeader = function() {
+  /** @type {Array.<Zlib.Unzip.FileHeader>} */
+  var filelist = [];
+  /** @type {Object.<string, number>} */
+  var filetable = {};
+  /** @type {number} */
+  var ip;
+  /** @type {Zlib.Unzip.FileHeader} */
+  var fileHeader;
+  /*: @type {number} */
+  var i;
+  /*: @type {number} */
+  var il;
+
+  if (this.fileHeaderList) {
+    return;
+  }
+
+  if (this.centralDirectoryOffset === void 0) {
+    this.parseEndOfCentralDirectoryRecord();
+  }
+  ip = this.centralDirectoryOffset;
+
+  for (i = 0, il = this.totalEntries; i < il; ++i) {
+    fileHeader = new Zlib.Unzip.FileHeader(this.input, ip);
+    fileHeader.parse();
+    ip += fileHeader.length;
+    filelist[i] = fileHeader;
+    filetable[fileHeader.filename] = i;
+  }
+
+  if (this.centralDirectorySize < ip - this.centralDirectoryOffset) {
+    throw new Error('invalid file header size');
+  }
+
+  this.fileHeaderList = filelist;
+  this.filenameToIndex = filetable;
+};
+
+/**
+ * @param {number} index file header index.
+ * @param {Object=} opt_params
+ * @return {!(Array.<number>|Uint8Array)} file data.
+ */
+Zlib.Unzip.prototype.getFileData = function(index, opt_params) {
+  opt_params = opt_params || {};
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var input = this.input;
+  /** @type {Array.<Zlib.Unzip.FileHeader>} */
+  var fileHeaderList = this.fileHeaderList;
+  /** @type {Zlib.Unzip.LocalFileHeader} */
+  var localFileHeader;
+  /** @type {number} */
+  var offset;
+  /** @type {number} */
+  var length;
+  /** @type {!(Array.<number>|Uint8Array)} */
+  var buffer;
+  /** @type {number} */
+  var crc32;
+  /** @type {Array.<number>|Uint32Array|Object} */
+  var key;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+
+  if (!fileHeaderList) {
+    this.parseFileHeader();
+  }
+
+  if (fileHeaderList[index] === void 0) {
+    throw new Error('wrong index');
+  }
+
+  offset = fileHeaderList[index].relativeOffset;
+  localFileHeader = new Zlib.Unzip.LocalFileHeader(this.input, offset);
+  localFileHeader.parse();
+  offset += localFileHeader.length;
+  length = localFileHeader.compressedSize;
+
+  // decryption
+  if ((localFileHeader.flags & Zlib.Unzip.LocalFileHeader.Flags.ENCRYPT) !== 0) {
+    if (!(opt_params['password'] || this.password)) {
+      throw new Error('please set password');
+    }
+    key =  this.createDecryptionKey(opt_params['password'] || this.password);
+
+    // encryption header
+    for(i = offset, il = offset + 12; i < il; ++i) {
+      this.decode(key, input[i]);
+    }
+    offset += 12;
+    length -= 12;
+
+    // decryption
+    for (i = offset, il = offset + length; i < il; ++i) {
+      input[i] = this.decode(key, input[i]);
+    }
+  }
+
+  switch (localFileHeader.compression) {
+    case Zlib.Unzip.CompressionMethod.STORE:
+      buffer = USE_TYPEDARRAY ?
+        this.input.subarray(offset, offset + length) :
+        this.input.slice(offset, offset + length);
+      break;
+    case Zlib.Unzip.CompressionMethod.DEFLATE:
+      buffer = new Zlib.RawInflate(this.input, {
+        'index': offset,
+        'bufferSize': localFileHeader.plainSize
+      }).decompress();
+      break;
+    default:
+      throw new Error('unknown compression type');
+  }
+
+  if (this.verify) {
+    crc32 = Zlib.CRC32.calc(buffer);
+    if (localFileHeader.crc32 !== crc32) {
+      throw new Error(
+        'wrong crc: file=0x' + localFileHeader.crc32.toString(16) +
+        ', data=0x' + crc32.toString(16)
+      );
+    }
+  }
+
+  return buffer;
+};
+
+/**
+ * @return {Array.<string>}
+ */
+Zlib.Unzip.prototype.getFilenames = function() {
+  /** @type {Array.<string>} */
+  var filenameList = [];
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+  /** @type {Array.<Zlib.Unzip.FileHeader>} */
+  var fileHeaderList;
+
+  if (!this.fileHeaderList) {
+    this.parseFileHeader();
+  }
+  fileHeaderList = this.fileHeaderList;
+
+  for (i = 0, il = fileHeaderList.length; i < il; ++i) {
+    filenameList[i] = fileHeaderList[i].filename;
+  }
+
+  return filenameList;
+};
+
+/**
+ * @param {string} filename extract filename.
+ * @param {Object=} opt_params
+ * @return {!(Array.<number>|Uint8Array)} decompressed data.
+ */
+Zlib.Unzip.prototype.decompress = function(filename, opt_params) {
+  /** @type {number} */
+  var index;
+
+  if (!this.filenameToIndex) {
+    this.parseFileHeader();
+  }
+  index = this.filenameToIndex[filename];
+
+  if (index === void 0) {
+    throw new Error(filename + ' not found');
+  }
+
+  return this.getFileData(index, opt_params);
+};
+
+/**
+ * @param {(Array.<number>|Uint8Array)} password
+ */
+Zlib.Unzip.prototype.setPassword = function(password) {
+  this.password = password;
+};
+
+/**
+ * @param {(Array.<number>|Uint32Array|Object)} key
+ * @param {number} n
+ * @return {number}
+ */
+Zlib.Unzip.prototype.decode = function(key, n) {
+  n ^= this.getByte(/** @type {(Array.<number>|Uint32Array)} */(key));
+  this.updateKeys(/** @type {(Array.<number>|Uint32Array)} */(key), n);
+
+  return n;
+};
+
+// common method
+Zlib.Unzip.prototype.updateKeys = Zlib.Zip.prototype.updateKeys;
+Zlib.Unzip.prototype.createDecryptionKey = Zlib.Zip.prototype.createEncryptionKey;
+Zlib.Unzip.prototype.getByte = Zlib.Zip.prototype.getByte;
+
+/**
+ * @fileoverview 雑多な関数群をまとめたモジュール実装.
+ */
+
+
+/**
+ * Byte String から Byte Array に変換.
+ * @param {!string} str byte string.
+ * @return {!Array.<number>} byte array.
+ */
+Zlib.Util.stringToByteArray = function(str) {
+  /** @type {!Array.<(string|number)>} */
+  var tmp = str.split('');
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var il;
+
+  for (i = 0, il = tmp.length; i < il; i++) {
+    tmp[i] = (tmp[i].charCodeAt(0) & 0xff) >>> 0;
+  }
+
+  return tmp;
+};
+
+
+/**
+ * @fileoverview Adler32 checksum 実装.
+ */
+
+
+/**
+ * Adler32 ハッシュ値の作成
+ * @param {!(Array|Uint8Array|string)} array 算出に使用する byte array.
+ * @return {number} Adler32 ハッシュ値.
+ */
+Zlib.Adler32 = function(array) {
+  if (typeof(array) === 'string') {
+    array = Zlib.Util.stringToByteArray(array);
+  }
+  return Zlib.Adler32.update(1, array);
+};
+
+/**
+ * Adler32 ハッシュ値の更新
+ * @param {number} adler 現在のハッシュ値.
+ * @param {!(Array|Uint8Array)} array 更新に使用する byte array.
+ * @return {number} Adler32 ハッシュ値.
+ */
+Zlib.Adler32.update = function(adler, array) {
+  /** @type {number} */
+  var s1 = adler & 0xffff;
+  /** @type {number} */
+  var s2 = (adler >>> 16) & 0xffff;
+  /** @type {number} array length */
+  var len = array.length;
+  /** @type {number} loop length (don't overflow) */
+  var tlen;
+  /** @type {number} array index */
+  var i = 0;
+
+  while (len > 0) {
+    tlen = len > Zlib.Adler32.OptimizationParameter ?
+      Zlib.Adler32.OptimizationParameter : len;
+    len -= tlen;
+    do {
+      s1 += array[i++];
+      s2 += s1;
+    } while (--tlen);
+
+    s1 %= 65521;
+    s2 %= 65521;
+  }
+
+  return ((s2 << 16) | s1) >>> 0;
+};
+
+/**
+ * Adler32 最適化パラメータ
+ * 現状では 1024 程度が最適.
+ * @see http://jsperf.com/adler-32-simple-vs-optimized/3
+ * @define {number}
+ */
+Zlib.Adler32.OptimizationParameter = 1024;
+
+
+
+
+/**
+ * ビットストリーム
+ * @constructor
+ * @param {!(Array|Uint8Array)=} buffer output buffer.
+ * @param {number=} bufferPosition start buffer pointer.
+ */
+Zlib.BitStream = function(buffer, bufferPosition) {
+  /** @type {number} buffer index. */
+  this.index = typeof bufferPosition === 'number' ? bufferPosition : 0;
+  /** @type {number} bit index. */
+  this.bitindex = 0;
+  /** @type {!(Array|Uint8Array)} bit-stream output buffer. */
+  this.buffer = buffer instanceof (USE_TYPEDARRAY ? Uint8Array : Array) ?
+    buffer :
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(Zlib.BitStream.DefaultBlockSize);
+
+  // 入力された index が足りなかったら拡張するが、倍にしてもダメなら不正とする
+  if (this.buffer.length * 2 <= this.index) {
+    throw new Error("invalid index");
+  } else if (this.buffer.length <= this.index) {
+    this.expandBuffer();
+  }
+};
+
+/**
+ * デフォルトブロックサイズ.
+ * @const
+ * @type {number}
+ */
+Zlib.BitStream.DefaultBlockSize = 0x8000;
+
+/**
+ * expand buffer.
+ * @return {!(Array|Uint8Array)} new buffer.
+ */
+Zlib.BitStream.prototype.expandBuffer = function() {
+  /** @type {!(Array|Uint8Array)} old buffer. */
+  var oldbuf = this.buffer;
+  /** @type {number} loop counter. */
+  var i;
+  /** @type {number} loop limiter. */
+  var il = oldbuf.length;
+  /** @type {!(Array|Uint8Array)} new buffer. */
+  var buffer =
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(il << 1);
+
+  // copy buffer
+  if (USE_TYPEDARRAY) {
+    buffer.set(oldbuf);
+  } else {
+    // XXX: loop unrolling
+    for (i = 0; i < il; ++i) {
+      buffer[i] = oldbuf[i];
+    }
+  }
+
+  return (this.buffer = buffer);
+};
+
+
+/**
+ * 数値をビットで指定した数だけ書き込む.
+ * @param {number} number 書き込む数値.
+ * @param {number} n 書き込むビット数.
+ * @param {boolean=} reverse 逆順に書き込むならば true.
+ */
+Zlib.BitStream.prototype.writeBits = function(number, n, reverse) {
+  var buffer = this.buffer;
+  var index = this.index;
+  var bitindex = this.bitindex;
+
+  /** @type {number} current octet. */
+  var current = buffer[index];
+  /** @type {number} loop counter. */
+  var i;
+
+  /**
+   * 32-bit 整数のビット順を逆にする
+   * @param {number} n 32-bit integer.
+   * @return {number} reversed 32-bit integer.
+   * @private
+   */
+  function rev32_(n) {
+    return (Zlib.BitStream.ReverseTable[n & 0xFF] << 24) |
+      (Zlib.BitStream.ReverseTable[n >>> 8 & 0xFF] << 16) |
+      (Zlib.BitStream.ReverseTable[n >>> 16 & 0xFF] << 8) |
+      Zlib.BitStream.ReverseTable[n >>> 24 & 0xFF];
+  }
+
+  if (reverse && n > 1) {
+    number = n > 8 ?
+      rev32_(number) >> (32 - n) :
+      Zlib.BitStream.ReverseTable[number] >> (8 - n);
+  }
+
+  // Byte 境界を超えないとき
+  if (n + bitindex < 8) {
+    current = (current << n) | number;
+    bitindex += n;
+  // Byte 境界を超えるとき
+  } else {
+    for (i = 0; i < n; ++i) {
+      current = (current << 1) | ((number >> n - i - 1) & 1);
+
+      // next byte
+      if (++bitindex === 8) {
+        bitindex = 0;
+        buffer[index++] = Zlib.BitStream.ReverseTable[current];
+        current = 0;
+
+        // expand
+        if (index === buffer.length) {
+          buffer = this.expandBuffer();
+        }
+      }
+    }
+  }
+  buffer[index] = current;
+
+  this.buffer = buffer;
+  this.bitindex = bitindex;
+  this.index = index;
+};
+
+
+/**
+ * ストリームの終端処理を行う
+ * @return {!(Array|Uint8Array)} 終端処理後のバッファを byte array で返す.
+ */
+Zlib.BitStream.prototype.finish = function() {
+  var buffer = this.buffer;
+  var index = this.index;
+
+  /** @type {!(Array|Uint8Array)} output buffer. */
+  var output;
+
+  // bitindex が 0 の時は余分に index が進んでいる状態
+  if (this.bitindex > 0) {
+    buffer[index] <<= 8 - this.bitindex;
+    buffer[index] = Zlib.BitStream.ReverseTable[buffer[index]];
+    index++;
+  }
+
+  // array truncation
+  if (USE_TYPEDARRAY) {
+    output = buffer.subarray(0, index);
+  } else {
+    buffer.length = index;
+    output = buffer;
+  }
+
+  return output;
+};
+
+/**
+ * 0-255 のビット順を反転したテーブル
+ * @const
+ * @type {!(Uint8Array|Array.<number>)}
+ */
+Zlib.BitStream.ReverseTable = (function(table) {
+  return table;
+})((function() {
+  /** @type {!(Array|Uint8Array)} reverse table. */
+  var table = new (USE_TYPEDARRAY ? Uint8Array : Array)(256);
+  /** @type {number} loop counter. */
+  var i;
+
+  // generate
+  for (i = 0; i < 256; ++i) {
+    table[i] = (function(n) {
+      var r = n;
+      var s = 7;
+
+      for (n >>>= 1; n; n >>>= 1) {
+        r <<= 1;
+        r |= n & 1;
+        --s;
+      }
+
+      return (r << s & 0xff) >>> 0;
+    })(i);
+  }
+
+  return table;
+})());
+
+
+/**
+ * @fileoverview CRC32 実装.
+ */
+
+
+/** @define {boolean} */
+var ZLIB_CRC32_COMPACT = false;
+
+/**
+ * CRC32 ハッシュ値を取得
+ * @param {!(Array.<number>|Uint8Array)} data data byte array.
+ * @param {number=} pos data position.
+ * @param {number=} length data length.
+ * @return {number} CRC32.
+ */
+Zlib.CRC32.calc = function(data, pos, length) {
+  return Zlib.CRC32.update(data, 0, pos, length);
+};
+
+/**
+ * CRC32ハッシュ値を更新
+ * @param {!(Array.<number>|Uint8Array)} data data byte array.
+ * @param {number} crc CRC32.
+ * @param {number=} pos data position.
+ * @param {number=} length data length.
+ * @return {number} CRC32.
+ */
+Zlib.CRC32.update = function(data, crc, pos, length) {
+  var table = Zlib.CRC32.Table;
+  var i = (typeof pos === 'number') ? pos : (pos = 0);
+  var il = (typeof length === 'number') ? length : data.length;
+
+  crc ^= 0xffffffff;
+
+  // loop unrolling for performance
+  for (i = il & 7; i--; ++pos) {
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos]) & 0xff];
+  }
+  for (i = il >> 3; i--; pos += 8) {
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos    ]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 1]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 2]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 3]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 4]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 5]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 6]) & 0xff];
+    crc = (crc >>> 8) ^ table[(crc ^ data[pos + 7]) & 0xff];
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+/**
+ * @param {number} num
+ * @param {number} crc
+ * @returns {number}
+ */
+Zlib.CRC32.single = function(num, crc) {
+  return (Zlib.CRC32.Table[(num ^ crc) & 0xff] ^ (num >>> 8)) >>> 0;
+};
+
+/**
+ * @type {Array.<number>}
+ * @const
+ * @private
+ */
+Zlib.CRC32.Table_ = [
+  0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f,
+  0xe963a535, 0x9e6495a3, 0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988,
+  0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91, 0x1db71064, 0x6ab020f2,
+  0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
+  0x136c9856, 0x646ba8c0, 0xfd62f97a, 0x8a65c9ec, 0x14015c4f, 0x63066cd9,
+  0xfa0f3d63, 0x8d080df5, 0x3b6e20c8, 0x4c69105e, 0xd56041e4, 0xa2677172,
+  0x3c03e4d1, 0x4b04d447, 0xd20d85fd, 0xa50ab56b, 0x35b5a8fa, 0x42b2986c,
+  0xdbbbc9d6, 0xacbcf940, 0x32d86ce3, 0x45df5c75, 0xdcd60dcf, 0xabd13d59,
+  0x26d930ac, 0x51de003a, 0xc8d75180, 0xbfd06116, 0x21b4f4b5, 0x56b3c423,
+  0xcfba9599, 0xb8bda50f, 0x2802b89e, 0x5f058808, 0xc60cd9b2, 0xb10be924,
+  0x2f6f7c87, 0x58684c11, 0xc1611dab, 0xb6662d3d, 0x76dc4190, 0x01db7106,
+  0x98d220bc, 0xefd5102a, 0x71b18589, 0x06b6b51f, 0x9fbfe4a5, 0xe8b8d433,
+  0x7807c9a2, 0x0f00f934, 0x9609a88e, 0xe10e9818, 0x7f6a0dbb, 0x086d3d2d,
+  0x91646c97, 0xe6635c01, 0x6b6b51f4, 0x1c6c6162, 0x856530d8, 0xf262004e,
+  0x6c0695ed, 0x1b01a57b, 0x8208f4c1, 0xf50fc457, 0x65b0d9c6, 0x12b7e950,
+  0x8bbeb8ea, 0xfcb9887c, 0x62dd1ddf, 0x15da2d49, 0x8cd37cf3, 0xfbd44c65,
+  0x4db26158, 0x3ab551ce, 0xa3bc0074, 0xd4bb30e2, 0x4adfa541, 0x3dd895d7,
+  0xa4d1c46d, 0xd3d6f4fb, 0x4369e96a, 0x346ed9fc, 0xad678846, 0xda60b8d0,
+  0x44042d73, 0x33031de5, 0xaa0a4c5f, 0xdd0d7cc9, 0x5005713c, 0x270241aa,
+  0xbe0b1010, 0xc90c2086, 0x5768b525, 0x206f85b3, 0xb966d409, 0xce61e49f,
+  0x5edef90e, 0x29d9c998, 0xb0d09822, 0xc7d7a8b4, 0x59b33d17, 0x2eb40d81,
+  0xb7bd5c3b, 0xc0ba6cad, 0xedb88320, 0x9abfb3b6, 0x03b6e20c, 0x74b1d29a,
+  0xead54739, 0x9dd277af, 0x04db2615, 0x73dc1683, 0xe3630b12, 0x94643b84,
+  0x0d6d6a3e, 0x7a6a5aa8, 0xe40ecf0b, 0x9309ff9d, 0x0a00ae27, 0x7d079eb1,
+  0xf00f9344, 0x8708a3d2, 0x1e01f268, 0x6906c2fe, 0xf762575d, 0x806567cb,
+  0x196c3671, 0x6e6b06e7, 0xfed41b76, 0x89d32be0, 0x10da7a5a, 0x67dd4acc,
+  0xf9b9df6f, 0x8ebeeff9, 0x17b7be43, 0x60b08ed5, 0xd6d6a3e8, 0xa1d1937e,
+  0x38d8c2c4, 0x4fdff252, 0xd1bb67f1, 0xa6bc5767, 0x3fb506dd, 0x48b2364b,
+  0xd80d2bda, 0xaf0a1b4c, 0x36034af6, 0x41047a60, 0xdf60efc3, 0xa867df55,
+  0x316e8eef, 0x4669be79, 0xcb61b38c, 0xbc66831a, 0x256fd2a0, 0x5268e236,
+  0xcc0c7795, 0xbb0b4703, 0x220216b9, 0x5505262f, 0xc5ba3bbe, 0xb2bd0b28,
+  0x2bb45a92, 0x5cb36a04, 0xc2d7ffa7, 0xb5d0cf31, 0x2cd99e8b, 0x5bdeae1d,
+  0x9b64c2b0, 0xec63f226, 0x756aa39c, 0x026d930a, 0x9c0906a9, 0xeb0e363f,
+  0x72076785, 0x05005713, 0x95bf4a82, 0xe2b87a14, 0x7bb12bae, 0x0cb61b38,
+  0x92d28e9b, 0xe5d5be0d, 0x7cdcefb7, 0x0bdbdf21, 0x86d3d2d4, 0xf1d4e242,
+  0x68ddb3f8, 0x1fda836e, 0x81be16cd, 0xf6b9265b, 0x6fb077e1, 0x18b74777,
+  0x88085ae6, 0xff0f6a70, 0x66063bca, 0x11010b5c, 0x8f659eff, 0xf862ae69,
+  0x616bffd3, 0x166ccf45, 0xa00ae278, 0xd70dd2ee, 0x4e048354, 0x3903b3c2,
+  0xa7672661, 0xd06016f7, 0x4969474d, 0x3e6e77db, 0xaed16a4a, 0xd9d65adc,
+  0x40df0b66, 0x37d83bf0, 0xa9bcae53, 0xdebb9ec5, 0x47b2cf7f, 0x30b5ffe9,
+  0xbdbdf21c, 0xcabac28a, 0x53b39330, 0x24b4a3a6, 0xbad03605, 0xcdd70693,
+  0x54de5729, 0x23d967bf, 0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94,
+  0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
+];
+
+/**
+ * @type {!(Array.<number>|Uint32Array)} CRC-32 Table.
+ * @const
+ */
+Zlib.CRC32.Table = ZLIB_CRC32_COMPACT ? (function() {
+  /** @type {!(Array.<number>|Uint32Array)} */
+  var table = new (USE_TYPEDARRAY ? Uint32Array : Array)(256);
+  /** @type {number} */
+  var c;
+  /** @type {number} */
+  var i;
+  /** @type {number} */
+  var j;
+
+  for (i = 0; i < 256; ++i) {
+    c = i;
+    for (j = 0; j < 8; ++j) {
+      c = (c & 1) ? (0xedB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[i] = c >>> 0;
+  }
+
+  return table;
+})() : USE_TYPEDARRAY ? new Uint32Array(Zlib.CRC32.Table_) : Zlib.CRC32.Table_;
+
+/**
+ * @fileoverview Deflate (RFC1951) 実装.
+ * Deflateアルゴリズム本体は Zlib.RawDeflate で実装されている.
+ */
+
+/**
+ * Zlib Deflate
+ * @constructor
+ * @param {!(Array|Uint8Array)} input 符号化する対象の byte array.
+ * @param {Object=} opt_params option parameters.
+ */
+Zlib.Deflate = function(input, opt_params) {
+  /** @type {!(Array|Uint8Array)} */
+  this.input = input;
+  /** @type {!(Array|Uint8Array)} */
+  this.output =
+    new (USE_TYPEDARRAY ? Uint8Array : Array)(Zlib.Deflate.DefaultBufferSize);
+  /** @type {Zlib.Deflate.CompressionType} */
+  this.compressionType = Zlib.Deflate.CompressionType.DYNAMIC;
+  /** @type {Zlib.RawDeflate} */
+  this.rawDeflate;
+  /** @type {Object} */
+  var rawDeflateOption = {};
+  /** @type {string} */
+  var prop;
+
+  // option parameters
+  if (opt_params || !(opt_params = {})) {
+    if (typeof opt_params['compressionType'] === 'number') {
+      this.compressionType = opt_params['compressionType'];
+    }
+  }
+
+  // copy options
+  for (prop in opt_params) {
+    rawDeflateOption[prop] = opt_params[prop];
+  }
+
+  // set raw-deflate output buffer
+  rawDeflateOption['outputBuffer'] = this.output;
+
+  this.rawDeflate = new Zlib.RawDeflate(this.input, rawDeflateOption);
+};
+
+/**
+ * @const
+ * @type {number} デフォルトバッファサイズ.
+ */
+Zlib.Deflate.DefaultBufferSize = 0x8000;
+
+/**
+ * @enum {number}
+ */
+Zlib.Deflate.CompressionType = Zlib.RawDeflate.CompressionType;
+
+/**
+ * 直接圧縮に掛ける.
+ * @param {!(Array|Uint8Array)} input target buffer.
+ * @param {Object=} opt_params option parameters.
+ * @return {!(Array|Uint8Array)} compressed data byte array.
+ */
+Zlib.Deflate.compress = function(input, opt_params) {
+  return (new Zlib.Deflate(input, opt_params)).compress();
+};
+
+/**
+ * Deflate Compression.
+ * @return {!(Array|Uint8Array)} compressed data byte array.
+ */
+Zlib.Deflate.prototype.compress = function() {
+  /** @type {Zlib.CompressionMethod} */
+  var cm;
+  /** @type {number} */
+  var cinfo;
+  /** @type {number} */
+  var cmf;
+  /** @type {number} */
+  var flg;
+  /** @type {number} */
+  var fcheck;
+  /** @type {number} */
+  var fdict;
+  /** @type {number} */
+  var flevel;
+  /** @type {number} */
+  var clevel;
+  /** @type {number} */
+  var adler;
+  /** @type {boolean} */
+  var error = false;
+  /** @type {!(Array|Uint8Array)} */
+  var output;
+  /** @type {number} */
+  var pos = 0;
+
+  output = this.output;
+
+  // Compression Method and Flags
+  cm = Zlib.CompressionMethod.DEFLATE;
+  switch (cm) {
+    case Zlib.CompressionMethod.DEFLATE:
+      cinfo = Math.LOG2E * Math.log(Zlib.RawDeflate.WindowSize) - 8;
+      break;
+    default:
+      throw new Error('invalid compression method');
+  }
+  cmf = (cinfo << 4) | cm;
+  output[pos++] = cmf;
+
+  // Flags
+  fdict = 0;
+  switch (cm) {
+    case Zlib.CompressionMethod.DEFLATE:
+      switch (this.compressionType) {
+        case Zlib.Deflate.CompressionType.NONE: flevel = 0; break;
+        case Zlib.Deflate.CompressionType.FIXED: flevel = 1; break;
+        case Zlib.Deflate.CompressionType.DYNAMIC: flevel = 2; break;
+        default: throw new Error('unsupported compression type');
+      }
+      break;
+    default:
+      throw new Error('invalid compression method');
+  }
+  flg = (flevel << 6) | (fdict << 5);
+  fcheck = 31 - (cmf * 256 + flg) % 31;
+  flg |= fcheck;
+  output[pos++] = flg;
+
+  // Adler-32 checksum
+  adler = Zlib.Adler32(this.input);
+
+  this.rawDeflate.op = pos;
+  output = this.rawDeflate.compress();
+  pos = output.length;
+
+  if (USE_TYPEDARRAY) {
+    // subarray 分を元にもどす
+    output = new Uint8Array(output.buffer);
+    // expand buffer
+    if (output.length <= pos + 4) {
+      this.output = new Uint8Array(output.length + 4);
+      this.output.set(output);
+      output = this.output;
+    }
+    output = output.subarray(0, pos + 4);
+  }
+
+  // adler32
+  output[pos++] = (adler >> 24) & 0xff;
+  output[pos++] = (adler >> 16) & 0xff;
+  output[pos++] = (adler >>  8) & 0xff;
+  output[pos++] = (adler      ) & 0xff;
+
+  return output;
+};
+
+
 //     Underscore.js 1.8.3
 //     http://underscorejs.org
 //     (c) 2009-2015 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -15795,7 +21360,7 @@ var Colors = {};
 
 var hic = (function (hic) {
 
-    hic.AnnotationWidget = function (browser, $parent, title, trackListRetrievalCallback) {
+    hic.AnnotationWidget = function (browser, $parent, config, trackListRetrievalCallback) {
 
         var $container;
 
@@ -15805,9 +21370,9 @@ var hic = (function (hic) {
         $container = $("<div>", { class: 'hic-annotation-presentation-button-container' });
         $parent.append($container);
 
-        annotationPresentationButton.call(this, $container, title);
+        annotationPresentationButton.call(this, $container, config.title, config.alertMessage);
 
-        annotationPanel.call(this, this.browser.$root, title);
+        annotationPanel.call(this, this.browser.$root, config.title);
 
     };
 
@@ -15836,7 +21401,7 @@ var hic = (function (hic) {
 
     };
 
-    function annotationPresentationButton($parent, title) {
+    function annotationPresentationButton($parent, title, alertMessage) {
         var self = this,
             $button;
 
@@ -15845,8 +21410,16 @@ var hic = (function (hic) {
         $parent.append($button);
 
         $button.on('click', function () {
-            self.updateBody(self.trackListRetrievalCallback());
-            self.$annotationPanel.toggle();
+            var list;
+
+            list = self.trackListRetrievalCallback();
+            if (list.length > 0) {
+                self.updateBody(self.trackListRetrievalCallback());
+                self.$annotationPanel.toggle();
+            } else {
+                igv.presentAlert(alertMessage);
+            }
+
             self.browser.hideMenu();
         });
     }
@@ -15855,6 +21428,7 @@ var hic = (function (hic) {
 
         var self = this,
             $panel_header,
+            $load_container,
             $div,
             $fa;
 
@@ -15881,12 +21455,30 @@ var hic = (function (hic) {
             self.$annotationPanel.toggle();
         });
 
+        // TODO: Continue changes for load functions added to side panel
+        // load container
+        // $load_container = $('<div>', { class:'hic-annotation-panel-load-container' });
+        // this.$annotationPanel.append($load_container);
+        //
+        // // Load
+        // $div = $('<div>');
+        // $load_container.append($div);
+        // $div.text('Load:');
+        //
+        // // Blah
+        // $div = $('<div>');
+        // $load_container.append($div);
+        // $div.text('Blah');
+
         this.$annotationPanel.draggable();
         this.$annotationPanel.hide();
     }
 
     function annotationPanelRow($container, track) {
         var self = this,
+            $colorpickerContainer,
+            $colorpickerButton,
+            $colorpicker,
             $row_container,
             $row,
             $hideShowTrack,
@@ -15958,21 +21550,25 @@ var hic = (function (hic) {
 
 
         // color swatch selector button
-        $e = hic.colorSwatch(isTrack2D ? track.color : track1D.color);
-        $row.append($e);
-        $e.on('click', function (e) {
+        $colorpickerButton = igv.colorSwatch(isTrack2D ? track.color : track1D.color);
+        $row.append($colorpickerButton);
+
+        // color swatch selector
+        $colorpickerContainer = createAnnotationPanelColorpickerContainer($row_container, {width: ((29 * 24) + 1 + 1)}, function () {
             $row.next('.hic-color-swatch-container').toggle();
         });
 
-        // color swatch selector
-        $e = $('<div>', { class: 'hic-color-swatch-container' });
-        $row_container.append($e);
+        $colorpickerButton.on('click', function (e) {
+            $row.next('.hic-color-swatch-container').toggle();
+        });
 
-        hic.createColorSwatchSelector($e, function (color) {
+        $colorpickerContainer.hide();
+
+        igv.createColorSwatchSelector($colorpickerContainer, function (color) {
             var $swatch;
 
             $swatch = $row.find('.fa-square');
-            $swatch.css({color: color});
+            $swatch.css({ 'color': color });
 
             if (isTrack2D) {
                 track.color = color;
@@ -15981,11 +21577,7 @@ var hic = (function (hic) {
                 trackRenderer.setColor(color);
             }
 
-        }, function () {
-            $row.next('.hic-color-swatch-container').toggle();
         });
-        $e.hide();
-
 
 
         // track up/down
@@ -16067,6 +21659,40 @@ var hic = (function (hic) {
 
             self.updateBody(trackList);
         });
+    }
+
+    function createAnnotationPanelColorpickerContainer($parent, config, closeHandler) {
+
+        var $container,
+            $header,
+            $fa;
+
+        $container = $('<div>', { class:'hic-color-swatch-container' });
+        $parent.append($container);
+
+        // width
+        if (config && config.width) {
+            $container.width(config.width);
+        }
+
+        // height
+        if (config && config.height) {
+            $container.height(config.height);
+        }
+
+        // header
+        $header = $('<div>');
+        $container.append($header);
+
+        // close button
+        $fa = $("<i>", { class:'fa fa-times' });
+        $header.append($fa);
+
+        $fa.on('click', function (e) {
+            closeHandler();
+        });
+
+        return $container;
     }
 
     return hic;
@@ -16290,16 +21916,16 @@ var hic = (function (hic) {
     const DOUBLE_TAP_TIME_THRESHOLD = 300;
 
     var defaultColorScaleInitializer =
-        {
-            low: 0,
-            lowR: 255,
-            lowG: 255,
-            lowB: 255,
-            high: 2000,
-            highR: 255,
-            highG: 0,
-            highB: 0
-        };
+    {
+        low: 0,
+        lowR: 255,
+        lowG: 255,
+        lowB: 255,
+        high: 2000,
+        highR: 255,
+        highG: 0,
+        highB: 0
+    };
 
     hic.ContactMatrixView = function (browser, $container) {
         var id;
@@ -16320,16 +21946,25 @@ var hic = (function (hic) {
         // this.$canvas.attr('height', this.$viewport.height());
         // this.ctx = this.$canvas.get(0).getContext("2d");
 
-        //spinner
-        id = browser.id + '_' + 'viewport-spinner-container';
-        this.$spinner = $("<div>", {id: id});
-        this.$viewport.append(this.$spinner);
+        this.$fa_spinner = $('<i class="fa fa-spinner fa-spin">');
+        this.$fa_spinner.css("font-size", "48px");
+        this.$fa_spinner.css("position", "absolute");
+        this.$fa_spinner.css("left", "40%");
+        this.$fa_spinner.css("top", "40%");
+        this.$fa_spinner.css("display", "none");
+        this.$viewport.append(this.$fa_spinner);
 
-        // throbber
-        // size: see $hic-viewport-spinner-size in .scss files
-        // this.throbber = Throbber({color: 'rgb(64, 64, 64)', size: 120, padding: 40}).appendTo(this.$spinner.get(0));
-        this.throbber = Throbber({color: 'rgb(64, 64, 64)', size: 64, padding: 16}).appendTo(this.$spinner.get(0));
-        this.stopSpinner();
+
+        //spinner
+        // id = browser.id + '_' + 'viewport-spinner-container';
+        // this.$spinner = $("<div>", {id: id});
+        // this.$viewport.append(this.$spinner);
+        //
+        // // throbber
+        // // size: see $hic-viewport-spinner-size in .scss files
+        // // this.throbber = Throbber({color: 'rgb(64, 64, 64)', size: 120, padding: 40}).appendTo(this.$spinner.get(0));
+        // this.throbber = Throbber({color: 'rgb(64, 64, 64)', size: 64, padding: 16}).appendTo(this.$spinner.get(0));
+        // this.stopSpinner();
 
         // ruler sweeper widget surface
         this.sweepZoom = new hic.SweepZoom(browser, this.$viewport);
@@ -16358,11 +21993,10 @@ var hic = (function (hic) {
 
         this.colorScaleCache = {};
 
-        this.browser.eventBus.subscribe("LocusChange", this);
         this.browser.eventBus.subscribe("NormalizationChange", this);
         this.browser.eventBus.subscribe("TrackLoad2D", this);
         this.browser.eventBus.subscribe("TrackState2D", this);
-
+        this.browser.eventBus.subscribe("MapLoad", this)
     };
 
     hic.ContactMatrixView.prototype.setInitialImage = function (x, y, image, state) {
@@ -16374,31 +22008,17 @@ var hic = (function (hic) {
         }
     };
 
-    hic.ContactMatrixView.prototype.datasetUpdated = function () {
-        // This should probably be an event
-        // Don't enable mouse actions until we have a dataset.
-        if (!this.mouseHandlersEnabled) {
-            addMouseHandlers.call(this, this.$viewport);
-            this.mouseHandlersEnabled = true;
-        }
+    hic.ContactMatrixView.prototype.setColorScale = function (options, state) {
 
-        this.updating = false;
-        this.clearCaches();
-        this.colorScaleCache = {};
-        this.update();
-    };
-
-    hic.ContactMatrixView.prototype.setColorScale = function (config, state) {
-
-        if (config.high) this.colorScale.high = config.high;
-        if (config.highR) this.colorScale.highR = config.highR;
-        if (config.highG) this.colorScale.highG = config.highG;
-        if (config.highB) this.colorScale.highB = config.highB;
+        if (options.high) this.colorScale.high = options.high;
+        if (undefined !== options.highR) this.colorScale.highR = options.highR;
+        if (undefined !== options.highG) this.colorScale.highG = options.highG;
+        if (undefined !== options.highB) this.colorScale.highB = options.highB;
 
         if (!state) {
             state = this.browser.state;
         }
-        this.colorScaleCache[colorScaleKey(state)] = config.high;
+        this.colorScaleCache[colorScaleKey(state)] = options.high;
     };
 
     function colorScaleKey(state) {
@@ -16418,21 +22038,32 @@ var hic = (function (hic) {
     };
 
     hic.ContactMatrixView.prototype.receiveEvent = function (event) {
-        // Perhaps in the future we'll do something special based on event type & properties
 
-        if ("NormalizationChange" === event.type || "TrackLoad2D" === event.type || "TrackState2D" === event.type) {
-            this.clearCaches();
-        }
+        if ("MapLoad" === event.type) {
 
-        if (this.initialImage) {
-            if (!validateInitialImage.call(this, this.initialImage, event.data.state)) {
-                this.initialImage = undefined;
-                this.startSpinner();
+            // Don't enable mouse actions until we have a dataset.
+            if (!this.mouseHandlersEnabled) {
+                addTouchHandlers.call(this, this.$viewport);
+                addMouseHandlers.call(this, this.$viewport);
+                this.mouseHandlersEnabled = true;
             }
+            this.clearCaches();
+            this.colorScaleCache = {};
         }
 
-        this.update();
+        else {
+            if ("NormalizationChange" === event.type || "TrackLoad2D" === event.type || "TrackState2D" === event.type) {
+                this.clearCaches();
+            }
 
+            if (this.initialImage) {
+                if (!validateInitialImage.call(this, this.initialImage, event.data.state)) {
+                    this.initialImage = undefined;
+                }
+            }
+
+            this.update();
+        }
     };
 
     function validateInitialImage(initialImage, state) {
@@ -16440,8 +22071,8 @@ var hic = (function (hic) {
         if (initialImage.state.equals(state)) return true;
 
         if (!(initialImage.state.chr1 === state.chr1 && initialImage.state.chr2 === state.chr2 &&
-                initialImage.state.zoom === state.zoom && initialImage.state.pixelSize === state.pixelSize &&
-                initialImage.state.normalization === state.normalization)) return false;
+            initialImage.state.zoom === state.zoom && initialImage.state.pixelSize === state.pixelSize &&
+            initialImage.state.normalization === state.normalization)) return false;
 
         // Now see if initial image fills view
         var offsetX = (initialImage.x - state.x) * state.pixelSize,
@@ -16473,10 +22104,76 @@ var hic = (function (hic) {
         this.ctx.drawImage(image.img, offsetX, offsetY);
     }
 
+
     hic.ContactMatrixView.prototype.update = function () {
+
+        var self = this;
+
+        this.readyToPaint()
+            .then(function (ignore) {
+
+                self.repaint();
+            })
+            .catch(function (error) {
+                console.error(error);
+            })
+
+    }
+
+    /**
+     * Return a promise to load all neccessary data
+     */
+    hic.ContactMatrixView.prototype.readyToPaint = function () {
 
         var self = this,
             state = this.browser.state;
+
+        if (!self.browser.dataset || self.initialImage) {
+            return Promise.resolve();
+        }
+
+        return self.browser.dataset.getMatrix(state.chr1, state.chr2)
+
+            .then(function (matrix) {
+
+                if (matrix) {
+
+                    var zd = matrix.bpZoomData[state.zoom],
+                        blockBinCount = zd.blockBinCount,   // Dimension in bins of a block (width = height = blockBinCount)
+                        pixelSizeInt = Math.max(1, Math.floor(state.pixelSize)),
+                        widthInBins = self.$viewport.width() / pixelSizeInt,
+                        heightInBins = self.$viewport.height() / pixelSizeInt,
+                        blockCol1 = Math.floor(state.x / blockBinCount),
+                        blockCol2 = Math.floor((state.x + widthInBins) / blockBinCount),
+                        blockRow1 = Math.floor(state.y / blockBinCount),
+                        blockRow2 = Math.floor((state.y + heightInBins) / blockBinCount),
+                        r, c, promises = [];
+
+                    return checkColorScale.call(self, zd, blockRow1, blockRow2, blockCol1, blockCol2, state.normalization)
+
+                        .then(function () {
+
+                            for (r = blockRow1; r <= blockRow2; r++) {
+                                for (c = blockCol1; c <= blockCol2; c++) {
+                                    promises.push(self.getImageTile(zd, r, c, state));
+                                }
+                            }
+
+                            return Promise.all(promises);
+                        })
+                }
+                else {
+                    return Promise.resolve();
+                }
+            })
+    };
+
+
+    hic.ContactMatrixView.prototype.repaint = function () {
+
+        var self = this,
+            state = this.browser.state,
+            zd;
 
         if (!self.browser.dataset) return;
 
@@ -16493,66 +22190,67 @@ var hic = (function (hic) {
             return;
         }
 
-        self.updating = true;
-
-        self.startSpinner();
 
         self.browser.dataset.getMatrix(state.chr1, state.chr2)
 
             .then(function (matrix) {
 
-                var zd = matrix.bpZoomData[state.zoom],
-                    blockBinCount = zd.blockBinCount,   // Dimension in bins of a block (width = height = blockBinCount)
-                    pixelSizeInt = Math.max(1, Math.floor(state.pixelSize)),
-                    widthInBins = self.$viewport.width() / pixelSizeInt,
-                    heightInBins = self.$viewport.height() / pixelSizeInt,
-                    blockCol1 = Math.floor(state.x / blockBinCount),
-                    blockCol2 = Math.floor((state.x + widthInBins) / blockBinCount),
-                    blockRow1 = Math.floor(state.y / blockBinCount),
-                    blockRow2 = Math.floor((state.y + heightInBins) / blockBinCount),
-                    r, c, promises = [];
+                if (matrix) {
 
-                self.checkColorScale(zd, blockRow1, blockRow2, blockCol1, blockCol2, state.normalization)
+                    zd = matrix.bpZoomData[state.zoom];
 
-                    .then(function () {
+                    var blockBinCount = zd.blockBinCount,   // Dimension in bins of a block (width = height = blockBinCount)
+                        pixelSizeInt = Math.max(1, Math.floor(state.pixelSize)),
+                        widthInBins = self.$viewport.width() / pixelSizeInt,
+                        heightInBins = self.$viewport.height() / pixelSizeInt,
+                        blockCol1 = Math.floor(state.x / blockBinCount),
+                        blockCol2 = Math.floor((state.x + widthInBins) / blockBinCount),
+                        blockRow1 = Math.floor(state.y / blockBinCount),
+                        blockRow2 = Math.floor((state.y + heightInBins) / blockBinCount),
+                        r, c, promises = [];
 
-                        for (r = blockRow1; r <= blockRow2; r++) {
-                            for (c = blockCol1; c <= blockCol2; c++) {
-                                promises.push(self.getImageTile(zd, r, c, state));
-                            }
+                    for (r = blockRow1; r <= blockRow2; r++) {
+                        for (c = blockCol1; c <= blockCol2; c++) {
+                            promises.push(self.getImageTile(zd, r, c, state));
                         }
+                    }
 
-                        Promise.all(promises)
-                            .then(function (imageTiles) {
-                                self.updating = false;
-                                self.draw(imageTiles, zd);
-                                self.stopSpinner();
-                            })
-                            .catch(function (error) {
-                                self.updating = false;
-                                self.stopSpinner();
-                                console.error(error);
-                            })
-
-                    })
-                    .catch(function (error) {
-                        self.updating = false;
-                        self.stopSpinner(self);
-                        console.error(error);
-                    })
+                    return Promise.all(promises);
+                }
+                else {
+                    return Promise.resolve(undefined);
+                }
+            })
+            .then(function (imageTiles) {
+                self.updating = false;
+                if (imageTiles) {
+                    self.draw(imageTiles, zd);
+                }
             })
             .catch(function (error) {
                 self.updating = false;
-                self.stopSpinner();
                 console.error(error);
             })
-    };
+    }
 
-    hic.ContactMatrixView.prototype.checkColorScale = function (zd, row1, row2, col1, col2, normalization) {
+    /**
+     * Return a promise to adjust the color scale, if needed.  This function might need to load the contact
+     * data to computer scale.
+     *
+     * @param zd
+     * @param row1
+     * @param row2
+     * @param col1
+     * @param col2
+     * @param normalization
+     * @returns {*}
+     */
+    function checkColorScale(zd, row1, row2, col1, col2, normalization) {
 
         var self = this;
 
         var colorKey = colorScaleKey(self.browser.state);   // This doesn't feel right, state should be an argument
+
         if (self.colorScaleCache[colorKey]) {
             var changed = self.colorScale.high !== self.colorScaleCache[colorKey];
             self.colorScale.high = self.colorScaleCache[colorKey];
@@ -16561,52 +22259,42 @@ var hic = (function (hic) {
         }
 
         else {
-            self.startSpinner();
 
-            return new Promise(function (fulfill, reject) {
+            var row, column, sameChr, blockNumber,
+                promises = [];
 
-                var row, column, sameChr, blockNumber,
-                    promises = [];
+            sameChr = zd.chr1 === zd.chr2;
 
-                sameChr = zd.chr1 === zd.chr2;
-
-                for (row = row1; row <= row2; row++) {
-                    for (column = col1; column <= col2; column++) {
-                        if (sameChr && row < column) {
-                            blockNumber = column * zd.blockColumnCount + row;
-                        }
-                        else {
-                            blockNumber = row * zd.blockColumnCount + column;
-                        }
-
-                        promises.push(self.browser.dataset.getNormalizedBlock(zd, blockNumber, normalization))
+            for (row = row1; row <= row2; row++) {
+                for (column = col1; column <= col2; column++) {
+                    if (sameChr && row < column) {
+                        blockNumber = column * zd.blockColumnCount + row;
                     }
+                    else {
+                        blockNumber = row * zd.blockColumnCount + column;
+                    }
+
+                    promises.push(self.browser.dataset.getNormalizedBlock(zd, blockNumber, normalization))
                 }
+            }
 
-                Promise.all(promises)
-                    .then(function (blocks) {
-                        var s = computePercentile(blocks, 95);
+            return Promise.all(promises)
+                .then(function (blocks) {
+                    var s = computePercentile(blocks, 95);
 
-                        if (!isNaN(s)) {  // Can return NaN if all blocks are empty
+                    if (!isNaN(s)) {  // Can return NaN if all blocks are empty
 
-                            if(0 === zd.chr1.index)  s *= 4;   // Heuristic for whole genome view
+                        if (0 === zd.chr1.index)  s *= 4;   // Heuristic for whole genome view
 
-                            self.colorScale.high = s;
-                            self.computeColorScale = false;
-                            self.colorScaleCache[colorKey] = s;
-                            self.browser.eventBus.post(hic.Event("ColorScale", self.colorScale));
-                        }
+                        self.colorScale.high = s;
+                        self.computeColorScale = false;
+                        self.colorScaleCache[colorKey] = s;
+                        self.browser.eventBus.post(hic.Event("ColorScale", self.colorScale));
+                    }
 
-                        self.stopSpinner();
+                    return self.colorScale;
 
-                        fulfill();
-
-                    })
-                    .catch(function (error) {
-                        self.stopSpinner();
-                        reject(error);
-                    });
-            })
+                })
         }
 
     }
@@ -16644,7 +22332,7 @@ var hic = (function (hic) {
                 var offsetY = (y0 - state.y) * state.pixelSize;
                 var scale = state.pixelSize / pixelSizeInt;
                 var scaledWidth = image.width * scale;
-                var scaledHeight =image.height * scale;
+                var scaledHeight = image.height * scale;
                 if (offsetX <= viewportWidth && offsetX + scaledWidth >= 0 &&
                     offsetY <= viewportHeight && offsetY + scaledHeight >= 0) {
                     if (scale === 1) {
@@ -16659,6 +22347,15 @@ var hic = (function (hic) {
 
     };
 
+    /**
+     * Returns a promise for an image tile
+     *
+     * @param zd
+     * @param row
+     * @param column
+     * @param state
+     * @returns {*}
+     */
     hic.ContactMatrixView.prototype.getImageTile = function (zd, row, column, state) {
 
         var self = this,
@@ -16669,176 +22366,166 @@ var hic = (function (hic) {
                 "_" + row + "_" + column + "_" + pixelSizeInt + "_" + state.normalization;
 
         if (this.imageTileCache.hasOwnProperty(key)) {
+
             return Promise.resolve(this.imageTileCache[key]);
+
         } else {
-            return new Promise(function (fulfill, reject) {
 
-                var blockBinCount = zd.blockBinCount,
-                    blockColumnCount = zd.blockColumnCount,
-                    widthInBins = zd.blockBinCount,
-                    transpose = sameChr && row < column,
-                    blockNumber,
-                    t;
+            var blockBinCount = zd.blockBinCount,
+                blockColumnCount = zd.blockColumnCount,
+                widthInBins = zd.blockBinCount,
+                transpose = sameChr && row < column,
+                blockNumber,
+                t;
 
+            if (sameChr && row < column) {
+                blockNumber = column * blockColumnCount + row;
+            }
+            else {
+                blockNumber = row * blockColumnCount + column;
+            }
 
-                function setPixel(imageData, x, y, r, g, b, a) {
-                    index = (x + y * imageData.width) * 4;
-                    imageData.data[index + 0] = r;
-                    imageData.data[index + 1] = g;
-                    imageData.data[index + 2] = b;
-                    imageData.data[index + 3] = a;
-                }
+            return self.browser.dataset.getNormalizedBlock(zd, blockNumber, state.normalization)
 
-                function drawBlock(block, transpose) {
+                .then(function (block) {
 
-                    var imageSize = Math.ceil(widthInBins * pixelSizeInt),
-                        blockNumber, row, col, x0, y0, image, ctx, id, i, rec, x, y, color, px, py;
-
-                    blockNumber = block.blockNumber;
-                    row = Math.floor(blockNumber / blockColumnCount);
-                    col = blockNumber - row * blockColumnCount;
-                    x0 = blockBinCount * col;
-                    y0 = blockBinCount * row;
-
-                    image = document.createElement('canvas');
-                    image.width = imageSize;
-                    image.height = imageSize;
-                    ctx = image.getContext('2d');
-                    ctx.clearRect(0, 0, image.width, image.height);
-
-                    if (useImageData) {
-                        id = ctx.getImageData(0, 0, image.width, image.height);
+                    var image;
+                    if (block && block.records.length > 0) {
+                        image = drawBlock(block, transpose);
+                    }
+                    else {
+                        //console.log("No block for " + blockNumber);
                     }
 
-                    for (i = 0; i < block.records.length; i++) {
-                        rec = block.records[i];
-                        x = Math.floor((rec.bin1 - x0) * pixelSizeInt);
-                        y = Math.floor((rec.bin2 - y0) * pixelSizeInt);
+                    var imageTile = {row: row, column: column, image: image};
 
-                        if (transpose) {
-                            t = y;
-                            y = x;
-                            x = t;
-                        }
 
-                        color = self.colorScale.getColor(rec.counts);
+                    if (self.imageTileCacheKeys.length > self.imageTileCacheLimit) {
+                        delete self.imageTileCache[self.imageTileCacheKeys[0]];
+                        self.imageTileCacheKeys.shift();
+                    }
+
+                    self.imageTileCache[key] = imageTile;
+
+                    return imageTile;
+
+                    function setPixel(imageData, x, y, r, g, b, a) {
+                        index = (x + y * imageData.width) * 4;
+                        imageData.data[index + 0] = r;
+                        imageData.data[index + 1] = g;
+                        imageData.data[index + 2] = b;
+                        imageData.data[index + 3] = a;
+                    }
+
+                    function drawBlock(block, transpose) {
+
+                        var imageSize = Math.ceil(widthInBins * pixelSizeInt),
+                            blockNumber, row, col, x0, y0, image, ctx, id, i, rec, x, y, color, px, py;
+
+                        blockNumber = block.blockNumber;
+                        row = Math.floor(blockNumber / blockColumnCount);
+                        col = blockNumber - row * blockColumnCount;
+                        x0 = blockBinCount * col;
+                        y0 = blockBinCount * row;
+
+                        image = document.createElement('canvas');
+                        image.width = imageSize;
+                        image.height = imageSize;
+                        ctx = image.getContext('2d');
+                        ctx.clearRect(0, 0, image.width, image.height);
 
                         if (useImageData) {
-                            // TODO -- verify that this bitblting is faster than fillRect
-                            setPixel(id, x, y, color.red, color.green, color.blue, 255);
-                            if (sameChr && row === col) {
-                                setPixel(id, y, x, color.red, color.green, color.blue, 255);
+                            id = ctx.getImageData(0, 0, image.width, image.height);
+                        }
+
+                        for (i = 0; i < block.records.length; i++) {
+                            rec = block.records[i];
+                            x = Math.floor((rec.bin1 - x0) * pixelSizeInt);
+                            y = Math.floor((rec.bin2 - y0) * pixelSizeInt);
+
+                            if (transpose) {
+                                t = y;
+                                y = x;
+                                x = t;
+                            }
+
+                            color = self.colorScale.getColor(rec.counts);
+
+                            if (useImageData) {
+                                // TODO -- verify that this bitblting is faster than fillRect
+                                setPixel(id, x, y, color.red, color.green, color.blue, 255);
+                                if (sameChr && row === col) {
+                                    setPixel(id, y, x, color.red, color.green, color.blue, 255);
+                                }
+                            }
+                            else {
+                                ctx.fillStyle = color.rgb;
+                                ctx.fillRect(x, y, pixelSizeInt, pixelSizeInt);
+                                if (sameChr && row === col) {
+                                    ctx.fillRect(y, x, pixelSizeInt, pixelSizeInt);
+                                }
                             }
                         }
-                        else {
-                            ctx.fillStyle = color.rgb;
-                            ctx.fillRect(x, y, pixelSizeInt, pixelSizeInt);
-                            if (sameChr && row === col) {
-                                ctx.fillRect(y, x, pixelSizeInt, pixelSizeInt);
-                            }
+                        if (useImageData) {
+                            ctx.putImageData(id, 0, 0);
                         }
-                    }
-                    if (useImageData) {
-                        ctx.putImageData(id, 0, 0);
-                    }
 
-                    //Draw 2D tracks
-                    ctx.save();
-                    ctx.lineWidth = 2;
-                    self.browser.tracks2D.forEach(function (track2D) {
-                        var color;
+                        //Draw 2D tracks
+                        ctx.save();
+                        ctx.lineWidth = 2;
+                        self.browser.tracks2D.forEach(function (track2D) {
+                            var color;
 
-                        if (track2D.isVisible) {
-                            var features = track2D.getFeatures(zd.chr1.name, zd.chr2.name);
+                            if (track2D.isVisible) {
+                                var features = track2D.getFeatures(zd.chr1.name, zd.chr2.name);
 
-                            if (features) {
-                                features.forEach(function (f) {
+                                if (features) {
+                                    features.forEach(function (f) {
 
-                                    var x1 = Math.round((f.x1 / zd.zoom.binSize - x0) * pixelSizeInt);
-                                    var x2 = Math.round((f.x2 / zd.zoom.binSize - x0) * pixelSizeInt);
-                                    var y1 = Math.round((f.y1 / zd.zoom.binSize - y0) * pixelSizeInt);
-                                    var y2 = Math.round((f.y2 / zd.zoom.binSize - y0) * pixelSizeInt);
-                                    var w = x2 - x1;
-                                    var h = y2 - y1;
+                                        var x1 = Math.round((f.x1 / zd.zoom.binSize - x0) * pixelSizeInt);
+                                        var x2 = Math.round((f.x2 / zd.zoom.binSize - x0) * pixelSizeInt);
+                                        var y1 = Math.round((f.y1 / zd.zoom.binSize - y0) * pixelSizeInt);
+                                        var y2 = Math.round((f.y2 / zd.zoom.binSize - y0) * pixelSizeInt);
+                                        var w = x2 - x1;
+                                        var h = y2 - y1;
 
-                                    if (transpose) {
-                                        t = y1;
-                                        y1 = x1;
-                                        x1 = t;
+                                        if (transpose) {
+                                            t = y1;
+                                            y1 = x1;
+                                            x1 = t;
 
-                                        t = h;
-                                        h = w;
-                                        w = t;
-                                    }
-
-                                    var dim = Math.max(image.width, image.height);
-                                    if (x2 > 0 && x1 < dim && y2 > 0 && y1 < dim) {
-
-                                        ctx.strokeStyle = track2D.color ? track2D.color : f.color;
-                                        ctx.strokeRect(x1, y1, w, h);
-                                        if (sameChr && row === col) {
-                                            ctx.strokeRect(y1, x1, h, w);
+                                            t = h;
+                                            h = w;
+                                            w = t;
                                         }
-                                    }
-                                })
+
+                                        var dim = Math.max(image.width, image.height);
+                                        if (x2 > 0 && x1 < dim && y2 > 0 && y1 < dim) {
+
+                                            ctx.strokeStyle = track2D.color ? track2D.color : f.color;
+                                            ctx.strokeRect(x1, y1, w, h);
+                                            if (sameChr && row === col) {
+                                                ctx.strokeRect(y1, x1, h, w);
+                                            }
+                                        }
+                                    })
+                                }
                             }
-                        }
-                    });
+                        });
 
-                    ctx.restore();
+                        ctx.restore();
 
-                    // Uncomment to reveal tile boundaries for debugging.
-                    // ctx.fillStyle = "rgb(255,255,255)";
-                    // ctx.strokeRect(0, 0, image.width - 1, image.height - 1)
+                        // Uncomment to reveal tile boundaries for debugging.
+                        // ctx.fillStyle = "rgb(255,255,255)";
+                        // ctx.strokeRect(0, 0, image.width - 1, image.height - 1)
 
-                    var t1 = (new Date()).getTime();
+                        var t1 = (new Date()).getTime();
 
-                    //console.log(t1 - t0);
+                        //console.log(t1 - t0);
 
-                    return image;
-                }
-
-
-                if (sameChr && row < column) {
-                    blockNumber = column * blockColumnCount + row;
-                }
-                else {
-                    blockNumber = row * blockColumnCount + column;
-                }
-
-                self.startSpinner();
-
-                self.browser.dataset.getNormalizedBlock(zd, blockNumber, state.normalization)
-
-                    .then(function (block) {
-
-                        var image;
-                        if (block && block.records.length > 0) {
-                            image = drawBlock(block, transpose);
-                        }
-                        else {
-                            //console.log("No block for " + blockNumber);
-                        }
-
-                        var imageTile = {row: row, column: column, image: image};
-
-
-                        if (self.imageTileCacheKeys.length > self.imageTileCacheLimit) {
-                            delete self.imageTileCache[self.imageTileCacheKeys[0]];
-                            self.imageTileCacheKeys.shift();
-                        }
-
-                        self.imageTileCache[key] = imageTile;
-
-                        self.stopSpinner();
-                        fulfill(imageTile);
-
-                    })
-                    .catch(function (error) {
-                        self.stopSpinner();
-                        reject(error);
-                    })
-            })
+                        return image;
+                    }
+                })
         }
     };
 
@@ -16858,28 +22545,77 @@ var hic = (function (hic) {
     }
 
     hic.ContactMatrixView.prototype.startSpinner = function () {
-        // console.log("Start spinner");
-        if (this.$spinner.is(':visible') !== true) {
-            this.$spinner.show();
-            this.throbber.start();
+
+        if (true === this.browser.isLoadingHICFile && this.browser.$user_interaction_shield) {
+            this.browser.$user_interaction_shield.show();
         }
+
+        this.$fa_spinner.css("display", "inline-block");
     };
 
     hic.ContactMatrixView.prototype.stopSpinner = function () {
-        //  console.log("Stop spinner");
-        this.throbber.stop();
-        this.$spinner.hide();
+
+        this.$fa_spinner.css("display", "none");
+
     };
 
-    function shiftCurrentImage(self, dx, dy) {
-        var canvasWidth = self.$canvas.width(),
-            canvasHeight = self.$canvas.height(),
-            imageData;
 
-        imageData = self.ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-        self.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        self.ctx.putImageData(imageData, dx, dy);
-    }
+    hic.ColorScale = function (scale) {
+        this.low = scale.low;
+        this.lowR = scale.lowR;
+        this.lowG = scale.lowG;
+        this.lowB = scale.lowB;
+        this.high = scale.high;
+        this.highR = scale.highR;
+        this.highG = scale.highG;
+        this.highB = scale.highB;
+    };
+
+    hic.ColorScale.prototype.equals = function (cs) {
+        return JSON.stringify(this) === JSON.stringify(cs);
+    };
+
+    hic.ColorScale.prototype.getColor = function (value) {
+        var scale = this, r, g, b, frac, diff;
+
+        if (value <= scale.low) value = scale.low;
+        else if (value >= scale.high) value = scale.high;
+
+        diff = scale.high - scale.low;
+
+        frac = (value - scale.low) / diff;
+        r = Math.floor(scale.lowR + frac * (scale.highR - scale.lowR));
+        g = Math.floor(scale.lowG + frac * (scale.highG - scale.lowG));
+        b = Math.floor(scale.lowB + frac * (scale.highB - scale.lowB));
+
+        return {
+            red: r,
+            green: g,
+            blue: b,
+            rgb: "rgb(" + r + "," + g + "," + b + ")"
+        };
+    };
+
+    hic.ColorScale.prototype.stringify = function () {
+        return "" + this.high + ',' + this.highR + ',' + this.highG + ',' + this.highB;
+    };
+
+    hic.destringifyColorScale = function (string) {
+
+        var cs,
+            tokens;
+
+        tokens = string.split(",");
+
+        cs = _.clone(defaultColorScaleInitializer);
+        cs.high = tokens[0];
+        cs.highR = tokens[1];
+        cs.highG = tokens[2];
+        cs.highB = tokens[3];
+
+        return new hic.ColorScale(cs);
+
+    };
 
     function addMouseHandlers($viewport) {
 
@@ -16890,11 +22626,229 @@ var hic = (function (hic) {
             mouseDown,
             mouseLast,
             mouseOver,
-            lastTouch,
-            pinch,
-            viewport = $viewport[0],
             lastWheelTime;
 
+        if (!this.browser.isMobile) {
+
+            $viewport.dblclick(function (e) {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                var mouseX = e.offsetX || e.layerX,
+                    mouseY = e.offsetY || e.layerX;
+
+                self.browser.zoomAndCenter(1, mouseX, mouseY);
+
+            });
+
+            $viewport.on('mouseover', function (e) {
+                mouseOver = true;
+            });
+
+            $viewport.on('mouseout', function (e) {
+                mouseOver = undefined;
+            });
+
+            $viewport.on('mousedown', function (e) {
+                var eFixed;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (self.browser.$menu.is(':visible')) {
+                    self.browser.hideMenu();
+                }
+
+                mouseLast = {x: e.offsetX, y: e.offsetY};
+                mouseDown = {x: e.offsetX, y: e.offsetY};
+
+                isSweepZooming = (true === e.altKey);
+                if (isSweepZooming) {
+                    eFixed = $.event.fix(e);
+                    self.sweepZoom.initialize({x: eFixed.pageX, y: eFixed.pageY});
+                }
+
+                isMouseDown = true;
+
+            });
+
+            $viewport.on('mousemove', hic.throttle(function (e) {
+
+                var coords,
+                    eFixed,
+                    xy;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                coords =
+                {
+                    x: e.offsetX,
+                    y: e.offsetY
+                };
+
+                // Sets pageX and pageY for browsers that don't support them
+                eFixed = $.event.fix(e);
+
+                xy =
+                {
+                    x: eFixed.pageX - $viewport.offset().left,
+                    y: eFixed.pageY - $viewport.offset().top
+                };
+
+                self.browser.eventBus.post(hic.Event("UpdateContactMapMousePosition", xy, false));
+
+                if (true === self.willShowCrosshairs) {
+                    self.browser.updateCrosshairs(xy);
+                    self.browser.showCrosshairs();
+                }
+
+                if (isMouseDown) { // Possibly dragging
+
+                    if (isSweepZooming) {
+
+                        self.sweepZoom.update({x: eFixed.pageX, y: eFixed.pageY});
+
+                    } else if (mouseDown.x && Math.abs(coords.x - mouseDown.x) > DRAG_THRESHOLD) {
+
+                        isDragging = true;
+
+                        var dx = mouseLast.x - coords.x;
+                        var dy = mouseLast.y - coords.y;
+
+                        // If matrix data is updating shift current map image while we wait
+                        if (self.updating) {
+                            shiftCurrentImage(self, -dx, -dy);
+                        }
+
+                        self.browser.shiftPixels(dx, dy);
+
+                    }
+
+                    mouseLast = coords;
+                }
+
+
+            }, 10));
+
+            $viewport.on('mouseup', panMouseUpOrMouseOut);
+
+            $viewport.on('mouseleave', function () {
+
+                self.browser.layoutController.xAxisRuler.unhighlightWholeChromosome();
+                self.browser.layoutController.yAxisRuler.unhighlightWholeChromosome();
+
+                panMouseUpOrMouseOut();
+            });
+
+            // Mousewheel events -- ie exposes event only via addEventListener, no onwheel attribute
+            // NOte from spec -- trackpads commonly map pinch to mousewheel + ctrl
+
+            if (!self.browser.figureMode) {
+                $viewport[0].addEventListener("wheel", mouseWheelHandler, 250, false);
+            }
+
+            // Document level events
+            $(document).on({
+
+                keydown: function (e) {
+                    if (undefined === self.willShowCrosshairs && true === mouseOver && true === e.shiftKey) {
+                        self.willShowCrosshairs = true;
+                    }
+                },
+
+                keyup: function (e) {
+                    if (/*true === e.shiftKey*/true) {
+                        self.browser.hideCrosshairs();
+                        self.willShowCrosshairs = undefined;
+                    }
+                },
+
+                // for sweep-zoom allow user to sweep beyond viewport extent
+                // sweep area clamps since viewport mouse handlers stop firing
+                // when the viewport boundary is crossed.
+                mouseup: function (e) {
+
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    if (isSweepZooming) {
+                        isSweepZooming = false;
+                        self.sweepZoom.commit();
+                    }
+
+                }
+            });
+        }
+
+        function panMouseUpOrMouseOut(e) {
+
+            if (true === isDragging) {
+                isDragging = false;
+                self.browser.eventBus.post(hic.Event("DragStopped"));
+            }
+
+            isMouseDown = false;
+            mouseDown = mouseLast = undefined;
+        }
+
+        function mouseWheelHandler(e) {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            var t = Date.now();
+
+            if (lastWheelTime === undefined || (t - lastWheelTime > 1000)) {
+
+                // cross-browser wheel delta  -- Firefox returns a "detail" object that is opposite in sign to wheelDelta
+                var direction = e.deltaY < 0 ? 1 : -1,
+                    coords = igv.translateMouseCoordinates(e, $viewport),
+                    x = coords.x,
+                    y = coords.y;
+                self.browser.wheelClickZoom(direction, x, y);
+                lastWheelTime = t;
+            }
+
+        }
+
+
+        function shiftCurrentImage(self, dx, dy) {
+            var canvasWidth = self.$canvas.width(),
+                canvasHeight = self.$canvas.height(),
+                imageData;
+
+            imageData = self.ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+            self.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            self.ctx.putImageData(imageData, dx, dy);
+        }
+
+    }
+
+
+    /**
+     * Add touch handlers.  Touches are mapped to one of the following application level events
+     *  - double tap, equivalent to double click
+     *  - move
+     *  - pinch
+     *
+     * @param $viewport
+     */
+
+    function addTouchHandlers($viewport) {
+
+        var self = this,
+
+            lastTouch, pinch,
+            viewport = $viewport[0];
+
+        /**
+         * Touch start -- 3 possibilities
+         *   (1) beginning of a drag (pan)
+         *   (2) first tap of a double tap
+         *   (3) beginning of a pinch
+         */
         viewport.ontouchstart = function (ev) {
 
             ev.preventDefault();
@@ -17029,241 +22983,21 @@ var hic = (function (hic) {
 
         }
 
-        if (!this.browser.isMobile) {
+        function translateTouchCoordinates(e, target) {
 
+            var $target = $(target),
+                eFixed,
+                posx,
+                posy;
 
-            $viewport.dblclick(function (e) {
+            posx = e.pageX - $target.offset().left;
+            posy = e.pageY - $target.offset().top;
 
-                e.preventDefault();
-                e.stopPropagation();
-
-                var mouseX = e.offsetX || e.layerX,
-                    mouseY = e.offsetY || e.layerX;
-
-                self.browser.zoomAndCenter(1, mouseX, mouseY);
-
-            });
-
-            $viewport.on('mouseover', function (e) {
-                mouseOver = true;
-            });
-
-            $viewport.on('mouseout', function (e) {
-                mouseOver = undefined;
-            });
-
-            $viewport.on('mousedown', function (e) {
-                var eFixed;
-
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (self.browser.$menu.is(':visible')) {
-                    self.browser.hideMenu();
-                }
-
-                mouseLast = {x: e.offsetX, y: e.offsetY};
-                mouseDown = {x: e.offsetX, y: e.offsetY};
-
-                isSweepZooming = (true === e.altKey);
-                if (isSweepZooming) {
-                    eFixed = $.event.fix(e);
-                    self.sweepZoom.reset({x: eFixed.pageX, y: eFixed.pageY});
-                }
-
-                isMouseDown = true;
-
-            });
-
-            $viewport.on('mousemove', hic.throttle(function (e) {
-
-                var coords, eFixed;
-
-
-                e.preventDefault();
-                e.stopPropagation();
-                coords = {x: e.offsetX, y: e.offsetY};
-
-                self.browser.updateCrosshairs(coords);
-
-                if (isMouseDown) { // Possibly dragging
-
-                    if (isSweepZooming) {
-                        // Sets pageX and pageY for browsers that don't support them
-                        eFixed = $.event.fix(e);
-                        self.sweepZoom.update({x: eFixed.pageX, y: eFixed.pageY});
-                    }
-
-                    else if (mouseDown.x && Math.abs(coords.x - mouseDown.x) > DRAG_THRESHOLD) {
-
-                        isDragging = true;
-
-                        var dx = mouseLast.x - coords.x;
-                        var dy = mouseLast.y - coords.y;
-
-                        // If matrix data is updating shift current map image while we wait
-                        if (self.updating) {
-                            shiftCurrentImage(self, -dx, -dy);
-                        }
-
-                        self.browser.shiftPixels(dx, dy);
-
-                    }
-
-                    mouseLast = coords;
-                }
-
-
-            }, 10));
-
-            $viewport.on('mouseup', panMouseUpOrMouseOut);
-
-            $viewport.on('mouseleave', panMouseUpOrMouseOut);
-
-            // Mousewheel events -- ie exposes event only via addEventListener, no onwheel attribute
-            // NOte from spec -- trackpads commonly map pinch to mousewheel + ctrl
-
-            if (!self.browser.figureMode) {
-                $viewport[0].addEventListener("wheel", mouseWheelHandler, 250, false);
-            }
-
-            // Document level events
-            $(document).on({
-
-                keydown: function (e) {
-                    // shift key
-                    if (true === mouseOver && 16 === e.keyCode) {
-                        self.browser.showCrosshairs();
-                    }
-                },
-
-                keyup: function (e) {
-                    // shift key
-                    if (16 === e.keyCode) {
-                        self.browser.hideCrosshairs();
-                    }
-                },
-
-                // for sweep-zoom allow user to sweep beyond viewport extent
-                // sweep area clamps since viewport mouse handlers stop firing
-                // when the viewport boundary is crossed.
-                mouseup: function (e) {
-
-                    e.preventDefault()
-                    e.stopPropagation();
-
-                    if (isSweepZooming) {
-                        isSweepZooming = false;
-                        self.sweepZoom.dismiss();
-                    }
-
-                }
-            });
-
-        }
-
-        function panMouseUpOrMouseOut(e) {
-
-            if (true === isDragging) {
-                isDragging = false;
-                self.browser.eventBus.post(hic.Event("DragStopped"));
-            }
-
-            isMouseDown = false;
-            mouseDown = mouseLast = undefined;
-        }
-
-        function mouseWheelHandler(e) {
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            var t = Date.now();
-
-            if (lastWheelTime === undefined || (t - lastWheelTime > 1000)) {
-
-                // cross-browser wheel delta  -- Firefox returns a "detail" object that is opposite in sign to wheelDelta
-                var direction = e.deltaY < 0 ? 1 : -1,
-                    coords = igv.translateMouseCoordinates(e, $viewport),
-                    x = coords.x,
-                    y = coords.y;
-                self.browser.zoomAndCenter(direction, x, y);
-                lastWheelTime = t;
-            }
-
+            return {x: posx, y: posy}
         }
 
     }
 
-    hic.ColorScale = function (scale) {
-        this.low = scale.low;
-        this.lowR = scale.lowR;
-        this.lowG = scale.lowG;
-        this.lowB = scale.lowB;
-        this.high = scale.high;
-        this.highR = scale.highR;
-        this.highG = scale.highG;
-        this.highB = scale.highB;
-    };
-
-    hic.ColorScale.prototype.equals = function (cs) {
-        return JSON.stringify(this) === JSON.stringify(cs);
-    };
-
-    hic.ColorScale.prototype.getColor = function (value) {
-        var scale = this, r, g, b, frac, diff;
-
-        if (value <= scale.low) value = scale.low;
-        else if (value >= scale.high) value = scale.high;
-
-        diff = scale.high - scale.low;
-
-        frac = (value - scale.low) / diff;
-        r = Math.floor(scale.lowR + frac * (scale.highR - scale.lowR));
-        g = Math.floor(scale.lowG + frac * (scale.highG - scale.lowG));
-        b = Math.floor(scale.lowB + frac * (scale.highB - scale.lowB));
-
-        return {
-            red: r,
-            green: g,
-            blue: b,
-            rgb: "rgb(" + r + "," + g + "," + b + ")"
-        };
-    };
-
-    hic.ColorScale.prototype.stringify = function () {
-        return "" + this.high + ',' + this.highR + ',' + this.highG + ',' + this.highB;
-    };
-
-    hic.destringifyColorScale = function (string) {
-
-        var cs,
-            tokens;
-
-        tokens = string.split(",");
-
-        cs = _.clone(defaultColorScaleInitializer);
-        cs.high = tokens[ 0 ];
-        cs.highR = tokens[ 1 ];
-        cs.highG = tokens[ 2 ];
-        cs.highB = tokens[ 3 ];
-
-        return new hic.ColorScale(cs);
-
-    };
-
-    function translateTouchCoordinates(e, target) {
-
-        var $target = $(target),
-            eFixed,
-            posx,
-            posy;
-
-        posx = e.pageX - $target.offset().left;
-        posy = e.pageY - $target.offset().top;
-
-        return {x: posx, y: posy}
-    }
 
     return hic;
 
@@ -17331,16 +23065,19 @@ var hic = (function (hic) {
             eventType = event.type,
             subscriberList = this.subscribers[eventType];
 
-        if(subscriberList) {
+        if (subscriberList) {
             subscriberList.forEach(function (subscriber) {
 
                 if ("function" === typeof subscriber.receiveEvent) {
                     subscriber.receiveEvent(event);
+                } else if ("function" === typeof subscriber) {
+                    subscriber(event);
                 }
+
             });
         }
 
-        if(event.type === "LocusChange"  && event.propogate) {
+        if (event.type === "LocusChange" && event.propogate) {
 
             self.browser.synchedBrowsers.forEach(function (browser) {
                 browser.syncState(self.browser.getSyncState());
@@ -17350,7 +23087,7 @@ var hic = (function (hic) {
 
     };
 
-    hic.Event = function(type, data, propogate) {
+    hic.Event = function (type, data, propogate) {
         return {
             type: type,
             data: data || {},
@@ -17489,14 +23226,27 @@ var hic = (function (hic) {
 
 var hic = (function (hic) {
 
+    /**
+     * 
+     * @param id
+     * @param chromosomes -- an array of hic.Chromosome objects.  
+     * @constructor
+     */
     hic.Genome = function (id, chromosomes) {
+
+        var self = this;
 
         this.id = id;
         this.chromosomes = chromosomes;
+        this.chromosomeLookupTable = {};
 
         // Alias for size for igv compatibility
+        this.genomeLength = 0;
         this.chromosomes.forEach(function (c) {
             c.bpLength = c.size;
+            if('all' !== c.name.toLowerCase()) {
+                self.genomeLength += c.size;
+            }
         })
 
         /**
@@ -17513,9 +23263,10 @@ var hic = (function (hic) {
             chrAliasTable[alias] = name;
             if (name === "chrM") chrAliasTable["MT"] = "chrM";
             if (name === "MT") chrAliasTable["chrmM"] = "MT";
+
+            self.chromosomeLookupTable[name.toLowerCase()] = chromosome;
         });
 
-        constructWG(this);
 
         this.chrAliasTable = chrAliasTable;
 
@@ -17526,17 +23277,31 @@ var hic = (function (hic) {
         return chr ? chr : str;
     };
 
-    hic.Genome.prototype.getChromosome = function (chr) {
-        chr = this.getChromosomeName(chr);
-        return this.chromosomes[chr];
+    hic.Genome.prototype.getChromosome = function (str) {
+        var chrname = this.getChromosomeName(str).toLowerCase();
+        return this.chromosomeLookupTable[chrname];
     };
 
     /**
      * Return the genome coordinate for the give chromosome and position.
      */
     hic.Genome.prototype.getGenomeCoordinate = function (chr, bp) {
-        return this.getCumulativeOffset(chr) + bp;
+        return this.getCumulativeOffset(chr.name) + bp;
     };
+
+    hic.Genome.prototype.getChromsosomeForCoordinate = function (bp) {
+        var i = 0,
+            offset = 0,
+            l;
+
+        for (i = 1; i < this.chromosomes.length; i++) {
+            l = this.chromosomes[i].size;
+            if (offset + l > bp) return this.chromosomes[i];
+            offset += l;
+        }
+        return this.chromosomes[this.chromosomes.length - 1];
+
+    }
 
 
     /**
@@ -17551,7 +23316,7 @@ var hic = (function (hic) {
         if (this.cumulativeOffsets === undefined) {
             computeCumulativeOffsets.call(this);
         }
-        return this.cumulativeOffsets[queryChr.name];
+        return this.cumulativeOffsets[queryChr];
     };
 
     function computeCumulativeOffsets() {
@@ -17577,29 +23342,11 @@ var hic = (function (hic) {
 
     }
 
-
-// this.sequence = sequence;
-// this.chromosomeNames = sequence.chromosomeNames;
-// this.chromosomes = sequence.chromosomes;  // An object (functions as a dictionary)
-// this.ideograms = ideograms;
-// this.wgChromosomeNames = wgChromosomeNames;
-
-    function constructWG(genome) {
-
-        var l;
-
-        // Construct the whole-genome "chromosome"
-        l = 0;
-        _.each(genome.chromosomes, function (chromosome) {
-            l += Math.floor((chromosome.size / 1000));  // wg length is in kb.  bp would overflow maximum number limit
-        });
-
-
-        genome.chromosomes["all"] = {
-            name: "all",
-            size: l
-        };
+    // Required for igv.js
+    hic.Genome.prototype.getGenomeLength = function () {
+        return this.genomeLength;
     }
+
 
     return hic;
 
@@ -17646,6 +23393,7 @@ var hic = (function (hic) {
         height: 640
     };
 
+
     hic.allBrowsers = [];
 
     // mock igv browser objects for igv.js compatibility
@@ -17682,13 +23430,16 @@ var hic = (function (hic) {
         igv.dataRangeDialog.hide();
 
         // alert object -- singleton shared by all components
+
+        // firstBrowser = (hic.allBrowsers && hic.allBrowsers.length > 1) ? hic.allBrowsers[ 0 ] : hicBrowser;
+        // igv.alert = new igv.AlertDialog(firstBrowser.$root, "igv-alert");
         igv.alert = new igv.AlertDialog(hicBrowser.$root, "igv-alert");
         igv.alert.hide();
 
     }
 
-
-    hic.createBrowser = function (hic_container, config) {
+    // The dreaded callback!!!  Interim patch to properly sync browsers
+    hic.createBrowser = function (hic_container, config, callback) {
 
         var browser,
             queryString,
@@ -17697,11 +23448,18 @@ var hic = (function (hic) {
             initialImageImg,
             initialImageX,
             initialImageY,
-            uriDecode;
+            uriDecode,
+            apiKey;
 
         $hic_container = $(hic_container);
 
         setDefaults(config);
+
+        apiKey = config.apiKey;
+        if (apiKey) {
+            igv.setApiKey(apiKey);
+            hic.apiKey = apiKey;
+        }
 
         queryString = config.queryString || config.href;   // href for backward compatibility
         if (queryString === undefined && config.initFromUrl !== false) {
@@ -17730,8 +23488,9 @@ var hic = (function (hic) {
 
         browser.trackMenuReplacement = new hic.TrackMenuReplacement(browser);
 
-        createIGV($hic_container, browser, browser.trackMenuReplacement);
-
+        if (undefined === igv.browser) {
+            createIGV($hic_container, browser, browser.trackMenuReplacement);
+        }
 
         if (config.initialImage) {
 
@@ -17750,21 +23509,48 @@ var hic = (function (hic) {
                 browser.contactMatrixView.setInitialImage(initialImageX, initialImageY, initialImageImg, browser.state);
 
                 // Load hic file after initial image is loaded -- important
+                // Defer track loads until hic file is loaded.  The hic file defines the reference for the tracks.
                 if (config.url || config.dataset) {
-                    browser.loadHicFile(config);
+
+                    browser.loadHicFile(config)
+
+                        .then(function (dataset) {
+
+                            if (config.tracks) {
+
+                                browser.loadTracks(config.tracks);
+                            }
+
+                        })
                 }
             }
             initialImageImg.src = (typeof config.initialImage === 'string') ? config.initialImage : config.initialImage.imageURL;
         }
         else {
             if (config.url || config.dataset) {
-                browser.loadHicFile(config);
+
+                browser.loadHicFile(config)
+
+                    .then(function (dataset) {
+
+                        if (typeof callback === "function") callback();
+
+                        if (config.tracks) {
+                            browser.loadTracks(config.tracks);
+                        }
+
+                    })
+                    .catch(function (error) {
+                        hic.presentError("Error loading " + (config.name || config.url), error);
+                    })
             }
         }
+
 
         return browser;
 
     };
+
 
     hic.Browser = function ($app_container, config) {
 
@@ -17791,10 +23577,15 @@ var hic = (function (hic) {
             this.$root.css("height", String(config.height + hic.LayoutController.navbarHeight(this.config.figureMode)));
         }
 
-
         $app_container.append(this.$root);
 
         this.layoutController = new hic.LayoutController(this, this.$root);
+
+        // prevent user interaction during lengthy data loads
+        this.$user_interaction_shield = $('<div>', {class: 'hic-root-prevent-interaction'});
+        this.$root.append(this.$user_interaction_shield);
+        this.$user_interaction_shield.hide();
+
 
         this.hideCrosshairs();
 
@@ -17804,6 +23595,7 @@ var hic = (function (hic) {
             this.contactMatrixView.setColorScale(config.colorScale, this.state);
         }
 
+        this.eventBus.subscribe("LocusChange", this);
 
         function configureHover($e) {
 
@@ -17850,6 +23642,24 @@ var hic = (function (hic) {
         this.$menu.hide();
     };
 
+    hic.Browser.prototype.startSpinner = function () {
+
+        if (true === this.isLoadingHICFile) {
+            this.$user_interaction_shield.show();
+        }
+
+        this.contactMatrixView.startSpinner();
+    }
+
+    hic.Browser.prototype.stopSpinner = function () {
+
+        if (!this.isLoadingHICFile) {
+            this.$user_interaction_shield.hide();
+        }
+
+        this.contactMatrixView.stopSpinner();
+    }
+
     /**
      * Load a dataset outside the context of a browser.  Purpose is to "pre load" a shared dataset when
      * instantiating multiple browsers in a page.
@@ -17857,54 +23667,85 @@ var hic = (function (hic) {
      * @param config
      */
     hic.loadDataset = function (config) {
+        var self = this;
 
-        return new Promise(function (fulfill, reject) {
-            var hicReader = new hic.HiCReader(config);
+        var hicReader = new hic.HiCReader(config);
 
-            hicReader.loadDataset(config)
+        return hicReader.loadDataset(config)
 
-                .then(function (dataset) {
+            .then(function (dataset) {
 
-                    if (config.nvi) {
-                        var nviArray = decodeURIComponent(config.nvi).split(","),
-                            range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
+                if (config.nvi) {
+                    var nviArray = decodeURIComponent(config.nvi).split(","),
+                        range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
 
-                        hicReader.readNormVectorIndex(dataset, range)
-                            .then(function (ignore) {
-                                fulfill(dataset);
-                            })
-                            .catch(function (error) {
-                                self.contactMatrixView.stopSpinner();
-                                console.log(error);
-                            })
-                    }
-                    else {
-                        fulfill(dataset);
-                    }
-                })
-                .catch(reject)
-        });
+                    return hicReader.readNormVectorIndex(dataset, range)
+                        .then(function (ignore) {
+                            return dataset;
+                        })
+
+                }
+                else {
+                    return dataset;
+                }
+            })
+
     };
 
     hic.syncBrowsers = function (browsers) {
 
-        browsers.forEach(function (b1) {
-            if (b1 === undefined) {
-                console.log("Attempt to sync undefined browser");
-            }
-            else {
-                browsers.forEach(function (b2) {
-                    if (b2 === undefined) {
-                        console.log("Attempt to sync undefined browser");
-                    }
-                    else {
-                        if (b1 !== b2 && !b1.synchedBrowsers.includes(b2)) {
-                            b1.synchedBrowsers.push(b2);
-                        }
-                    }
-                })
-            }
+        var browsersWithMaps, genome, incompatibleDatasets, gid;
+
+        browsersWithMaps = browsers.filter(function (b) {
+            return b.dataset !== undefined;
         })
+
+        if (browsersWithMaps.length < 2) {
+            // Nothing to sync
+            return;
+        }
+
+        // Canonical browser is the first one, arbitrarily
+        genome = canonicalGenomeId(browsers[0].dataset.genomeId);
+
+        // Sync compatible maps only
+
+        incompatibleDatasets = [];
+        browsersWithMaps.forEach(function (b1) {
+
+            gid = canonicalGenomeId(b1.dataset.genomeId);
+
+            if (gid === genome) {
+                browsers.forEach(function (b2) {
+                    if (b1 !== b2 && !b1.synchedBrowsers.includes(b2)) {
+                        b1.synchedBrowsers.push(b2);
+                    }
+
+                })
+            } else {
+                incompatibleDatasets.push(b1.dataset.genomeId);
+            }
+        });
+
+        if (incompatibleDatasets.length > 0) {
+            igv.presentAlert("Not all maps could be synchronized.  Incompatible assemblies: " + browsers[0].dataset.genomeId + " vs " + incompatibleDatasets.join());
+        }
+
+
+        function canonicalGenomeId(genomeId) {
+
+            switch (genomeId) {
+                case "GRCh38":
+                    return "hg38";
+                case "GRCh37":
+                    return "hg19";
+                case "GRCm38" :
+                    return "mm10";
+                default:
+                    return genomeId;
+            }
+        }
+
     };
 
     hic.Browser.getCurrentBrowser = function () {
@@ -17919,84 +23760,96 @@ var hic = (function (hic) {
 
     hic.Browser.setCurrentBrowser = function (browser) {
 
+        // unselect current browser
         if (undefined === browser) {
 
-            $('.hic-root').removeClass('hic-root-selected');
-            hic.Browser.currentBrowser = browser;
-        } else if (browser === hic.Browser.currentBrowser) {
-
-            // toggle state (turn selection off)
-            $('.hic-root').removeClass('hic-root-selected');
-            hic.Browser.currentBrowser = undefined;
-
-        } else {
-
-            if (hic.allBrowsers.length > 1) {
-                $('.hic-root').removeClass('hic-root-selected');
-                browser.$root.addClass('hic-root-selected');
+            if (hic.Browser.currentBrowser) {
+                hic.Browser.currentBrowser.$root.removeClass('hic-root-selected');
             }
 
+            hic.Browser.currentBrowser = browser;
+            return;
+        }
+
+        if (browser !== hic.Browser.currentBrowser) {
+
+            if (hic.Browser.currentBrowser) {
+                hic.Browser.currentBrowser.$root.removeClass('hic-root-selected');
+            }
+
+            browser.$root.addClass('hic-root-selected');
             hic.Browser.currentBrowser = browser;
         }
 
     };
 
     hic.Browser.prototype.updateCrosshairs = function (coords) {
+        var xGuide,
+            yGuide;
 
-        this.contactMatrixView.$x_guide.css({top: coords.y, left: 0});
-        this.layoutController.$y_tracks.find("div[id$='x-track-guide']").css({top: coords.y, left: 0});
+        xGuide = coords.y < 0 ? {left: 0} : {top: coords.y, left: 0};
+        this.contactMatrixView.$x_guide.css(xGuide);
+        this.layoutController.$x_track_guide.css(xGuide);
 
-        this.contactMatrixView.$y_guide.css({top: 0, left: coords.x});
-        this.layoutController.$x_tracks.find("div[id$='y-track-guide']").css({top: 0, left: coords.x});
+        yGuide = coords.x < 0 ? {top: 0} : {top: 0, left: coords.x};
+        this.contactMatrixView.$y_guide.css(yGuide);
+        this.layoutController.$y_track_guide.css(yGuide);
+
 
     };
 
     hic.Browser.prototype.hideCrosshairs = function () {
 
-        _.each([this.contactMatrixView.$x_guide, this.contactMatrixView.$y_guide, this.layoutController.$x_tracks.find("div[id$='y-track-guide']"), this.layoutController.$y_tracks.find("div[id$='x-track-guide']")], function ($e) {
-            $e.hide();
-        });
+        this.contactMatrixView.$x_guide.hide();
+        this.layoutController.$x_track_guide.hide();
+
+        this.contactMatrixView.$y_guide.hide();
+        this.layoutController.$y_track_guide.hide();
 
     };
 
     hic.Browser.prototype.showCrosshairs = function () {
 
-        _.each([this.contactMatrixView.$x_guide, this.contactMatrixView.$y_guide, this.layoutController.$x_tracks.find("div[id$='y-track-guide']"), this.layoutController.$y_tracks.find("div[id$='x-track-guide']")], function ($e) {
-            $e.show();
-        });
+        this.contactMatrixView.$x_guide.show();
+        this.layoutController.$x_track_guide.show();
 
+        this.contactMatrixView.$y_guide.show();
+        this.layoutController.$y_track_guide.show();
     };
 
-    hic.Browser.prototype.genomicState = function () {
+    hic.Browser.prototype.genomicState = function (axis) {
         var gs,
             bpResolution;
 
         bpResolution = this.dataset.bpResolutions[this.state.zoom];
-
-        gs = {};
-        gs.bpp = bpResolution / this.state.pixelSize;
-
-        gs.chromosome = {x: this.dataset.chromosomes[this.state.chr1], y: this.dataset.chromosomes[this.state.chr2]};
-
-        gs.startBP = {x: this.state.x * bpResolution, y: this.state.y * bpResolution};
-        gs.endBP = {
-            x: gs.startBP.x + gs.bpp * this.contactMatrixView.getViewDimensions().width,
-            y: gs.startBP.y + gs.bpp * this.contactMatrixView.getViewDimensions().height
+        gs = {
+            bpp: bpResolution / this.state.pixelSize
         };
 
+        if (axis === "x") {
+            gs.chromosome = this.dataset.chromosomes[this.state.chr1];
+            gs.startBP = this.state.x * bpResolution;
+            gs.endBP = gs.startBP + gs.bpp * this.contactMatrixView.getViewDimensions().width;
+        }
+        else {
+            gs.chromosome = this.dataset.chromosomes[this.state.chr2];
+            gs.startBP = this.state.y * bpResolution;
+            gs.endBP = gs.startBP + gs.bpp * this.contactMatrixView.getViewDimensions().height;
+        }
         return gs;
     };
+
 
     hic.Browser.prototype.getColorScale = function () {
         return this.contactMatrixView.colorScale;
     };
 
-    hic.Browser.prototype.updateColorScale = function (config) {
+    hic.Browser.prototype.updateColorScale = function (options) {
 
         var self = this,
             state;
 
-        this.contactMatrixView.setColorScale(config);
+        this.contactMatrixView.setColorScale(options);
         this.contactMatrixView.imageTileCache = {};
         this.contactMatrixView.initialImage = undefined;
         this.contactMatrixView.update();
@@ -18006,7 +23859,7 @@ var hic = (function (hic) {
             .then(function (matrix) {
                 var zd = matrix.bpZoomData[state.zoom];
                 var colorKey = zd.getKey() + "_" + state.normalization;
-                self.contactMatrixView.colorScaleCache[colorKey] = config.high;
+                self.contactMatrixView.colorScaleCache[colorKey] = options.high;
                 self.contactMatrixView.update();
             })
             .catch(function (error) {
@@ -18015,159 +23868,171 @@ var hic = (function (hic) {
             });
     };
 
-    hic.Browser.prototype.loadTrack = function (trackConfigurations) {
+    /**
+     * Load a list of 1D genome tracks (wig, etc).
+     *
+     * NOTE: public API function
+     *
+     * @param trackConfigurations
+     */
+    hic.Browser.prototype.loadTracks = function (trackConfigurations) {
 
         var self = this,
-            promises,
-            promises2D;
+            errorPrefix;
 
-        promises = [];
-        promises2D = [];
+        // If loading a single track remember its name, for error message
+        errorPrefix = trackConfigurations.length == 1 ? "Error loading track " + trackConfigurations[0].name : "Error loading tracks";
 
-        _.each(trackConfigurations, function (config) {
+        Promise.all(inferTypes(trackConfigurations))
 
-            var isLocal = config.url instanceof File,
-                fn = isLocal ? config.url.name : config.url;
-            if (fn.endsWith(".juicerformat") || fn.endsWith("nv") || fn.endsWith(".juicerformat.gz") || fn.endsWith("nv.gz")) {
-                self.loadNormalizationFile(config.url);
-                if (isLocal === false) {
-                    self.normVectorFiles.push(config.url);
-                }
-                return;
-            }
+            .then(function (trackConfigurations) {
 
 
-            igv.inferTrackTypes(config);
+                var trackXYPairs,
+                    promises2D;
 
-            if ("annotation" === config.type && config.color === undefined) {
-                config.color = DEFAULT_ANNOTATION_COLOR;
-            }
+                trackXYPairs = [];
+                promises2D = [];
 
-            config.height = self.layoutController.track_height;
+                trackConfigurations.forEach(function (config) {
 
-            if (config.type === undefined) {
-                // Assume this is a 2D track
-                promises2D.push(hic.loadTrack2D(config));
-            }
-            else {
-                promises.push(loadIGVTrack(config));   // X track
-                promises.push(loadIGVTrack(config));   // Y track
-            }
+                    if (config) {
 
-        });
+                        var isLocal = config.url instanceof File,
+                            fn = isLocal ? config.url.name : config.url;
 
-        // 1D tracks
-        if (promises.length > 0) {
-            Promise
-                .all(promises)
-                .then(function (tracks) {
-                    var trackXYPairs = [],
-                        index;
+                        if ("annotation" === config.type && config.color === undefined) {
+                            config.color = DEFAULT_ANNOTATION_COLOR;
+                        }
 
-                    for (index = 0; index < tracks.length; index += 2) {
-                        trackXYPairs.push({x: tracks[index], y: tracks[index + 1]});
+                        config.height = self.layoutController.track_height;
+
+                        if (config.type === undefined) {
+                            // Assume this is a 2D track
+                            promises2D.push(hic.loadTrack2D(config));
+                        }
+                        else {
+                            var track = igv.createTrack(config);
+                            trackXYPairs.push({x: track, y: track});
+                        }
                     }
-
-                    self.eventBus.post(hic.Event("TrackLoad", {trackXYPairs: trackXYPairs}));
-                })
-                .catch(function (error) {
-                    console.log(error.message);
-                    alert(error.message);
                 });
-        }
 
-        // 2D tracks
-        if (promises2D.length > 0) {
-            Promise.all(promises2D)
-                .then(function (tracks2D) {
-                    self.tracks2D = self.tracks2D.concat(tracks2D);
-                    self.eventBus.post(hic.Event("TrackLoad2D", self.tracks2D));
+                if (trackXYPairs.length > 0) {
+                    self.layoutController.tracksLoaded(trackXYPairs);
+                    self.updateLayout();
+                }
 
-                }).catch(function (error) {
-                console.log(error.message);
-                alert(error.message);
+
+                // 2D tracks
+                if (promises2D.length > 0) {
+                    Promise.all(promises2D)
+                        .then(function (tracks2D) {
+                            self.tracks2D = self.tracks2D.concat(tracks2D);
+                            self.eventBus.post(hic.Event("TrackLoad2D", self.tracks2D));
+
+                        })
+                        .catch(function (error) {
+                            hic.presentError(errorPrefix, error);
+                        });
+                }
+            })
+
+            .catch(function (error) {
+                hic.presentError(errorPrefix, error);
+            })
+
+        function inferTypes(trackConfigurations) {
+
+            var promises = [];
+            trackConfigurations.forEach(function (config) {
+
+                var url = config.url;
+
+                if (url && typeof url === "string" && url.includes("drive.google.com")) {
+
+                    promises.push(igv.Google.getDriveFileInfo(config.url)
+
+                        .then(function (json) {
+                            // Temporarily switch URL to infer tipes
+                            config.url = json.originalFilename;
+                            igv.inferTrackTypes(config);
+                            if (config.name === undefined) {
+                                config.name = json.originalFilename;
+                            }
+                            config.url = url;
+                            return config;
+                        })
+                    );
+                }
+
+                else {
+                    igv.inferTrackTypes(config);
+                    if (!config.name) {
+                        config.name = hic.extractFilename(config.url);
+                    }
+                    promises.push(Promise.resolve(config));
+                }
+
             });
+
+            return promises;
         }
 
-    };
-
-    function loadIGVTrack(config) {
-
-        return new Promise(function (fulfill, reject) {
-
-            var newTrack;
-
-            newTrack = igv.createTrackWithConfiguration(config);
-
-            if (undefined === newTrack) {
-                reject(new Error('Could not create track'));
-            } else if (typeof newTrack.getFileHeader === "function") {
-
-                newTrack
-                    .getFileHeader()
-                    .then(function (header) {
-                        fulfill(newTrack);
-                    })
-                    .catch(reject);
-
-            } else {
-                fulfill(newTrack);
-            }
-        });
 
     }
 
-    hic.Browser.prototype.loadNormalizationFile = function (url) {
+
+    hic.Browser.prototype.renderTracks = function () {
 
         var self = this;
+        this.trackRenderers.forEach(function (xyTrackRenderPair, index) {
+            self.renderTrackXY(xyTrackRenderPair);
+        });
 
-        if (!this.dataset) return;
+    };
 
-        self.eventBus.post(hic.Event("NormalizationFileLoad", "start"));
+    /**
+     * Render the XY pair of tracks.
+     *
+     * @param xy
+     */
+    hic.Browser.prototype.renderTrackXY = function (xy) {
 
-        this.dataset.readNormalizationVectorFile(url)
+        //xy.x.repaint();
+        //xy.y.repaint();
 
+        var self = this;
+        xy.x.readyToPaint()
             .then(function (ignore) {
-
-                self.eventBus.post(hic.Event("NormVectorIndexLoad", self.dataset));
-
+                return xy.y.readyToPaint();
+            })
+            .then(function (ignore) {
+                self.stopSpinner();
+                xy.x.repaint();
+                xy.y.repaint();
             })
             .catch(function (error) {
-                self.eventBus.post(hic.Event("NormalizationFileLoad", "abort"));
-                console.log(error);
-            });
-    };
+                self.stopSpinner();
+                console.error(error);
+            })
+    }
 
-    hic.Browser.prototype.renderTracks = function (doSyncCanvas) {
 
-        var self = this;
-
-        _.each(this.trackRenderers, function (xyTrackRenderPair, index) {
-
-            _.each(xyTrackRenderPair, function (trackRenderer) {
-
-                trackRenderer.$viewport.css({order: index});
-
-                if (true === doSyncCanvas) {
-                    trackRenderer.syncCanvas();
-                }
-
-                self.renderTrackXY(xyTrackRenderPair);
-            });
-        });
-    };
-
-    hic.Browser.prototype.renderTrackXY = function (xy) {
-        xy.x.repaint();
-        xy.y.repaint();
-    };
-
+    /**
+     * Load a .hic file
+     *
+     * NOTE: public API function
+     *
+     * @return a promise for a dataset
+     * @param config
+     */
     hic.Browser.prototype.loadHicFile = function (config) {
 
         var self = this,
-            hicReader,
-            queryIdx,
-            parts;
+            hicReader, queryIdx, parts, tmp, id, url,
+            apiKey = hic.apiKey,
+            endPoint;
 
 
         if (!config.url && !config.dataset) {
@@ -18175,123 +24040,99 @@ var hic = (function (hic) {
             return;
         }
 
+        self.layoutController.removeAllTrackXYPairs();
+        self.contactMatrixView.clearCaches();
+        self.tracks2D = [];
+        self.tracks = [];
+
+        this.isLoadingHICFile = true;
+        if (!self.config.initialImage) {
+            self.contactMatrixView.startSpinner();
+        }
+
+
         if (config.url) {
-            if (config.url instanceof File) {
-                this.url = config.url;
-            } else {
+            this.url = config.url;
+            if (typeof config.url === "string") {
                 queryIdx = config.url.indexOf("?");
                 if (queryIdx > 0) {
-                    this.url = config.url.substring(0, queryIdx);
                     parts = parseUri(config.url);
                     if (parts.queryKey) {
-                        _.each(parts.queryKey, function (value, key) {
-                            config[key] = value;
-                        });
+                        Object.assign(config, parts.queryKey);
                     }
-                }
-                else {
-                    this.url = config.url;
                 }
             }
         }
 
-        this.name = config.name;
-
-        this.$contactMaplabel.text(config.name);
-
-        this.layoutController.removeAllTrackXYPairs();
-
-        this.contactMatrixView.clearCaches();
-
-        if (!this.config.initialImage) {
-            this.contactMatrixView.startSpinner();
-        }
-
-        this.tracks2D = [];
-
         if (config.dataset) {
-            setDataset(config.dataset);
+            self.$contactMaplabel.text(config.name);
+            self.name = config.name;
+            return Promise.resolve(setDataset(config.dataset));
         }
         else {
 
-            hicReader = new hic.HiCReader(config);
+            return extractName(config)
 
-            hicReader.loadDataset(config)
+                .then(function (name) {
+                    hicReader = new hic.HiCReader(config);
+                    return hicReader.loadDataset(config);
+                })
 
                 .then(function (dataset) {
-
+                    var previousGenomeId = self.genome ? self.genome.id : undefined;
                     self.dataset = dataset;
+                    self.genome = new hic.Genome(self.dataset.genomeId, self.dataset.chromosomes);
 
-                    if (config.normVectorFiles) {
+                    console.log(self.dataset.genomeId);
 
-                        var promises = [];
-
-                        config.normVectorFiles.forEach(function (f) {
-                            promises.push(dataset.readNormalizationVectorFile(f));
-                        })
-
-                        self.eventBus.post(hic.Event("NormalizationFileLoad", "start"));
-
-                        Promise.all(promises)
-
-                            .then(function (ignore) {
-
-                                setDataset(dataset);
-
-                                self.eventBus.post(hic.Event("NormVectorIndexLoad", self.dataset));
-
-                            })
-                            .catch(function (error) {
-                                throw new Error("Error");
-                            });
+                    // TODO -- this is not going to work with browsers on different assemblies on the same page.
+                    igv.browser.genome = self.genome;
+                    if (self.genome.id !== previousGenomeId) {
+                        self.eventBus.post(hic.Event("GenomeChange", self.genome.id));
                     }
-                    else {
-                        setDataset(dataset);
+                    self.eventBus.post(hic.Event("MapLoad", self.dataset));
+
+                    return loadNVI(dataset)
+                })
+
+                .then(function (nvi) {
+                    self.isLoadingHICFile = false;
+                    self.stopSpinner();
+
+                    self.$contactMaplabel.text(config.name);
+                    self.name = config.name;
+
+                    if (config.colorScale) {
+                        self.contactMatrixView.setColorScale(config.colorScale, self.state);
+                    }
+
+                    self.isLoadingHICFile = false;
+
+
+                    if (config.state) {
+                        self.setState(config.state);
+                    } else if (config.synchState && self.canBeSynched(config.synchState)) {
+                        self.syncState(config.synchState);
+                    } else {
+                        self.setState(defaultState.clone());
                     }
 
                 })
                 .catch(function (error) {
-                    // Error getting dataset
-                    self.contactMatrixView.stopSpinner();
-                    console.log(error);
-                });
+                    self.isLoadingHICFile = false;
+                    self.stopSpinner();
+                    console.error(error);
+                    igv.presentAlert("Error loading hic file: " + error);
+                    return error;
+                })
         }
 
-        function setDataset(dataset) {
 
-            var previousGenomeId = self.genome ? self.genome.id : undefined;
-
-            self.dataset = dataset;
-
-            self.genome = new hic.Genome(self.dataset.genomeId, self.dataset.chromosomes);
-
-            // TODO -- this is not going to work with browsers on different assemblies on the same page.
-            igv.browser.genome = self.genome;
-
-            if (config.state) {
-                self.setState(config.state);
-            } else if (config.synchState) {
-                self.syncState(config.synchState);
-            } else {
-                self.setState(defaultState.clone());
-            }
-            self.contactMatrixView.datasetUpdated();
-
-            if (self.genome.id !== previousGenomeId) {
-                self.eventBus.post(hic.Event("GenomeChange", self.genome.id));
-            }
-
-            if (config.colorScale) {
-                self.contactMatrixView.setColorScale(config.colorScale, self.state);
-            }
-
-            if (config.tracks) {
-                self.loadTrack(config.tracks);
-            }
+        function loadNVI(dataset) {
 
             if (dataset.hicReader.normVectorIndex) {
-                self.eventBus.post(hic.Event("MapLoad", dataset));
-                self.eventBus.post(hic.Event("NormVectorIndexLoad", dataset));
+                // TODO jtr -- how can this happen?
+                return Promise.resolve(hicReader.normVectorIndex);
             }
             else {
                 if (config.nvi) {
@@ -18299,36 +24140,56 @@ var hic = (function (hic) {
                     var nviArray = decodeURIComponent(config.nvi).split(","),
                         range = {start: parseInt(nviArray[0]), size: parseInt(nviArray[1])};
 
-                    dataset.hicReader.readNormVectorIndex(dataset, range)
-                        .then(function (ignore) {
-                            self.eventBus.post(hic.Event("MapLoad", dataset));
+                    return dataset.hicReader.readNormVectorIndex(dataset, range)
+                        .then(function (nvi) {
                             self.eventBus.post(hic.Event("NormVectorIndexLoad", dataset));
-
-                        })
-                        .catch(function (error) {
-                            self.contactMatrixView.stopSpinner();
-                            console.log(error);
+                            return nvi;
                         })
                 } else {
-
-                    self.eventBus.post(hic.Event("MapLoad", dataset));
 
                     // Load norm vector index in the background
                     dataset.hicReader.readNormExpectedValuesAndNormVectorIndex(dataset)
                         .then(function (ignore) {
-                            self.eventBus.post(hic.Event("NormVectorIndexLoad", dataset));
+                            return self.eventBus.post(hic.Event("NormVectorIndexLoad", dataset));
                         })
                         .catch(function (error) {
-                            self.contactMatrixView.stopSpinner();
+                            igv.presentAlert("Error loading normalization vectors");
                             console.log(error);
                         });
+
+                    return Promise.resolve(undefined);   // NVI not loaded yeat
                 }
+
             }
-
-            $('.hic-root').removeClass('hic-root-selected');
-            hic.Browser.setCurrentBrowser(undefined);
-
         }
+
+        /**
+         * Return a promise to extract the name of the dataset.  The promise is neccessacary because
+         * google drive urls require a call to the API
+         *
+         * @returns Promise for the name
+         */
+        function extractName(config) {
+
+            if (config.name === undefined && typeof config.url === "string" && config.url.includes("drive.google.com")) {
+                tmp = hic.extractQuery(config.url);
+                id = tmp["id"];
+                endPoint = "https://www.googleapis.com/drive/v2/files/" + id;
+                if (apiKey) endPoint += "?key=" + apiKey;
+
+                return igv.Google.getDriveFileInfo(config.url)
+                    .then(function (json) {
+                        config.name = json.originalFilename;
+                        return config.name;
+                    })
+            } else {
+                if (config.name === undefined) {
+                    config.name = hic.extractFilename(config.url);
+                }
+                return Promise.resolve(config.name);
+            }
+        }
+
 
         stripUriParameters = function () {
 
@@ -18420,25 +24281,20 @@ var hic = (function (hic) {
 
         var self = this,
             parts,
-            chrName,
+            chromosome,
             extent,
-            succeeded,
-            chromosomeNames,
             locusObject = {},
             numeric;
 
         parts = locus.trim().split(':');
 
-        chromosomeNames = _.map(self.dataset.chromosomes, function (chr) {
-            return chr.name;
-        });
 
-        chrName = this.genome.getChromosomeName(parts[0]);
+        chromosome = this.genome.getChromosome(_.first(parts).toLowerCase());
 
-        if (!_.contains(chromosomeNames, chrName)) {
+        if (!chromosome) {
             return undefined;
         } else {
-            locusObject.chr = _.indexOf(chromosomeNames, chrName);
+            locusObject.chr = chromosome.index;
         }
 
 
@@ -18484,6 +24340,13 @@ var hic = (function (hic) {
 
         currentResolution = bpResolutions[this.state.zoom];
 
+        if(this.state.chr1 === 0) {
+
+            this.zoomAndCenter(1, anchorPx, anchorPy);
+            return;
+
+        }
+
         if (this.resolutionLocked ||
             (this.state.zoom === bpResolutions.length - 1 && scaleFactor > 1) ||
             (this.state.zoom === 0 && scaleFactor < 1)) {
@@ -18501,69 +24364,115 @@ var hic = (function (hic) {
             newPixelSize = Math.min(MAX_PIXEL_SIZE, newResolution / targetResolution);
         }
 
-        minPixelSize.call(this, this.state.chr1, this.state.chr2, newZoom)
+        minZoom.call(self, self.state.chr1, self.state.chr2)
+            
+            .then(function (z) {
 
-            .then(function (minPS) {
+                if (!this.resolutionLocked && scaleFactor < 1 && newZoom < z) {
+                    self.setChromosomes(0, 0);
+                }
+                else {
+                    minPixelSize.call(self, self.state.chr1, self.state.chr2, newZoom)
 
-                var state = self.state;
+                        .then(function (minPS) {
 
-                newPixelSize = Math.max(newPixelSize, minPS);
+                            var state = self.state;
 
-                // Genomic anchor  -- this position should remain at anchorPx, anchorPy after state change
-                gx = (state.x + anchorPx / state.pixelSize) * currentResolution;
-                gy = (state.y + anchorPy / state.pixelSize) * currentResolution;
+                            newPixelSize = Math.max(newPixelSize, minPS);
 
-                state.x = gx / newResolution - anchorPx / newPixelSize;
-                state.y = gy / newResolution - anchorPy / newPixelSize;
+                            // Genomic anchor  -- this position should remain at anchorPx, anchorPy after state change
+                            gx = (state.x + anchorPx / state.pixelSize) * currentResolution;
+                            gy = (state.y + anchorPy / state.pixelSize) * currentResolution;
 
-                state.zoom = newZoom;
-                state.pixelSize = newPixelSize;
+                            state.x = gx / newResolution - anchorPx / newPixelSize;
+                            state.y = gy / newResolution - anchorPy / newPixelSize;
 
-                self.clamp();
-                self.eventBus.post(hic.Event("LocusChange", {state: state, resolutionChanged: zoomChanged}));
+                            state.zoom = newZoom;
+                            state.pixelSize = newPixelSize;
+
+                            self.clamp();
+                            self.eventBus.post(hic.Event("LocusChange", {
+                                state: state,
+                                resolutionChanged: zoomChanged
+                            }));
+                        });
+                }
+
             });
+    }
 
-    };
+    hic.Browser.prototype.wheelClickZoom = function (direction, centerPX, centerPY) {
+
+        var self = this;
+
+
+        if (this.resolutionLocked || self.state.chr1 === 0) {   // Resolution locked OR whole genome view
+            this.zoomAndCenter(direction, centerPX, centerPY);
+        }
+        else {
+            minZoom.call(self, self.state.chr1, self.state.chr2)
+                .then(function (z) {
+                    var newZoom = self.state.zoom + direction;
+                    if (direction < 0 && newZoom < z) {
+                        self.setChromosomes(0, 0);
+                    }
+                    else {
+                        self.zoomAndCenter(direction, centerPX, centerPY);
+                    }
+                })
+        }
+
+    }
 
     // Zoom in response to a double-click
     hic.Browser.prototype.zoomAndCenter = function (direction, centerPX, centerPY) {
 
         if (!this.dataset) return;
 
-        var self = this,
-            bpResolutions = this.dataset.bpResolutions,
-            viewDimensions = this.contactMatrixView.getViewDimensions(),
-            dx = centerPX === undefined ? 0 : centerPX - viewDimensions.width / 2,
-            dy = centerPY === undefined ? 0 : centerPY - viewDimensions.height / 2,
-            newPixelSize, shiftRatio;
+        if (this.state.chr1 === 0 && direction > 0) {
+            var genomeCoordX = centerPX * this.dataset.wholeGenomeResolution / this.state.pixelSize,
+                genomeCoordY = centerPY * this.dataset.wholeGenomeResolution / this.state.pixelSize,
+                chrX = this.genome.getChromsosomeForCoordinate(genomeCoordX),
+                chrY = this.genome.getChromsosomeForCoordinate(genomeCoordY);
+            this.setChromosomes(chrX.index, chrY.index);
+        }
+
+        else {
+            var self = this,
+                bpResolutions = this.dataset.bpResolutions,
+                viewDimensions = this.contactMatrixView.getViewDimensions(),
+                dx = centerPX === undefined ? 0 : centerPX - viewDimensions.width / 2,
+                dy = centerPY === undefined ? 0 : centerPY - viewDimensions.height / 2,
+                newPixelSize, shiftRatio;
 
 
-        this.state.x += (dx / this.state.pixelSize);
-        this.state.y += (dy / this.state.pixelSize);
+            this.state.x += (dx / this.state.pixelSize);
+            this.state.y += (dy / this.state.pixelSize);
 
-        if (this.resolutionLocked ||
-            (direction > 0 && this.state.zoom === bpResolutions.length - 1) ||
-            (direction < 0 && this.state.zoom === 0)) {
+            if (this.resolutionLocked ||
+                (direction > 0 && this.state.zoom === bpResolutions.length - 1) ||
+                (direction < 0 && this.state.zoom === 0)) {
 
-            minPixelSize.call(this, this.state.chr1, this.state.chr2, this.state.zoom)
+                minPixelSize.call(this, this.state.chr1, this.state.chr2, this.state.zoom)
 
-                .then(function (minPS) {
+                    .then(function (minPS) {
 
-                    var state = self.state;
+                        var state = self.state;
 
-                    newPixelSize = Math.max(Math.min(MAX_PIXEL_SIZE, state.pixelSize * (direction > 0 ? 2 : 0.5)),
-                        minPS);
+                        newPixelSize = Math.max(Math.min(MAX_PIXEL_SIZE, state.pixelSize * (direction > 0 ? 2 : 0.5)),
+                            minPS);
 
-                    shiftRatio = (newPixelSize - state.pixelSize) / newPixelSize;
-                    state.pixelSize = newPixelSize;
-                    state.x += shiftRatio * (viewDimensions.width / state.pixelSize);
-                    state.y += shiftRatio * (viewDimensions.height / state.pixelSize);
+                        shiftRatio = (newPixelSize - state.pixelSize) / newPixelSize;
+                        state.pixelSize = newPixelSize;
+                        state.x += shiftRatio * (viewDimensions.width / state.pixelSize);
+                        state.y += shiftRatio * (viewDimensions.height / state.pixelSize);
 
-                    self.clamp();
-                    self.eventBus.post(hic.Event("LocusChange", {state: state, resolutionChanged: false}));
-                });
-        } else {
-            this.setZoom(this.state.zoom + direction);
+                        self.clamp();
+                        self.eventBus.post(hic.Event("LocusChange", {state: state, resolutionChanged: false}));
+                    });
+            } else {
+                this.setZoom(this.state.zoom + direction);
+            }
         }
     };
 
@@ -18608,11 +24517,15 @@ var hic = (function (hic) {
 
         this.state.chr1 = Math.min(chr1, chr2);
         this.state.chr2 = Math.max(chr1, chr2);
-        this.state.zoom = 0;
         this.state.x = 0;
         this.state.y = 0;
 
-        minPixelSize.call(this, this.state.chr1, this.state.chr2, this.state.zoom)
+        minZoom.call(this, chr1, chr2)
+            .then(function (z) {
+                self.state.zoom = z;
+                return minPixelSize.call(self, self.state.chr1, self.state.chr2, self.state.zoom)
+            })
+
             .then(function (minPS) {
                 self.state.pixelSize = Math.min(100, Math.max(defaultPixelSize, minPS));
                 self.eventBus.post(hic.Event("LocusChange", {state: self.state, resolutionChanged: true}));
@@ -18622,48 +24535,67 @@ var hic = (function (hic) {
 
     hic.Browser.prototype.updateLayout = function () {
 
+        var self = this;
         this.clamp();
-        this.renderTracks(true);
+
+        this.trackRenderers.forEach(function (xyTrackRenderPair, index) {
+            sync(xyTrackRenderPair.x, index);
+            sync(xyTrackRenderPair.y, index);
+        });
+
+        function sync(trackRenderer, index) {
+            trackRenderer.$viewport.css({order: index});
+            trackRenderer.syncCanvas();
+        }
+
         this.layoutController.xAxisRuler.update();
         this.layoutController.yAxisRuler.update();
-        this.contactMatrixView.clearCaches();
-        this.contactMatrixView.update();
+
+        this.update();
+
     };
+
+    function minZoom(chr1, chr2) {
+
+        var self = this;
+
+        var viewDimensions, chr1Length, chr2Length, binSize, nBins1, nBins2, isWholeGenome;
+
+        viewDimensions = self.contactMatrixView.getViewDimensions();
+        chr1Length = self.dataset.chromosomes[chr1].size;
+        chr2Length = self.dataset.chromosomes[chr2].size;
+        binSize = Math.max(chr1Length / viewDimensions.width, chr2Length / viewDimensions.height);
+
+        return self.dataset.getMatrix(chr1, chr2)
+            .then(function (matrix) {
+                return matrix.findZoomForResolution(binSize);
+            })
+    }
 
     function minPixelSize(chr1, chr2, z) {
 
         var self = this;
 
-        return new Promise(function (fulfill, reject) {
+        var viewDimensions, chr1Length, chr2Length, binSize, nBins1, nBins2, isWholeGenome;
 
-            var viewDimensions, chr1Length, chr2Length, binSize, nBins1, nBins2, isWholeGenome;
+        viewDimensions = self.contactMatrixView.getViewDimensions();
+        chr1Length = self.dataset.chromosomes[chr1].size;
+        chr2Length = self.dataset.chromosomes[chr2].size;
 
-            viewDimensions = self.contactMatrixView.getViewDimensions();
-            chr1Length = self.dataset.chromosomes[chr1].size;
-            chr2Length = self.dataset.chromosomes[chr2].size;
+        return self.dataset.getMatrix(chr1, chr2)
 
-            self.dataset.getMatrix(chr1, chr2)
+            .then(function (matrix) {
 
-                .then(function (matrix) {
-                    var zd = matrix.getZoomDataByIndex(z, "BP");
-                    binSize = zd.zoom.binSize;
-                    nBins1 = chr1Length / binSize;
-                    nBins2 = chr2Length / binSize;
-                    fulfill(Math.min(viewDimensions.width / nBins1, viewDimensions.height / nBins2));
-                })
-                .catch(reject);
-//        return Math.min(viewDimensions.width * (binSize / chr1Length), viewDimensions.height * (binSize / chr2Length));
-        })
-
+                var zd = matrix.getZoomDataByIndex(z, "BP");
+                binSize = zd.zoom.binSize;
+                nBins1 = chr1Length / binSize;
+                nBins2 = chr2Length / binSize;
+                return (Math.min(viewDimensions.width / nBins1, viewDimensions.height / nBins2));
+            })
     }
 
-    // TODO -- when is this called?
-    hic.Browser.prototype.update = function () {
-        this.eventBus.post(hic.Event("LocusChange", {state: this.state, resolutionChanged: false}));
-    };
-
     /**
-     * Set the matrix state.  Used ot restore state from a bookmark
+     * Set the matrix state.  Used to restore state from a bookmark
      * @param state  browser state
      */
     hic.Browser.prototype.setState = function (state) {
@@ -18674,13 +24606,10 @@ var hic = (function (hic) {
 
         // Possibly adjust pixel size
         minPixelSize.call(this, this.state.chr1, this.state.chr2, this.state.zoom)
-
             .then(function (minPS) {
-
                 self.state.pixelSize = Math.max(state.pixelSize, minPS);
-                self.eventBus.post(hic.Event("LocusChange", {state: self.state, resolutionChanged: zoomChanged}));
+                self.eventBus.post(new hic.Event("LocusChange", {state: self.state, resolutionChanged: true}));
             });
-
     };
 
 
@@ -18700,6 +24629,18 @@ var hic = (function (hic) {
     }
 
     /**
+     * Return true if this browser can be synched to the given state
+     * @param syncState
+     */
+    hic.Browser.prototype.canBeSynched = function (syncState) {
+
+        return this.dataset &&
+            (this.dataset.getChrIndexFromName(syncState.chr1Name) !== undefined) &&
+            (this.dataset.getChrIndexFromName(syncState.chr2Name) !== undefined);
+
+    }
+
+    /**
      * Used to synch state with other browsers
      * @param state  browser state
      */
@@ -18707,12 +24648,16 @@ var hic = (function (hic) {
 
         if (!this.dataset) return;
 
-        var chr1 = this.dataset.getChrIndexFromName(syncState.chr1Name),
-            chr2 = this.dataset.getChrIndexFromName(syncState.chr2Name),
+        var chr1 = this.genome.getChromosome(syncState.chr1Name),
+            chr2 = this.genome.getChromosome(syncState.chr2Name),
             zoom = this.dataset.getZoomIndexForBinSize(syncState.binSize, "BP"),
             x = syncState.binX,
             y = syncState.binY,
             pixelSize = syncState.pixelSize;
+
+        if (!(chr1 && chr2)) {
+            return;   // Can't be synched.
+        }
 
         if (zoom === undefined) {
             // Get the closest zoom available and adjust pixel size.   TODO -- cache this somehow
@@ -18733,8 +24678,8 @@ var hic = (function (hic) {
 
 
         var zoomChanged = (this.state.zoom !== zoom);
-        this.state.chr1 = chr1;
-        this.state.chr2 = chr2;
+        this.state.chr1 = chr1.index;
+        this.state.chr2 = chr2.index;
         this.state.zoom = zoom;
         this.state.x = x;
         this.state.y = y;
@@ -18754,7 +24699,10 @@ var hic = (function (hic) {
 
     hic.Browser.prototype.shiftPixels = function (dx, dy) {
 
+        var self = this;
+
         if (!this.dataset) return;
+        if (self.updating) return;
 
         this.state.x += (dx / this.state.pixelSize);
         this.state.y += (dy / this.state.pixelSize);
@@ -18763,6 +24711,8 @@ var hic = (function (hic) {
         var locusChangeEvent = hic.Event("LocusChange", {state: this.state, resolutionChanged: false, dragging: true});
         locusChangeEvent.dragging = true;
         this.eventBus.post(locusChangeEvent);
+
+
     };
 
 
@@ -18781,7 +24731,7 @@ var hic = (function (hic) {
 
         targetResolution = Math.max((bpXMax - bpX) / viewDimensions.width, (bpYMax - bpY) / viewDimensions.height);
 
-        if (targetResolution < minResolution) {
+        if (minResolution && targetResolution < minResolution) {
             maxExtent = viewWidth * minResolution;
             xCenter = (bpX + bpXMax) / 2;
             yCenter = (bpY + bpYMax) / 2;
@@ -18835,7 +24785,72 @@ var hic = (function (hic) {
 
     hic.Browser.prototype.receiveEvent = function (event) {
 
-        console.log("Unexpected event: " + event.type);
+        if ("LocusChange" === event.type) {
+            this.update(event);
+        }
+
+    };
+
+    /**
+     * Update the maps and tracks.
+     *
+     * Data load functions for tracks and the map are not neccessarily thread safe.   Although JS is single-threaded,
+     * the ascyncronous nature of XmLHttpRequests makes it possible to call these functions multiple times
+     * simultaneously.   To prevent this we check for an update in progress before proceeding.   If and update
+     * is in progress the call to self is deferred with a timeout until the currently executing update completes.
+     *
+     * This might involve asynchronous data loads,  insure that all data loads are complete
+     * before painting track.
+     *
+     * @param event
+     */
+    hic.Browser.prototype.update = function (event) {
+
+        var self = this;
+
+        // Allow only 1 update at a time, if an update is in progress queue up until its finished
+        if (self.updating) {
+            if (self.updateTimer) {
+                clearTimeout(self.updateTimer);
+            }
+            self.updateTimer = setTimeout(function () {
+                    self.update(event);
+                    self.updateTimer = null;
+                },
+                100)
+            return;
+        }
+
+        self.updating = true;
+        self.contactMatrixView.startSpinner();
+        var promises = [];
+
+        promises.push(this.contactMatrixView.readyToPaint());
+        this.trackRenderers.forEach(function (xyTrackRenderPair, index) {
+            promises.push(
+                xyTrackRenderPair.x.readyToPaint()
+                    .then(function (ignore) {
+                        return xyTrackRenderPair.y.readyToPaint();
+                    }))
+        });
+
+
+        Promise.all(promises)
+            .then(function (results) {
+                if (event !== undefined && "LocusChange" === event.type) {
+                    self.layoutController.xAxisRuler.locusChange(event);
+                    self.layoutController.yAxisRuler.locusChange(event);
+                }
+                self.contactMatrixView.repaint();
+                self.renderTracks();
+                self.stopSpinner();
+                self.updating = false;
+            })
+            .catch(function (error) {
+                self.stopSpinner();
+                self.updating = false;
+                console.error(error);
+            })
 
     };
 
@@ -18845,11 +24860,11 @@ var hic = (function (hic) {
     };
 
 
-    // Set default values for config properties
+// Set default values for config properties
     function setDefaults(config) {
 
         defaultPixelSize = 1;
-        defaultState = new hic.State(1, 1, 0, 0, 0, defaultPixelSize, "NONE");
+        defaultState = new hic.State(0, 0, 0, 0, 0, defaultPixelSize, "NONE");
 
         if (config.figureMode === true) {
             config.showLocusGoto = false;
@@ -18893,9 +24908,9 @@ var hic = (function (hic) {
         }
     }
 
-    // parseUri 1.2.2
-    // (c) Steven Levithan <stevenlevithan.com>
-    // MIT License
+// parseUri 1.2.2
+// (c) Steven Levithan <stevenlevithan.com>
+// MIT License
 
     function parseUri(str) {
         var o = parseUri.options,
@@ -18957,7 +24972,7 @@ var hic = (function (hic) {
 
         var queryString, nviString, trackString;
 
-        if(!this.url) return "";   // URL is required
+        if (!this.url) return "";   // URL is required
 
         queryString = [];
 
@@ -19040,7 +25055,7 @@ var hic = (function (hic) {
     };
 
     /**
-     * Legacy URL decoding (pre version 1.0)
+     * Extend config properties with query parameters
      *
      * @param query
      * @param config
@@ -19080,6 +25095,7 @@ var hic = (function (hic) {
             });
 
             config.url = hicUrl;
+
         }
         if (name) {
             config.name = paramDecodeV0(name, uriDecode);
@@ -19097,6 +25113,13 @@ var hic = (function (hic) {
         if (trackString) {
             trackString = paramDecodeV0(trackString, uriDecode);
             config.tracks = destringifyTracksV0(trackString);
+
+            // If an oAuth token is provided append it to track configs.
+            if (config.tracks && config.oauthToken) {
+                config.tracks.forEach(function (t) {
+                    t.oauthToken = config.oauthToken;
+                })
+            }
         }
 
         if (selectedGene) {
@@ -19237,8 +25260,6 @@ var hic = (function (hic) {
         }
     }
 
-
-
     return hic;
 
 })
@@ -19281,124 +25302,114 @@ var hic = (function (hic) {
 
         this.browser = browser;
 
-        this.$container = $('<div class="hic-colorscale-widget-container">');
+        this.$container = $("<div>", { class:'hic-colorscale-widget-container',  title:'Color Scale' });
         $container.append(this.$container);
 
         // color chip
-        this.$button = hic.colorSwatch('red');
+        this.$button = igv.colorSwatch(browser.config.colorScale ? igv.Color.rgbColor(browser.config.colorScale.highR, browser.config.colorScale.highG, browser.config.colorScale.highB) : 'red');
         this.$container.append(this.$button);
-        this.$button.on('click', function (e) {
-            self.browser.$root.find('.color-scale-swatch-scroll-container').toggle();
-        });
 
         // input
-        this.$high_colorscale_input = $('<input type="text" placeholder="high">');
+        this.$high_colorscale_input = $('<input type="text" placeholder="">');
         this.$container.append(this.$high_colorscale_input);
 
         this.$high_colorscale_input.on('change', function(e){
 
-            var value,
-                numeric;
+            var numeric;
 
-            value = $(this).val();
-            numeric = value.replace(/\,/g, '');
-
+            numeric = igv.numberUnFormatter( $(this).val() );
             if (isNaN(numeric)) {
+                // do nothing
             } else {
-                browser.updateColorScale({ high: parseInt(numeric, 10) })
+                // browser.updateColorScale({ high: parseInt(numeric, 10) });
+                browser.updateColorScale({ high: parseInt( numeric, 10 ) });
             }
         });
 
         // -
         $fa = $("<i>", { class:'fa fa-minus', 'aria-hidden':'true' });
         $fa.on('click', function (e) {
-            var value;
-
-            value = Math.floor(browser.getColorScale().high / 2.0);
-            self.$high_colorscale_input.val(value);
-            browser.updateColorScale({ high: value });
-
+            doUpdateColorScale(1.0/2.0);
         });
         this.$container.append($fa);
 
         // +
         $fa = $("<i>", { class:'fa fa-plus', 'aria-hidden':'true' });
         $fa.on('click', function (e) {
-            var value;
-
-            value = Math.floor(browser.getColorScale().high * 2.0);
-            self.$high_colorscale_input.val(value);
-            browser.updateColorScale({ high: value });
-
+            doUpdateColorScale(2.0);
         });
         this.$container.append($fa);
 
-        createColorSwatchSelector.call(this, browser);
+        this.$colorpicker = createColorpicker.call(this, browser);
+
+        this.$colorpicker.draggable();
+        this.$colorpicker.hide();
+
+        this.$button.on('click', function (e) {
+            self.$colorpicker.toggle();
+        });
 
         this.browser.eventBus.subscribe("MapLoad", this);
         this.browser.eventBus.subscribe("ColorScale", this);
+
+        function doUpdateColorScale (scaleFactor) {
+            var colorScale;
+
+            colorScale = browser.getColorScale();
+            browser.updateColorScale({ high: colorScale.high * scaleFactor });
+            self.$high_colorscale_input.val( igv.numberFormatter(Math.round( colorScale.high )) );
+        }
     };
 
     hic.ColorScaleWidget.prototype.receiveEvent = function(event) {
 
-        var colorScaleHigh;
+        var colorScale;
+
         if (event.type === "MapLoad" || event.type === "ColorScale") {
-
-            colorScaleHigh = Math.round( this.browser.getColorScale().high );
-
-            this.$high_colorscale_input.val(igv.numberFormatter(colorScaleHigh));
+            colorScale = this.browser.getColorScale();
+            this.$high_colorscale_input.val( igv.numberFormatter(Math.round( colorScale.high )) );
         }
 
     };
 
-    function createColorSwatchSelector(browser) {
+    function createColorpicker(browser) {
 
         var self = this,
-            $scroll_container,
-            $container;
+            $colorpicker,
+            config;
 
-        // scroll container
-        $scroll_container = $('<div>', { class:'color-scale-swatch-scroll-container' });
-        browser.$root.append($scroll_container);
+        config =
+            {
+                // width = (29 * swatch-width) + border-width + border-width
+                width: ((29 * 24) + 1 + 1),
+                classes: [ 'igv-position-absolute' ]
+            };
 
-        // swatch container
-        $container = $('<div>', { class:'color-scale-swatch-container' });
-        $scroll_container.append($container);
+        $colorpicker = igv.genericContainer(browser.$root, config, function () {
+            $colorpicker.toggle();
+        });
 
-        hic.createColorSwatchSelector($container, function (colorName) {
+        igv.createColorSwatchSelector($colorpicker, function (colorName) {
             var rgb;
 
-            self.$button.find('.fa-square').css({color: colorName});
-
-            // browser.updateColorScale(
-            //     {
-            //         high: parseInt(self.$high_colorscale_input.val(), 10),
-            //         highR:rgb.R,
-            //         highG:rgb.G,
-            //         highB:rgb.B
-            //     }
-            // );
+            self.$button.find('.fa-square').css({ color: colorName });
 
             rgb = _.map(colorName.split('(').pop().split(')').shift().split(','), function (str) {
                 return parseInt(str, 10);
             });
 
-            browser.contactMatrixView.colorScale.highR = rgb[0];
-            browser.contactMatrixView.colorScale.highG = rgb[1];
-            browser.contactMatrixView.colorScale.highB = rgb[2];
+            browser.updateColorScale(
+                {
+                    high:parseInt(igv.numberUnFormatter( self.$high_colorscale_input.val() ), 10),
+                    highR:rgb[0],
+                    highG:rgb[1],
+                    highB:rgb[2]
+                }
+            );
 
-            browser.contactMatrixView.updating = false;
-            browser.contactMatrixView.initialImage = undefined;
-            browser.contactMatrixView.clearCaches();
-            browser.contactMatrixView.colorScaleCache = {};
-            browser.contactMatrixView.update();
-        }, function () {
-            $scroll_container.toggle();
         });
 
-        $scroll_container.draggable();
-
-        $scroll_container.hide();
+        return $colorpicker;
 
     }
 
@@ -19468,83 +25479,70 @@ var hic = (function (hic) {
             return Promise.resolve(self.matrixCache[key]);
 
         } else {
-            return new Promise(function (fulfill, reject) {
+            return reader.readMatrix(key)
 
-
-                reader
-                    .readMatrix(key)
-                    .then(function (matrix) {
-                        self.matrixCache[key] = matrix;
-                        fulfill(matrix);
-                    })
-                    .catch(reject);
-            })
-
+                .then(function (matrix) {
+                    self.matrixCache[key] = matrix;
+                    return matrix;
+                })
         }
-    };
+    }
+
 
     hic.Dataset.prototype.getNormalizedBlock = function (zd, blockNumber, normalization) {
 
         var self = this;
 
-        return new Promise(function (fulfill, reject) {
+        return self.getBlock(zd, blockNumber)
 
-            self.getBlock(zd, blockNumber)
+            .then(function (block) {
 
-                .then(function (block) {
+                if (normalization === undefined || "NONE" === normalization || block === null || block === undefined) {
+                    return block;
+                }
+                else {
+                    // Get the norm vectors serially, its very likely they are the same and the second will be cached
+                    return self.getNormalizationVector(normalization, zd.chr1.index, zd.zoom.unit, zd.zoom.binSize)
 
-                    if (normalization === undefined || "NONE" === normalization || block === null || block === undefined) {
-                        fulfill(block);
-                    }
-                    else {
+                        .then(function (nv1) {
 
-                        // Get the norm vectors serially, its very likely they are the same and the second will be cached
-                        self.getNormalizationVector(normalization, zd.chr1.index, zd.zoom.unit, zd.zoom.binSize)
+                            return self.getNormalizationVector(normalization, zd.chr2.index, zd.zoom.unit, zd.zoom.binSize)
 
-                            .then(function (nv1) {
+                                .then(function (nv2) {
 
-                                self.getNormalizationVector(normalization, zd.chr2.index, zd.zoom.unit, zd.zoom.binSize)
+                                    var normRecords = [],
+                                        normBlock;
 
-                                    .then(function (nv2) {
+                                    if (nv1 === undefined || nv2 === undefined) {
+                                        console.log("Undefined normalization vector for: " + normalization);
+                                        return block;
+                                    }
 
-                                        var normRecords = [],
-                                            normBlock;
+                                    else {
+                                        block.records.forEach(function (record) {
 
-                                        if (nv1 === undefined || nv2 === undefined) {
-                                            console.log("Undefined normalization vector for: " + normalization);
-                                            fulfill(block);
-                                        }
+                                            var x = record.bin1,
+                                                y = record.bin2,
+                                                counts,
+                                                nvnv = nv1.data[x] * nv2.data[y];
 
-                                        else {
-                                            block.records.forEach(function (record) {
+                                            if (nvnv[x] !== 0 && !isNaN(nvnv)) {
+                                                counts = record.counts / nvnv;
+                                                //countArray.push(counts);
+                                                normRecords.push(new hic.ContactRecord(x, y, counts));
+                                            }
+                                        })
 
-                                                var x = record.bin1,
-                                                    y = record.bin2,
-                                                    counts,
-                                                    nvnv = nv1.data[x] * nv2.data[y];
+                                        normBlock = new hic.Block(blockNumber, zd, normRecords);   // TODO - cache this?
 
-                                                if (nvnv[x] !== 0 && !isNaN(nvnv)) {
-                                                    counts = record.counts / nvnv;
-                                                    //countArray.push(counts);
-                                                    normRecords.push(new hic.ContactRecord(x, y, counts));
-                                                }
-                                            })
+                                        normBlock.percentile95 = block.percentile95;
 
-                                            normBlock = new hic.Block(blockNumber, zd, normRecords);   // TODO - cache this?
-
-                                            normBlock.percentile95 = block.percentile95;
-
-                                            fulfill(normBlock);
-                                        }
-                                    })
-                                    .catch(reject)
-
-                            })
-                            .catch(reject);
-                    }
-                })
-                .catch(reject);
-        })
+                                        return normBlock;
+                                    }
+                                })
+                        })
+                }
+            })
     }
 
     hic.Dataset.prototype.getBlock = function (zd, blockNumber) {
@@ -19556,29 +25554,25 @@ var hic = (function (hic) {
         if (this.blockCache.hasOwnProperty(key)) {
             return Promise.resolve(this.blockCache[key]);
         } else {
-            return new Promise(function (fulfill, reject) {
 
-                var reader = self.hicReader;
+            var reader = self.hicReader;
 
-                reader.readBlock(blockNumber, zd)
+            return reader.readBlock(blockNumber, zd)
 
-                    .then(function (block) {
+                .then(function (block) {
 
-                        if (self.blockCacheKeys.length > self.blockCacheLimit) {
-                            delete self.blockCache[self.blockCacheKeys[0]];
-                            self.blockCacheKeys.shift();
-                        }
+                    if (self.blockCacheKeys.length > self.blockCacheLimit) {
+                        delete self.blockCache[self.blockCacheKeys[0]];
+                        self.blockCacheKeys.shift();
+                    }
 
-                        self.blockCacheKeys.push(key);
-                        self.blockCache[key] = block;
+                    self.blockCacheKeys.push(key);
+                    self.blockCache[key] = block;
 
-                        fulfill(block);
+                    return block;
 
-                    })
-                    .catch(function (error) {
-                        reject(error);
-                    })
-            })
+                })
+
         }
     };
 
@@ -19590,53 +25584,22 @@ var hic = (function (hic) {
         if (this.normVectorCache.hasOwnProperty(key)) {
             return Promise.resolve(this.normVectorCache[key]);
         } else {
-            return new Promise(function (fulfill, reject) {
 
-                var reader = self.hicReader;
+            var reader = self.hicReader;
 
-                reader.readNormalizationVector(type, chrIdx, unit, binSize)
+            return reader.readNormalizationVector(type, chrIdx, unit, binSize)
 
-                    .then(function (nv) {
+                .then(function (nv) {
 
-                        self.normVectorCache[key] = nv;
+                    self.normVectorCache[key] = nv;
 
-                        fulfill(nv);
+                    return nv;
 
-                    })
-                    .catch(reject)
-            })
+                })
+
         }
     };
 
-    hic.Dataset.prototype.readNormalizationVectorFile = function (url) {
-
-        var self = this;
-
-        return new Promise(function (fulfill, reject) {
-
-            self.hicReader.readNormalizationVectorFile(url, self.chromosomes)
-
-                .then(function (normVectors) {
-
-                    _.extend(self.normVectorCache, normVectors);
-
-                    normVectors["types"].forEach(function (type) {
-
-                        if (!self.normalizationTypes) self.normalizationTypes = [];
-
-                        if (_.contains(self.normalizationTypes, type) === false) {
-                            self.normalizationTypes.push(type);
-                        }
-
-                    });
-
-                    fulfill(self);
-
-                })
-                .catch(reject)
-        });
-
-    }
 
     hic.Dataset.prototype.getZoomIndexForBinSize = function (binSize, unit) {
         var i,
@@ -19720,15 +25683,15 @@ var hic = (function (hic) {
 
         this.browser = browser;
 
-        this.$container = $('<div class="hic-chromosome-goto-container">');
+        this.$container = $("<div>", { class:'hic-chromosome-goto-container',  title:'Chromosome Goto' });
         $container.append(this.$container);
 
         this.$resolution_selector = $('<input type="text" placeholder="chr-x-axis chr-y-axis">');
         this.$container.append(this.$resolution_selector);
 
         this.$resolution_selector.on('change', function (e) {
-            var value = $(this).val();
-            browser.parseGotoInput(value);
+            browser.parseGotoInput( $(this).val() );
+            $(this).blur();
         });
 
         this.browser.eventBus.subscribe("LocusChange", this);
@@ -19833,52 +25796,28 @@ var hic = (function (hic) {
         var self = this,
             dataset = new hic.Dataset(this);
 
-        return new Promise(function (fulfill, reject) {
+        return self.readHeader(dataset)
 
-            self.readHeader(dataset)
-                .then(function () {
-                    self.readFooter(dataset)
-                        .then(function () {
+            .then(function (ignore) {
+                return self.readFooter(dataset)
+            })
+            .then(function (ignore) {
+                return dataset;
+            })
 
-                            if (config.normVectorFiles) {
-
-                                var promises = [];
-                                config.normVectorFiles.forEach(function (f) {
-                                    promises.push(dataset.readNormalizationVectorFile(f));
-                                });
-
-                                Promise.all(promises)
-                                    .then(function (ignore) {
-                                        fulfill(dataset);
-                                    })
-                                    .catch(reject);
-                            }
-                            else {
-                                fulfill(dataset);
-                            }
-                        })
-                        .catch(reject)
-                })
-                .catch(reject)
-        });
     }
 
     hic.HiCReader.prototype.readHeader = function (dataset) {
 
         var self = this;
 
-        return new Promise(function (fulfill, reject) {
 
-            igv.xhr.loadArrayBuffer(self.path,
-                {
-                    headers: self.config.headers,
-                    range: {start: 0, size: 64000},                     // TODO -- a guess, what if not enough ?
-                    withCredentials: self.config.withCredentials
-                }).then(function (data) {
+        return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: {start: 0, size: 64000}}))
+
+            .then(function (data) {
 
                 if (!data) {
-                    fulfill(null);
-                    return;
+                    return undefined;
                 }
 
                 var binaryParser = new igv.BinaryParser(new DataView(data));
@@ -19897,11 +25836,21 @@ var hic = (function (hic) {
                 dataset.chromosomes = [];
                 var nChrs = binaryParser.getInt(), i = 0;
                 while (nChrs-- > 0) {
-                    dataset.chromosomes.push({index: i, name: binaryParser.getString(), size: binaryParser.getInt()});
+                    var chr = {
+                        index: i,
+                        name: binaryParser.getString(),
+                        size: binaryParser.getInt()
+                    };
+                    if (chr.name.toLowerCase() === "all") {
+                        self.wholeGenomeChromosome = chr;
+                        dataset.wholeGenomeResolution = Math.round(chr.size * (1000 / 500));    // Hardcoded in juicer
+                    }
+                    dataset.chromosomes.push(chr);
                     i++;
                 }
-                self.chromosomes = dataset.chromosomes;  // Needed for certain reading functions
 
+
+                self.chromosomes = dataset.chromosomes;  // Needed for certain reading functions
                 dataset.bpResolutions = [];
                 var nBpResolutions = binaryParser.getInt();
                 while (nBpResolutions-- > 0) {
@@ -19924,13 +25873,10 @@ var hic = (function (hic) {
                     }
                 }
 
-                fulfill(self);
+                return self;
 
-            }).catch(function (error) {
-                reject(error);
-            });
+            })
 
-        });
     };
 
     hic.HiCReader.prototype.readFooter = function (dataset) {
@@ -19938,87 +25884,70 @@ var hic = (function (hic) {
         var self = this,
             range = {start: self.masterIndexPos, size: 4};
 
-        return new Promise(function (fulfill, reject) {
+        return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
 
-            igv.xhr.loadArrayBuffer(self.path,
-                {
-                    headers: self.config.headers,
-                    range: range,
-                    withCredentials: self.config.withCredentials
-                })
-                .then(function (data) {
+            .then(function (data) {
 
-                    var key, pos, size, binaryParser, nBytes;
+                var key, pos, size, binaryParser, nBytes;
 
-                    if (!data) {
-                        fulfill(null);
-                        return;
-                    }
+                if (!data) {
+                    return null;
+                }
 
-                    binaryParser = new igv.BinaryParser(new DataView(data));
-                    nBytes = binaryParser.getInt();
-                    range = {start: self.masterIndexPos + 4, size: nBytes};
+                binaryParser = new igv.BinaryParser(new DataView(data));
+                nBytes = binaryParser.getInt();
+                range = {start: self.masterIndexPos + 4, size: nBytes};
 
-                    igv.xhr.loadArrayBuffer(self.path,
-                        {
-                            headers: self.config.headers,
-                            range: range,
-                            withCredentials: self.config.withCredentials
-                        })
-                        .then(function (data) {
+                return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
 
-                            if (!data) {
-                                fulfill(null);
-                                return;
-                            }
+                    .then(function (data) {
 
-                            var binaryParser = new igv.BinaryParser(new DataView(data));
-                            self.masterIndex = {};
-                            var nEntries = binaryParser.getInt();
+                        if (!data) {
+                            return undefined;
+                        }
 
-                            while (nEntries-- > 0) {
-                                key = binaryParser.getString();
-                                pos = binaryParser.getLong();
-                                size = binaryParser.getInt();
-                                self.masterIndex[key] = {start: pos, size: size};
-                            }
+                        var binaryParser = new igv.BinaryParser(new DataView(data));
+                        self.masterIndex = {};
+                        var nEntries = binaryParser.getInt();
 
-                            dataset.expectedValueVectors = {};
+                        while (nEntries-- > 0) {
+                            key = binaryParser.getString();
+                            pos = binaryParser.getLong();
+                            size = binaryParser.getInt();
+                            self.masterIndex[key] = {start: pos, size: size};
+                        }
 
-                            nEntries = binaryParser.getInt();
+                        dataset.expectedValueVectors = {};
 
-                            // while (nEntries-- > 0) {
-                            //     type = "NONE";
-                            //     unit = binaryParser.getString();
-                            //     binSize = binaryParser.getInt();
-                            //     nValues = binaryParser.getInt();
-                            //     values = [];
-                            //     while (nValues-- > 0) {
-                            //         values.push(binaryParser.getDouble());
-                            //     }
-                            //
-                            //     nChrScaleFactors = binaryParser.getInt();
-                            //     normFactors = {};
-                            //     while (nChrScaleFactors-- > 0) {
-                            //         normFactors[binaryParser.getInt()] = binaryParser.getDouble();
-                            //     }
-                            //
-                            //     // key = unit + "_" + binSize + "_" + type;
-                            //     //  NOT USED YET SO DON'T STORE
-                            //     //  dataset.expectedValueVectors[key] =
-                            //     //      new ExpectedValueFunction(type, unit, binSize, values, normFactors);
-                            // }
+                        nEntries = binaryParser.getInt();
 
-                            self.normExpectedValueVectorsPosition = self.masterIndexPos + 4 + nBytes;
+                        // while (nEntries-- > 0) {
+                        //     type = "NONE";
+                        //     unit = binaryParser.getString();
+                        //     binSize = binaryParser.getInt();
+                        //     nValues = binaryParser.getInt();
+                        //     values = [];
+                        //     while (nValues-- > 0) {
+                        //         values.push(binaryParser.getDouble());
+                        //     }
+                        //
+                        //     nChrScaleFactors = binaryParser.getInt();
+                        //     normFactors = {};
+                        //     while (nChrScaleFactors-- > 0) {
+                        //         normFactors[binaryParser.getInt()] = binaryParser.getDouble();
+                        //     }
+                        //
+                        //     // key = unit + "_" + binSize + "_" + type;
+                        //     //  NOT USED YET SO DON'T STORE
+                        //     //  dataset.expectedValueVectors[key] =
+                        //     //      new ExpectedValueFunction(type, unit, binSize, values, normFactors);
+                        // }
 
-                            fulfill(self);
-                        })
-                })
-                .catch(function (error) {
-                    reject(error);
-                });
+                        self.normExpectedValueVectorsPosition = self.masterIndexPos + 4 + nBytes;
 
-        });
+                        return self;
+                    })
+            })
     };
 
     /**
@@ -20030,113 +25959,197 @@ var hic = (function (hic) {
      */
     hic.HiCReader.prototype.readNormExpectedValuesAndNormVectorIndex = function (dataset) {
 
+        var self = this,
+            range;
+
         if (this.normExpectedValueVectorsPosition === undefined) {
-            Promise.resolve();
+            return Promise.resolve();
         }
 
         if (this.normVectorIndex) {
-            Promise.resolve(this.normVectorIndex);
+            return Promise.resolve(this.normVectorIndex);
         }
 
-        var self = this,
-            range = {start: this.normExpectedValueVectorsPosition, size: 60000000};
 
-        return new Promise(function (fulfill, reject) {
+        return skipExpectedValues.call(self, self.normExpectedValueVectorsPosition, -1)
 
-            igv.xhr.loadArrayBuffer(self.path,
-                {
-                    headers: self.config.headers,
-                    range: range,
-                    withCredentials: self.config.withCredentials
-                })
-                .then(function (data) {
+            .then(function (nviStart) {
 
-                    var key, pos, size, nEntries, type, unit, binSize, nValues, values, nChrScaleFactors, normFactors,
-                        p0, chrIdx, filePosition, sizeInBytes;
+                range = {start: nviStart, size: 100000}
 
-                    if (!data) {
-                        fulfill(null);
-                        return;
+                return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
+            })
+
+            .then(function (data) {
+
+                var key, nEntries, type, unit, binSize, p0, chrIdx, filePosition, sizeInBytes;
+
+                var binaryParser = new igv.BinaryParser(new DataView(data));
+
+                dataset.normalizedExpectedValueVectors = {};
+
+                // Normalization vector index
+                p0 = binaryParser.position;
+                self.normVectorIndex = {};
+
+                if (!dataset.normalizationTypes) {
+                    dataset.normalizationTypes = [];
+                }
+                dataset.normalizationTypes.push('NONE');
+
+                nEntries = binaryParser.getInt();
+                while (nEntries-- > 0) {
+                    type = binaryParser.getString();
+                    chrIdx = binaryParser.getInt();
+                    unit = binaryParser.getString();
+                    binSize = binaryParser.getInt();
+                    filePosition = binaryParser.getLong();
+                    sizeInBytes = binaryParser.getInt();
+                    key = hic.getNormalizationVectorKey(type, chrIdx, unit, binSize);
+
+                    if (_.contains(dataset.normalizationTypes, type) === false) {
+                        dataset.normalizationTypes.push(type);
                     }
+                    self.normVectorIndex[key] = {filePosition: filePosition, size: sizeInBytes};
+                }
 
-                    var binaryParser = new igv.BinaryParser(new DataView(data));
+                self.normalizationVectorIndexRange = {
+                    start: range.start + p0,
+                    size: binaryParser.position - p0
+                };
 
-                    dataset.normalizedExpectedValueVectors = {};
+                return self;
 
-                    try {
-                        nEntries = binaryParser.getInt();
-                        while (nEntries-- > 0) {
-
-                            type = binaryParser.getString();
-                            unit = binaryParser.getString();
-                            binSize = binaryParser.getInt();
-                            nValues = binaryParser.getInt();
-                            values = [];
-
-                            while (nValues-- > 0) {
-                                values.push(binaryParser.getDouble());
-                            }
-
-                            nChrScaleFactors = binaryParser.getInt();
-                            normFactors = {};
-
-                            while (nChrScaleFactors-- > 0) {
-                                normFactors[binaryParser.getInt()] = binaryParser.getDouble();
-                            }
-
-                            // key = unit + "_" + binSize + "_" + type;
-                            // NOT USED YET SO DON'T STORE
-                            //   dataset.normalizedExpectedValueVectors[key] =
-                            //       new ExpectedValueFunction(type, unit, binSize, values, normFactors);
-                        }
+            })
+            .catch(function (e) {
+                igv.presentAlert("Error reading normalization vectors")
+                console.error(e);
+                self.normalizationVectorIndexRange = undefined;
+            })
 
 
-                        // Normalization vector index
-                        p0 = binaryParser.position;
-                        self.normVectorIndex = {};
-
-                        if (!dataset.normalizationTypes) {
-                            dataset.normalizationTypes = [];
-                        }
-                        dataset.normalizationTypes.push('NONE');
-
-                        nEntries = binaryParser.getInt();
-                        while (nEntries-- > 0) {
-                            type = binaryParser.getString();
-                            chrIdx = binaryParser.getInt();
-                            unit = binaryParser.getString();
-                            binSize = binaryParser.getInt();
-                            filePosition = binaryParser.getLong();
-                            sizeInBytes = binaryParser.getInt();
-                            key = hic.getNormalizationVectorKey(type, chrIdx, unit, binSize);
-
-                            if (_.contains(dataset.normalizationTypes, type) === false) {
-                                dataset.normalizationTypes.push(type);
-                            }
-                            self.normVectorIndex[key] = {filePosition: filePosition, size: sizeInBytes};
-                        }
-
-                        self.normalizationVectorIndexRange = {
-                            start: range.start + p0,
-                            size: binaryParser.position - p0
-                        };
-                    } catch (e) {
-                        // This is normal, apparently, when there are no vectors.
-                        self.normalizationVectorIndexRange = undefined;
-                    }
-
-
-                    fulfill(self);
-
-                })
-                .catch(function (error) {
-                    reject(error);
-                });
-
-        });
     };
 
+    /**
+     * This function is used when the position of the norm vector index is unknown.  We must read through the expected
+     * values to find the index
+     *
+     * @param dataset
+     * @returns {Promise}
+     */
+    function skipExpectedValues(start) {
 
+        var self = this, range;
+
+        var range = {start: start, size: 4};
+
+        return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
+
+            .then(function (data) {
+                var binaryParser = new igv.BinaryParser(new DataView(data));
+                var nEntries = binaryParser.getInt();   // Total # of expected value chunks
+                if (nEntries === 0) {
+                    return range.start + range.size;
+                }
+                else {
+                    return parseNext(start + 4, nEntries);
+                }     // Skip 4 bytes for int
+            })
+
+
+        function parseNext(start, nEntries) {
+
+            var range = {start: start, size: 500},
+                chunkSize = 0,
+                p0 = start;
+
+            return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
+
+                .then(function (data) {
+                    var binaryParser = new igv.BinaryParser(new DataView(data));
+                    var nValues, nChrScaleFactors;
+                    binaryParser.getString(); // type
+                    binaryParser.getString(); // unit
+                    binaryParser.getInt(); // binSize
+                    nValues = binaryParser.getInt();
+                    chunkSize += binaryParser.position + nValues * 8;
+                    return start + chunkSize;
+                })
+                .then(function (start) {
+                    var range = {start: start, size: 4};
+                    return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
+                })
+                .then(function (data) {
+                    var binaryParser = new igv.BinaryParser(new DataView(data));
+                    var nChrScaleFactors = binaryParser.getInt();
+                    chunkSize += (4 + nChrScaleFactors * (4 + 8));
+                    return chunkSize;
+                })
+                .then(function (chunkSize) {
+                    nEntries--;
+                    if (nEntries === 0) {
+                        return Promise.resolve(p0 + chunkSize);
+                    }
+                    else {
+                        return parseNext(p0 + chunkSize, nEntries);
+                    }
+                })
+
+        }
+
+
+        function parseEntry(binaryParser) {
+
+            var p0 = binaryParser.position;
+
+            var nValues, nChrScaleFactors;
+
+            if (available() < 28) return false;
+
+            var type = binaryParser.getString(); // type
+            binaryParser.getString(); // unit
+            binaryParser.getInt(); // binSize
+            nValues = binaryParser.getInt();
+            values = [];
+
+            if (available() < nValues * 8 + 4) return false;
+
+            while (nValues-- > 0) {
+                binaryParser.getDouble();    // value
+                //values.push(binaryParser.getDouble());
+            }
+
+            nChrScaleFactors = binaryParser.getInt();
+            //normFactors = {};
+
+            if (available() < nChrScaleFactors * (4 + 8)) return false;
+            while (nChrScaleFactors-- > 0) {
+                binaryParser.getInt();
+                binaryParser.getDouble();
+                //normFactors[binaryParser.getInt()] = binaryParser.getDouble();
+            }
+
+            console.log("Size = " + (binaryParser.position - p0));
+
+            return true;
+            // key = unit + "_" + binSize + "_" + type;
+            // NOT USED YET SO DON'T STORE
+            //   dataset.normalizedExpectedValueVectors[key] =
+            //       new ExpectedValueFunction(type, unit, binSize, values, normFactors);
+
+            function available() {
+                return binaryParser.length - binaryParser.position - 1;
+            }
+        }
+    }
+
+    /**
+     * Return a promise to load the normalization vector index
+     *
+     * @param dataset
+     * @param range  -- file range {position, size}
+     * @returns Promise for the normalization vector index
+     */
     hic.HiCReader.prototype.readNormVectorIndex = function (dataset, range) {
 
         if (this.normVectorIndex) {
@@ -20146,21 +26159,16 @@ var hic = (function (hic) {
         var self = this;
         self.normalizationVectorIndexRange = range;
 
-        return new Promise(function (fulfill, reject) {
 
-            igv.xhr.loadArrayBuffer(self.path,
-                {
-                    headers: self.config.headers,
-                    range: range,
-                    withCredentials: self.config.withCredentials
-                }).then(function (data) {
+        return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {range: range}))
+
+            .then(function (data) {
 
                 var key, pos, size, binaryParser, p0, nEntries, type, chrIdx, unit, binSize, filePosition, sizeInBytes,
                     normalizationIndexPosition;
 
                 if (!data) {
-                    fulfill(null);
-                    return;
+                    return undefined;
                 }
 
                 binaryParser = new igv.BinaryParser(new DataView(data));
@@ -20194,16 +26202,10 @@ var hic = (function (hic) {
                     self.normVectorIndex[key] = {filePosition: filePosition, size: sizeInBytes};
                 }
 
-                //size = binaryParser.position - p0;
+                return self.normVectorIndex;
 
-                fulfill(self); //binaryParser.position = 42473140   masterIndexPos = 54343629146
-
-            }).catch(function (error) {
-                reject(error);
-            });
-
-        });
-    };
+            })
+    }
 
     hic.HiCReader.prototype.readMatrix = function (key) {
 
@@ -20214,53 +26216,49 @@ var hic = (function (hic) {
             return Promise.resolve(undefined);
         }
 
-        return new Promise(function (fulfill, reject) {
+        return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {
+            range: {
+                start: idx.start,
+                size: idx.size
+            }
+        }))
 
-            igv.xhr.loadArrayBuffer(self.path,
-                {
-                    headers: self.config.headers,
-                    range: {start: idx.start, size: idx.size},
-                    withCredentials: self.config.withCredentials
-                })
-                .then(function (data) {
+            .then(function (data) {
 
-                        if (!data) {
-                            fulfill(null);
-                            return;
-                        }
-
-
-                        var dis = new igv.BinaryParser(new DataView(data));
-                        var c1 = dis.getInt();
-                        var c2 = dis.getInt();
-                        var chr1 = self.chromosomes[c1];
-                        var chr2 = self.chromosomes[c2];
-
-                        // # of resolution levels (bp and frags)
-                        var nResolutions = dis.getInt();
-                        var zdList = [];
-                        var p1 = getSites.call(self, chr1.name);
-                        var p2 = getSites.call(self, chr2.name);
-
-                        Promise.all([p1, p2])
-                            .then(function (results) {
-                                var sites1 = results[0];
-                                var sites2 = results[1];
-
-                                while (nResolutions-- > 0) {
-                                    var zd = parseMatixZoomData(chr1, chr2, sites1, sites2, dis);
-                                    zdList.push(zd);
-                                }
-
-                                fulfill(new Matrix(c1, c2, zdList));
-
-                            })
-                            .catch(function (err) {
-                                reject(err);
-                            });
+                    if (!data) {
+                        return null;
                     }
-                ).catch(reject)
-        });
+
+
+                    var dis = new igv.BinaryParser(new DataView(data));
+                    var c1 = dis.getInt();
+                    var c2 = dis.getInt();
+                    var chr1 = self.chromosomes[c1];
+                    var chr2 = self.chromosomes[c2];
+
+                    // # of resolution levels (bp and frags)
+                    var nResolutions = dis.getInt();
+                    var zdList = [];
+                    var p1 = getSites.call(self, chr1.name);
+                    var p2 = getSites.call(self, chr2.name);
+
+                    return Promise.all([p1, p2])
+
+                        .then(function (results) {
+                            var sites1 = results[0];
+                            var sites2 = results[1];
+
+                            while (nResolutions-- > 0) {
+                                var zd = parseMatixZoomData(chr1, chr2, sites1, sites2, dis);
+                                zdList.push(zd);
+                            }
+
+                            return new Matrix(c1, c2, zdList);
+
+                        })
+                }
+            )
+
     };
 
     hic.HiCReader.prototype.readBlock = function (blockNumber, zd) {
@@ -20274,103 +26272,98 @@ var hic = (function (hic) {
             var idx = blockIndex[blockNumber];
         }
         if (!idx) {
-            return Promise.resolve(null);
+            return Promise.resolve(undefined);
         }
         else {
 
-            return new Promise(function (fulfill, reject) {
+            return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {
+                range: {
+                    start: idx.filePosition,
+                    size: idx.size
+                }
+            }))
+                .then(function (data) {
 
-                igv.xhr.loadArrayBuffer(self.path,
-                    {
-                        headers: self.config.headers,
-                        range: {start: idx.filePosition, size: idx.size},
-                        withCredentials: self.config.withCredentials
-                    })
-                    .then(function (data) {
+                    if (!data) {
+                        return undefined;
+                    }
 
-                        if (!data) {
-                            fulfill(null);
-                            return;
+                    var inflate = new Zlib.Inflate(new Uint8Array(data));
+                    var plain = inflate.decompress();
+                    data = plain.buffer;
+
+
+                    var parser = new igv.BinaryParser(new DataView(data));
+                    var nRecords = parser.getInt();
+                    var records = [];
+
+                    if (self.version < 7) {
+                        for (i = 0; i < nRecords; i++) {
+                            var binX = parser.getInt();
+                            var binY = parser.getInt();
+                            var counts = parser.getFloat();
+                            records.push(new hic.ContactRecord(binX, binY, counts));
                         }
+                    } else {
 
-                        var inflate = new Zlib.Inflate(new Uint8Array(data));
-                        var plain = inflate.decompress();
-                        data = plain.buffer;
+                        var binXOffset = parser.getInt();
+                        var binYOffset = parser.getInt();
 
+                        var useShort = parser.getByte() == 0;
+                        var type = parser.getByte();
 
-                        var parser = new igv.BinaryParser(new DataView(data));
-                        var nRecords = parser.getInt();
-                        var records = [];
+                        if (type === 1) {
+                            // List-of-rows representation
+                            var rowCount = parser.getShort();
 
-                        if (self.version < 7) {
-                            for (i = 0; i < nRecords; i++) {
-                                var binX = parser.getInt();
-                                var binY = parser.getInt();
-                                var counts = parser.getFloat();
-                                records.push(new hic.ContactRecord(binX, binY, counts));
+                            for (i = 0; i < rowCount; i++) {
+
+                                binY = binYOffset + parser.getShort();
+                                var colCount = parser.getShort();
+
+                                for (j = 0; j < colCount; j++) {
+
+                                    binX = binXOffset + parser.getShort();
+                                    counts = useShort ? parser.getShort() : parser.getFloat();
+                                    records.push(new hic.ContactRecord(binX, binY, counts));
+                                }
                             }
+                        } else if (type == 2) {
+
+                            var nPts = parser.getInt();
+                            var w = parser.getShort();
+
+                            for (i = 0; i < nPts; i++) {
+                                //int idx = (p.y - binOffset2) * w + (p.x - binOffset1);
+                                var row = Math.floor(i / w);
+                                var col = i - row * w;
+                                var bin1 = binXOffset + col;
+                                var bin2 = binYOffset + row;
+
+                                if (useShort) {
+                                    counts = parser.getShort();
+                                    if (counts != Short_MIN_VALUE) {
+                                        records.push(new hic.ContactRecord(bin1, bin2, counts));
+                                    }
+                                } else {
+                                    counts = parser.getFloat();
+                                    if (!isNaN(counts)) {
+                                        records.push(new hic.ContactRecord(bin1, bin2, counts));
+                                    }
+                                }
+
+                            }
+
                         } else {
-
-                            var binXOffset = parser.getInt();
-                            var binYOffset = parser.getInt();
-
-                            var useShort = parser.getByte() == 0;
-                            var type = parser.getByte();
-
-                            if (type === 1) {
-                                // List-of-rows representation
-                                var rowCount = parser.getShort();
-
-                                for (i = 0; i < rowCount; i++) {
-
-                                    binY = binYOffset + parser.getShort();
-                                    var colCount = parser.getShort();
-
-                                    for (j = 0; j < colCount; j++) {
-
-                                        binX = binXOffset + parser.getShort();
-                                        counts = useShort ? parser.getShort() : parser.getFloat();
-                                        records.push(new hic.ContactRecord(binX, binY, counts));
-                                    }
-                                }
-                            } else if (type == 2) {
-
-                                var nPts = parser.getInt();
-                                var w = parser.getShort();
-
-                                for (i = 0; i < nPts; i++) {
-                                    //int idx = (p.y - binOffset2) * w + (p.x - binOffset1);
-                                    var row = Math.floor(i / w);
-                                    var col = i - row * w;
-                                    var bin1 = binXOffset + col;
-                                    var bin2 = binYOffset + row;
-
-                                    if (useShort) {
-                                        counts = parser.getShort();
-                                        if (counts != Short_MIN_VALUE) {
-                                            records.push(new hic.ContactRecord(bin1, bin2, counts));
-                                        }
-                                    } else {
-                                        counts = parser.getFloat();
-                                        if (!isNaN(counts)) {
-                                            records.push(new hic.ContactRecord(bin1, bin2, counts));
-                                        }
-                                    }
-
-                                }
-
-                            } else {
-                                reject("Unknown block type: " + type);
-                            }
-
+                            throw new Error("Unknown block type: " + type);
                         }
 
-                        var block = new hic.Block(blockNumber, zd, records);
+                    }
 
-                        fulfill(block);
-                    })
-                    .catch(reject);
-            });
+                    return new hic.Block(blockNumber, zd, records);
+                })
+
+
         }
     };
 
@@ -20378,33 +26371,31 @@ var hic = (function (hic) {
     function getSites(chrName) {
 
         var self = this;
+        var sites, entry;
 
-        return new Promise(function (fulfill, reject) {
+        sites = self.fragmentSitesCache[chrName];
 
-            var sites, entry;
+        if (sites) {
+            return Promise.resolve(sites);
 
-            sites = self.fragmentSitesCache[chrName];
+        } else if (self.fragmentSitesIndex) {
 
-            if (sites) {
-                fulfill(sites);
+            entry = self.fragmentSitesIndex[chrName];
 
-            } else if (self.fragmentSitesIndex) {
-                entry = self.fragmentSitesIndex[chrName];
+            if (entry !== undefined && entry.nSites > 0) {
 
-                if (entry !== undefined && entry.nSites > 0) {
-                    readSites(entry.position, entry.nSites)
-                        .then(function (sites) {
-                            self.fragmentSitesCache[chrName] = sites;
-                            fulfill(sites);
+                return readSites(entry.position, entry.nSites)
+                    .then(function (sites) {
+                        self.fragmentSitesCache[chrName] = sites;
+                        return sites;
 
-                        })
-                        .catch(reject);
-                }
+                    })
             }
-            else {
-                fulfill(undefined);
-            }
-        });
+        }
+        else {
+            return Promise.resolve(undefined);
+        }
+
     }
 
     function parseMatixZoomData(chr1, chr2, chr1Sites, chr2Sites, dis) {
@@ -20472,128 +26463,44 @@ var hic = (function (hic) {
             return Promise.resolve(undefined);
         }
 
-        return new Promise(function (fulfill, reject) {
+        return igv.xhr.loadArrayBuffer(self.path, igv.buildOptions(self.config, {
+            range: {
+                start: idx.filePosition,
+                size: idx.size
+            }
+        }))
+            .then(function (data) {
 
+                var parser, nValues, values, allNaN, i;
 
-            igv.xhr.loadArrayBuffer(self.path,
-                {
-                    headers: self.config.headers,
-                    range: {start: idx.filePosition, size: idx.size},
-                    withCredentials: self.config.withCredentials
-                })
-                .then(function (data) {
+                if (!data) {
+                    return undefined;
+                }
 
-                    var parser, nValues, values, allNaN, i;
+                // var inflate = new Zlib.Inflate(new Uint8Array(data));
+                // var plain = inflate.decompress();
+                // data = plain.buffer;
 
-                    if (!data) {
-                        fulfill(null);
-                        return;
+                parser = new igv.BinaryParser(new DataView(data));
+                nValues = parser.getInt();
+                values = [];
+                allNaN = true;
+                for (i = 0; i < nValues; i++) {
+                    values[i] = parser.getDouble();
+                    if (!isNaN(values[i])) {
+                        allNaN = false;
                     }
-
-                    // var inflate = new Zlib.Inflate(new Uint8Array(data));
-                    // var plain = inflate.decompress();
-                    // data = plain.buffer;
-
-                    parser = new igv.BinaryParser(new DataView(data));
-                    nValues = parser.getInt();
-                    values = [];
-                    allNaN = true;
-                    for (i = 0; i < nValues; i++) {
-                        values[i] = parser.getDouble();
-                        if (!isNaN(values[i])) {
-                            allNaN = false;
-                        }
-                    }
-                    if (allNaN) {
-                        fulfill(null);
-                    } else {
-                        fulfill(new hic.NormalizationVector(type, chrIdx, unit, binSize, values));
-                    }
+                }
+                if (allNaN) {
+                    return undefined;
+                } else {
+                    return new hic.NormalizationVector(type, chrIdx, unit, binSize, values);
+                }
 
 
-                })
-                .catch(reject);
-        })
+            })
+
     }
-
-    hic.HiCReader.prototype.readNormalizationVectorFile = function (url, chromosomes) {
-
-        return new Promise(function (fullfill, reject) {
-
-            var options = igv.buildOptions({});    // Add oauth token, if any
-
-            igv.xhr
-                .loadString(url, options)
-
-                .then(function (data) {
-
-                    var lines = data.splitLines(),
-                        len = lines.length,
-                        line, i, j, type, chr, binSize, unit, tokens, values, v, key, chrIdx, chrMap, vectors, types, mean;
-
-                    types = new Set();
-                    vectors = {};
-                    chrMap = {};
-                    chromosomes.forEach(function (chr) {
-                        chrMap[chr.name] = chr.index;
-
-                        // Hack for demo
-                        if (chr.name.startsWith("chr")) {
-                            chrMap[chr.name.substring(3)] = chr.index;
-                        } else {
-                            chrMap["chr" + chr.name] = chr.index;
-                        }
-                    });
-
-                    for (i = 0; i < len; i++) {
-                        line = lines[i].trim();
-                        if (line.startsWith("vector")) {
-
-                            if (key && values && chrIdx) {
-                                vectors[key] = new hic.NormalizationVector(type, chrIdx, unit, binSize, values)
-                            }
-                            values = [];
-
-                            tokens = line.split("\t");
-                            type = tokens[1];
-                            chr = tokens[2];
-                            binSize = tokens[3];
-                            unit = tokens[4];
-
-
-                            chrIdx = chrMap[chr];
-                            if (chrIdx) {
-                                types.add(type);
-                                key = hic.getNormalizationVectorKey(type, chrIdx, unit.toString(), binSize);
-                            } else {
-                                key = undefined;
-                                console.log("Unknown chromosome: " + chr);
-                            }
-
-
-                        }
-                        else {
-                            if (key && values) {
-                                v = (line.length === 0 || line == ".") ? NaN : parseFloat(line);
-                                values.push(v);
-                            }
-                        }
-                    }
-
-                    // Last one
-                    if (key && values && values.length > 0 && chrIdx) {
-                        vectors[key] = new hic.NormalizationVector(type, chrIdx, unit, binSize, values);
-                    }
-
-                    vectors.types = types;
-
-                    fullfill(vectors);
-                })
-                .catch(reject);
-
-        });
-    };
-
 
     function ExpectedValueFunction(normType, unit, binSize, values, normFactors) {
         this.normType = normType;
@@ -20604,7 +26511,7 @@ var hic = (function (hic) {
     }
 
     function MatrixZoomData(chr1, chr2, zoom, blockBinCount, blockColumnCount, chr1Sites, chr2Sites) {
-        this.chr1 = chr1;
+        this.chr1 = chr1;    // chromosome index
         this.chr2 = chr2;
         this.zoom = zoom;
         this.blockBinCount = blockBinCount;
@@ -20641,7 +26548,21 @@ var hic = (function (hic) {
     };
 
 
-    // Legacy implementation, used only in tests.
+    Matrix.prototype.findZoomForResolution = function (binSize, unit) {
+
+        var i, zdArray = "FRAG" === unit ? this.fragZoomData : this.bpZoomData;
+
+        for (i = 1; i < zdArray.length; i++) {
+            var zd = zdArray[i];
+            if (zd.zoom.binSize < binSize) {
+                return i-1;
+            }
+        }
+        return zdArray.length - 1;
+
+    }
+
+// Legacy implementation, used only in tests.
     Matrix.prototype.getZoomData = function (zoom) {
 
         var zdArray = zoom.unit === "BP" ? this.bpZoomData : this.fragZoomData,
@@ -20693,12 +26614,11 @@ var hic = (function (hic) {
 var hic = (function (hic) {
 
     hic.ResolutionSelector = function (browser, $parent) {
-        var self = this,
-            $label;
+        var self = this;
 
         this.browser = browser;
 
-        this.$container = $('<div class="hic-resolution-selector-container">');
+        this.$container = $("<div>", { class:'hic-resolution-selector-container',  title:'Resolution' });
         $parent.append(this.$container);
 
         // label container
@@ -20706,9 +26626,10 @@ var hic = (function (hic) {
         this.$container.append(this.$label_container);
 
         // Resolution (kb)
-        $label = $('<div>');
-        this.$label_container.append($label);
-        $label.text('Resolution (kb)');
+        this.$label = $("<div>");
+        this.$label_container.append(this.$label);
+        this.$label.text('Resolution (kb)');
+        this.$label.hide();
 
         // lock/unlock
         this.$resolution_lock = $('<i id="hic-resolution-lock" class="fa fa-unlock" aria-hidden="true">');
@@ -20741,7 +26662,12 @@ var hic = (function (hic) {
     hic.ResolutionSelector.prototype.receiveEvent = function (event) {
 
         var self = this,
-            status;
+            htmlString,
+            resolutions,
+            selectedIndex,
+            isWholeGenome,
+            digits,
+            divisor;
 
         if (event.type === "LocusChange") {
 
@@ -20750,38 +26676,50 @@ var hic = (function (hic) {
                 self.setResolutionLock(this.browser.resolutionLocked);
             }
 
+            isWholeGenome = (0 === event.data.state.chr1);
+
+            this.$label.text(isWholeGenome ? 'Resolution (mb)' : 'Resolution (kb)');
+            resolutions = isWholeGenome ? [ this.browser.dataset.wholeGenomeResolution ] : this.browser.dataset.bpResolutions;
+            selectedIndex = isWholeGenome ? 0 : this.browser.state.zoom;
+            divisor = isWholeGenome ? 1e6 : 1e3;
+
+            htmlString = optionListHTML(resolutions, selectedIndex, divisor);
+
+            this.$resolution_selector.empty();
+            this.$resolution_selector.append(htmlString);
+
             this.$resolution_selector
                 .find('option')
                 .filter(function (index) {
-                    return index === event.data.state.zoom;
+                    return index === selectedIndex;
                 })
                 .prop('selected', true);
 
-            if (0 === event.data.state.chr1) {
-                this.$label_container.hide();
-                this.$resolution_selector.prop('disabled', true);
-            } else {
-                this.$label_container.show();
-                this.$resolution_selector.prop('disabled', false);
-            }
-
-
         } else if (event.type === "MapLoad") {
-
-            var elements;
 
             this.browser.resolutionLocked = false;
             this.setResolutionLock(this.browser.resolutionLocked);
 
-            elements = _.map(this.browser.dataset.bpResolutions, function (resolution, index) {
-                var selected = self.browser.state.zoom === index;
-                
-                return '<option' + ' value=' + index +  (selected ? ' selected': '') + '>' + igv.numberFormatter(resolution / 1e3) + '</option>';
+            this.$resolution_selector.empty();
+            htmlString = optionListHTML(this.browser.dataset.bpResolutions, this.browser.state.zoom, 1e3);
+            this.$resolution_selector.append(htmlString);
+
+        }
+
+        function optionListHTML(resolutionList, selectedIndex, divisor) {
+            var list;
+
+            list = _.map(resolutionList, function (resolution, index) {
+
+                var selected,
+                    str;
+
+                selected = selectedIndex === index;
+                str = igv.numberFormatter(Math.round(resolution/divisor)) + (1e3 === divisor ? ' kb' : ' mb');
+                return '<option' + ' value=' + index +  (selected ? ' selected': '') + '>' + str + '</option>';
             });
 
-            this.$resolution_selector.empty();
-            this.$resolution_selector.append(elements.join(''));
-
+            return list.join('');
         }
 
     };
@@ -20828,84 +26766,98 @@ var hic = (function (hic) {
         this.axis = axis;
 
         id = browser.id + '_' + this.axis + '-axis';
-        this.$axis = $("<div>", { id:id });
+        this.$axis = $("<div>", {id: id});
         $parent.append(this.$axis);
 
-
+        // canvas
         this.$canvas = $('<canvas>');
         this.$axis.append(this.$canvas);
 
-        this.$canvas.width(        this.$axis.width());
+        this.$canvas.width(this.$axis.width());
         this.$canvas.attr('width', this.$axis.width());
 
-        this.$canvas.height(        this.$axis.height());
+        this.$canvas.height(this.$axis.height());
         this.$canvas.attr('height', this.$axis.height());
+
+        // whole genome
+        this.$wholeGenomeContainer = $('<div>');
+        this.$axis.append(this.$wholeGenomeContainer);
 
         this.ctx = this.$canvas.get(0).getContext("2d");
 
-        this.yAxisTransformWithContext = function(context) {
+        this.yAxisTransformWithContext = function (context) {
             context.scale(-1, 1);
-            context.rotate(Math.PI/2.0);
+            context.rotate(Math.PI / 2.0);
         };
 
         this.setAxisTransform(axis);
 
-        this.browser.eventBus.subscribe('LocusChange', this);
         this.browser.eventBus.subscribe('MapLoad', this);
+        this.browser.eventBus.subscribe("UpdateContactMapMousePosition", this);
+
 
     };
 
-    hic.Ruler.prototype.wholeGenomeLayout = function ($axis, axis, dataset) {
+    hic.Ruler.prototype.wholeGenomeLayout = function ($axis, $wholeGenomeContainer, axisName, dataset) {
 
         var self = this,
             list,
             dimen,
             extent,
-            cumulativeOffset,
-            chrLast,
             scraps,
             $div,
+            $firstDiv,
             $e;
 
         // discard current tiles
-        $axis.find('div').remove();
+        $wholeGenomeContainer.empty();
 
-        list = _.filter(dataset.chromosomes, function (chr) {
-            return 'all' !== chr.name.toLowerCase();
+        list = dataset.chromosomes.filter(function (chromosome) {
+            return 'all' !== chromosome.name.toLowerCase();
         });
 
-        chrLast = _.last(dataset.chromosomes);
-        cumulativeOffset = this.browser.genome.getCumulativeOffset(chrLast);
-        extent = chrLast.bpLength + cumulativeOffset;
+        extent = 0;    // could use reduce for this
+        list.forEach(function (chromosome) {
+            extent += chromosome.size;
+        });
 
-        dimen = 'x' === axis ? $axis.width() : $axis.height();
+
+        dimen = 'x' === axisName ? $axis.width() : $axis.height();
         scraps = 0;
-        _.each(list, function (chr) {
-            var d,
+        this.bboxes = [];
+        $firstDiv = undefined;
+
+        list.forEach(function (chr, index) {
+            var size,
                 percentage;
 
-            percentage = (chr.bpLength)/extent;
+            percentage = (chr.bpLength) / extent;
 
             if (percentage * dimen < 1.0) {
                 scraps += percentage;
             } else {
+
                 $div = $('<div>');
-                $axis.append($div);
+                $wholeGenomeContainer.append($div);
+                $div.data('label', chr.name);
 
-                if ('x' === axis) {
-                    d = Math.round(percentage * dimen);
-                    //console.log(chr.name + "  " + chr.bpLength + "  " + percentage + " " + d + " " + dimen);
-                    $div.width(d - 2);
+                if (0 === index) {
+                    $firstDiv = $div;
+                }
+
+                if ('x' === axisName) {
+                    size = Math.round(percentage * dimen) - 2;
+                    $div.width(size);
                 } else {
-                    d = Math.round(percentage * dimen);
-                    $div.height(d - 2);
-
+                    size = Math.round(percentage * dimen) - 2;
+                    $div.height(size);
                 }
 
                 $e = $('<div>');
                 $div.append($e);
-                $e.text(chr.name);
+                $e.text($div.data('label'));
 
+                decorate.call(self, $div);
             }
 
         });
@@ -20915,75 +26867,184 @@ var hic = (function (hic) {
         if (scraps >= 1) {
 
             $div = $('<div>');
-            $axis.append($div);
+            $wholeGenomeContainer.append($div);
+            $div.data('label', '-');
 
             $div.width(scraps);
 
             $e = $('<span>');
             $div.append($e);
+            $e.text($div.data('label'));
 
-            $e.text('-');
-
+            decorate.call(self, $div);
         }
+
+        $wholeGenomeContainer.children().each(function (index) {
+            self.bboxes.push(bbox(axisName, $(this), $firstDiv));
+        });
+
 
         // initially hide
         this.hideWholeGenome();
 
+        function decorate($d) {
+            var self = this;
+
+            $d.on('click', function (e) {
+                var $o;
+                $o = $(this).first();
+                self.browser.parseGotoInput( $o.text() );
+                // $(this).removeClass('hic-whole-genome-chromosome-highlight');
+                self.unhighlightWholeChromosome();
+                self.otherRuler.unhighlightWholeChromosome();
+            });
+
+            $d.hover(
+                function () {
+                    hoverHandler.call(self, $(this), true);
+                },
+
+                function () {
+                    hoverHandler.call(self, $(this), false);
+                }
+            );
+
+        }
+
+        function hoverHandler($e, doHover) {
+
+            var target,
+                $target;
+
+            target = $e.data('label');
+
+            this.otherRuler.$wholeGenomeContainer.children().each(function (index) {
+                if (target === $(this).data('label')) {
+                    $target = $(this);
+                }
+            });
+
+            if (true === doHover) {
+                $e.addClass('hic-whole-genome-chromosome-highlight');
+                $target.addClass('hic-whole-genome-chromosome-highlight');
+            } else {
+                $e.removeClass('hic-whole-genome-chromosome-highlight');
+                $target.removeClass('hic-whole-genome-chromosome-highlight');
+            }
+        }
+
     };
 
+    function bbox(axis, $child, $firstChild) {
+        var delta,
+            size,
+            o,
+            fo;
+
+        o = 'x' === axis ? $child.offset().left : $child.offset().top;
+        fo = 'x' === axis ? $firstChild.offset().left : $firstChild.offset().top;
+
+        delta = o - fo;
+        size = 'x' === axis ? $child.width() : $child.height();
+
+        return {$e: $child, a: delta, b: delta + size};
+
+    }
+
+    function hitTest(bboxes, value) {
+        var $result,
+            success;
+
+        success = false;
+        $result = undefined;
+        bboxes.forEach(function (bbox) {
+
+            if (false === success) {
+
+                if (value < bbox.a) {
+                    // nuthin
+                } else if (value > bbox.b) {
+                    // nuthin
+                } else {
+                    $result = bbox.$e;
+                    success = true;
+                }
+
+            }
+
+        });
+
+        return $result;
+    }
+
     hic.Ruler.prototype.hideWholeGenome = function () {
-        this.$axis.find('div').hide();
+        this.$wholeGenomeContainer.hide();
         this.$canvas.show();
     };
 
     hic.Ruler.prototype.showWholeGenome = function () {
         this.$canvas.hide();
-        this.$axis.find('div').show();
+        this.$wholeGenomeContainer.show();
     };
 
     hic.Ruler.prototype.setAxisTransform = function (axis) {
 
         this.canvasTransform = ('y' === axis) ? this.yAxisTransformWithContext : identityTransformWithContext;
 
-        this.labelReflectionTransform = ('y' === axis) ? reflectionTransformWithContext : function (context, exe) { };
+        this.labelReflectionTransform = ('y' === axis) ? reflectionTransformWithContext : function (context, exe) {
+        };
 
     };
 
-    hic.Ruler.prototype.receiveEvent = function(event) {
+    hic.Ruler.prototype.unhighlightWholeChromosome = function () {
+        this.$wholeGenomeContainer.children().removeClass('hic-whole-genome-chromosome-highlight');
+    };
 
-        if ('LocusChange' === event.type) {
+    hic.Ruler.prototype.receiveEvent = function (event) {
+        var offset,
+            $e;
 
-            if (0 === event.data.state.chr1 && event.data.state.chr1 === event.data.state.chr1) {
-                this.showWholeGenome();
-            } else {
-                this.hideWholeGenome();
-                this.update();
+        if ('MapLoad' === event.type) {
+            this.wholeGenomeLayout(this.$axis, this.$wholeGenomeContainer, this.axis, event.data);
+        } else if ('UpdateContactMapMousePosition' === event.type) {
+
+            this.unhighlightWholeChromosome();
+
+            offset = 'x' === this.axis ? event.data.x : event.data.y;
+            $e = hitTest(this.bboxes, offset);
+            if ($e) {
+                // console.log(this.axis + ' highlight chr ' + $e.text());
+                $e.addClass('hic-whole-genome-chromosome-highlight');
             }
 
-        } else if ('MapLoad' === event.type) {
-            this.wholeGenomeLayout(this.$axis, this.axis, event.data);
         }
+
+    };
+
+    hic.Ruler.prototype.locusChange = function (event) {
+
+        this.update();
 
     };
 
     hic.Ruler.prototype.updateWidthWithCalculation = function (calc) {
 
-        this.$axis.css( 'width', calc );
+        this.$axis.css('width', calc);
 
-        this.$canvas.width(        this.$axis.width());
+        this.$canvas.width(this.$axis.width());
         this.$canvas.attr('width', this.$axis.width());
 
-        this.wholeGenomeLayout(this.$axis, this.axis, this.browser.dataset);
+        this.wholeGenomeLayout(this.$axis, this.$wholeGenomeContainer, this.axis, this.browser.dataset);
 
         this.update();
     };
 
     hic.Ruler.prototype.updateHeight = function (height) {
 
-        this.$canvas.height(        height);
+        this.$canvas.height(height);
         this.$canvas.attr('height', height);
 
-        this.wholeGenomeLayout(this.$axis, this.axis, this.browser.dataset);
+        this.wholeGenomeLayout(this.$axis, this.$wholeGenomeContainer, this.axis, this.browser.dataset);
 
         this.update();
     };
@@ -20996,20 +27057,27 @@ var hic = (function (hic) {
             config = {},
             browser = this.browser;
 
+        if (isBrowserInWholeGenomeView(browser.state)) {
+            this.showWholeGenome();
+            return;
+        }
+
+        this.hideWholeGenome();
+
         identityTransformWithContext(this.ctx);
-        igv.graphics.fillRect(this.ctx, 0, 0, this.$canvas.width(), this.$canvas.height(), { fillStyle: igv.rgbColor(255, 255, 255) });
+        igv.graphics.fillRect(this.ctx, 0, 0, this.$canvas.width(), this.$canvas.height(), {fillStyle: igv.Color.rgbColor(255, 255, 255)});
 
         this.canvasTransform(this.ctx);
 
         w = ('x' === this.axis) ? this.$canvas.width() : this.$canvas.height();
         h = ('x' === this.axis) ? this.$canvas.height() : this.$canvas.width();
 
-        igv.graphics.fillRect(this.ctx, 0, 0, w, h, { fillStyle: igv.rgbColor(255, 255, 255) });
+        igv.graphics.fillRect(this.ctx, 0, 0, w, h, {fillStyle: igv.Color.rgbColor(255, 255, 255)});
 
-        config.bpPerPixel = browser.dataset.bpResolutions[ browser.state.zoom ] / browser.state.pixelSize;
+        config.bpPerPixel = browser.dataset.bpResolutions[browser.state.zoom] / browser.state.pixelSize;
 
         bin = ('x' === this.axis) ? browser.state.x : browser.state.y;
-        config.bpStart = bin * browser.dataset.bpResolutions[ browser.state.zoom ];
+        config.bpStart = bin * browser.dataset.bpResolutions[browser.state.zoom];
 
         config.rulerTickMarkReferencePixels = Math.max(Math.max(this.$canvas.width(), this.$canvas.height()), Math.max(this.$otherRulerCanvas.width(), this.$otherRulerCanvas.height()));
 
@@ -21041,14 +27109,15 @@ var hic = (function (hic) {
             chrName,
             chromosomes = this.browser.dataset.chromosomes;
 
-        chrName = ('x' === this.axis) ? chromosomes[ this.browser.state.chr1 ].name : chromosomes[ this.browser.state.chr2 ].name;
-        chrSize = ('x' === this.axis) ? chromosomes[ this.browser.state.chr1 ].size : chromosomes[ this.browser.state.chr2 ].size;
+        chrName = ('x' === this.axis) ? chromosomes[this.browser.state.chr1].name : chromosomes[this.browser.state.chr2].name;
+        chrSize = ('x' === this.axis) ? chromosomes[this.browser.state.chr1].size : chromosomes[this.browser.state.chr2].size;
 
         if (options.chrName === "all") {
             // drawAll.call(this);
+            console.log('draw whole genome');
         } else {
 
-            igv.graphics.fillRect(this.ctx, 0, 0, options.rulerLengthPixels, options.rulerHeightPixels, { fillStyle: igv.rgbColor(255, 255, 255) });
+            igv.graphics.fillRect(this.ctx, 0, 0, options.rulerLengthPixels, options.rulerHeightPixels, {fillStyle: igv.Color.rgbColor(255, 255, 255)});
 
             fontStyle = {
                 textAlign: 'center',
@@ -21211,6 +27280,10 @@ var hic = (function (hic) {
         }
 
     };
+
+    function isBrowserInWholeGenomeView (state) {
+        return 0 === state.chr1 && state.chr1 === state.chr1;
+    }
 
     function TickSpacing(majorTick, majorUnit, unitMultiplier) {
         this.majorTick = majorTick;
@@ -21538,7 +27611,7 @@ var hic = (function (hic) {
             var key = getKey(f.chr1, f.chr2),
                 list = self.featureMap[key];
 
-            if(!list) {
+            if (!list) {
                 list = [];
                 self.featureMap[key] = list;
             }
@@ -21547,29 +27620,24 @@ var hic = (function (hic) {
 
     };
 
-    hic.Track2D.prototype.getFeatures = function(chr1, chr2) {
+    hic.Track2D.prototype.getFeatures = function (chr1, chr2) {
         var key = getKey(chr1, chr2),
-            features =  this.featureMap[key];
+            features = this.featureMap[key];
 
         return features || this.featureMap[getAltKey(chr1, chr2)];
     };
 
     hic.loadTrack2D = function (config) {
 
-        return new Promise(function (fulfill, reject) {
+        return igv.xhr.loadString(config.url, igv.buildOptions(config))
 
-            igv.xhr
-                .loadString(config.url, {})
-                .then(function (data) {
+            .then(function (data) {
 
-                    var features = parseData(data);
+                var features = parseData(data);
 
-                    fulfill(new hic.Track2D(config, features));
-                })
-                .catch(reject);
-
-        })
-    };
+                return new hic.Track2D(config, features);
+            })
+    }
 
     function parseData(data) {
 
@@ -21653,17 +27721,344 @@ var hic = (function (hic) {
  */
 var hic = (function (hic) {
 
-    hic.extractFilename = function (urlString) {
+    var urlShorteners;
 
-        var idx = urlString.lastIndexOf("/");
+    hic.setURLShortener = function (shortenerConfigs) {
 
-        if (idx > 0) {
-            return urlString.substring(idx + 1);
+        if (!shortenerConfigs || shortenerConfigs === "none") {
+
+        } else {
+            urlShorteners = [];
+            shortenerConfigs.forEach(function (config) {
+                urlShorteners.push(getShortener(config));
+            })
+        }
+
+        function getShortener(shortener) {
+            if (shortener.provider) {
+                if (shortener.provider === "google") {
+                    return new GoogleURL(shortener);
+                }
+                else if (shortener.provider === "bitly") {
+                    return new BitlyURL(shortener);
+                }
+                else {
+                    igv.presentAlert("Unknown url shortener provider: " + shortener.provider);
+                }
+            }
+            else {    // Custom
+                if (typeof shortener.shortenURL === "function" &&
+                    typeof shortener.expandURL === "function" &&
+                    typeof shortener.hostname === "string") {
+                    return shortener;
+                }
+                else {
+                    igv.presentAlert("URL shortener object must define functions 'shortenURL' and 'expandURL' and string constant 'hostname'")
+                }
+            }
+        }
+    }
+
+    hic.shortenURL = function (url) {
+        if (urlShorteners) {
+            return urlShorteners[0].shortenURL(url);
         }
         else {
-            return urlString;
+            return Promise.resolve(url);
+        }
+    }
+
+    /**
+     * Returns a promise to expand the URL
+     */
+    hic.expandURL = function (url) {
+
+        var urlObject = new URL(url),
+            hostname = urlObject.hostname,
+            i,
+            expander;
+
+        if (urlShorteners) {
+            for (i = 0; i < urlShorteners.length; i++) {
+                expander = urlShorteners[i];
+                if (hostname === expander.hostname) {
+                    return expander.expandURL(url);
+                }
+            }
         }
 
+        igv.presentAlert("No expanders for URL: " + url);
+
+        return Promise.resolve(url);
+    }
+
+    hic.shortJuiceboxURL = function (base) {
+
+        var url, queryString,
+            self = this;
+
+        url = base + "?juicebox=";
+
+        queryString = "{";
+        hic.allBrowsers.forEach(function (browser, index) {
+            queryString += encodeURIComponent(browser.getQueryString());
+            queryString += (index === hic.allBrowsers.length - 1 ? "}" : "},{");
+        });
+
+        url = url + encodeURIComponent(queryString);
+
+        return self.shortenURL(url)
+
+            .then(function (shortURL) {
+
+                // Now shorten a second time, with short url as a parameter.  This solves the problem of
+                // the expanded url (after a redirect) being over the browser limit.
+
+                var idx, href, url;
+
+                href = window.location.href;
+                idx = href.indexOf("?");
+                if (idx > 0) {
+                    href = href.substr(0, idx);
+                }
+
+                url = href + "?juiceboxURL=" + shortURL;
+                return url;
+            })
+    };
+
+
+    hic.decodeJBUrl = function (jbURL) {
+
+        var q, parts, config;
+
+        q = hic.extractQuery(jbURL)["juicebox"];
+
+        if (q.startsWith("%7B")) {
+            q = decodeURIComponent(q);
+        }
+
+        q = q.substr(1, q.length - 2);  // Strip leading and trailing bracket
+        parts = q.split("},{");
+
+        return {
+            queryString: decodeURIComponent(parts[0]),
+            oauthToken: oauthToken
+        }
+    }
+
+
+    var BitlyURL = function (config) {
+        this.api = "https://api-ssl.bitly.com";
+        this.apiKey = (!config.apiKey || "ABCD" === config.apiKey) ? fetchBitlyApiKey : config.apiKey;
+        this.hostname = config.hostname ? config.hostname : "bit.ly";
+        this.devIP = "192.168.1.11";   // For development, replace with your IP address. Bitly will not shorten localhost !
+    }
+
+
+    BitlyURL.prototype.shortenURL = function (url) {
+
+        var self = this;
+
+        if (url.startsWith("http://localhost")) url = url.replace("localhost", this.devIP);  // Dev hack
+
+        return getApiKey.call(this)
+
+            .then(function (key) {
+                var endpoint = self.api + "/v3/shorten?access_token=" + key + "&longUrl=" + encodeURIComponent(url);
+
+                return igv.xhr.loadJson(endpoint, {})
+            })
+
+            .then(function (json) {
+                return json.data.url;
+            })
+    };
+
+
+    BitlyURL.prototype.expandURL = function (url) {
+
+        var self = this;
+
+        return getApiKey.call(this)
+
+            .then(function (key) {
+
+                var endpoint = self.api + "/v3/expand?access_token=" + key + "&shortUrl=" + encodeURIComponent(url);
+
+                return igv.xhr.loadJson(endpoint, {})
+            })
+
+            .then(function (json) {
+
+                var longUrl = json.data.expand[0].long_url;
+
+                // Fix some Bitly "normalization"
+                longUrl = longUrl.replace("{", "%7B").replace("}", "%7D");
+
+                return longUrl;
+
+            })
+    }
+
+
+    var GoogleURL = function (config) {
+        this.api = "https://www.googleapis.com/urlshortener/v1/url";
+        this.apiKey = (!config.apiKey || "ABCD" === config.apiKey) ? fetchGoogleApiKey : config.apiKey;
+        this.hostname = config.hostname || "goo.gl";
+    }
+
+    GoogleURL.prototype.shortenURL = function (url) {
+
+        var self = this;
+
+        return getApiKey.call(this)
+
+            .then(function (key) {
+
+                var endpoint = self.api + "?key=" + key;
+
+                return igv.xhr.loadJson(endpoint,
+                    {
+                        sendData: JSON.stringify({"longUrl": url}),
+                        contentType: "application/json"
+                    })
+            })
+            .then(function (json) {
+                return json.id;
+            })
+    }
+
+
+    GoogleURL.prototype.expandURL = function (url) {
+
+        var self = this;
+        return getApiKey.call(this)
+
+            .then(function (apiKey) {
+
+                var endpoint;
+
+                if (url.includes("goo.gl")) {
+
+                    endpoint = self.api + "?shortUrl=" + url + "&key=" + apiKey;
+
+                    return igv.xhr.loadJson(endpoint, {contentType: "application/json"})
+                        .then(function (json) {
+                            return json.longUrl;
+                        })
+                }
+                else {
+                    // Not a google url or no api key
+                    return Promise.resolve(url);
+                }
+            })
+    }
+
+    function getApiKey() {
+
+        var self = this, token;
+
+        if (typeof self.apiKey === "string") {
+            return Promise.resolve(self.apiKey);
+        }
+        else if (typeof self.apiKey === "function") {
+
+            token = self.apiKey();
+
+            if (typeof token.then === "function") {
+                return token.then(function (key) {
+                    self.apiKey = key;
+                    return key;
+                })
+            } else {
+                self.apiKey = token;
+                return Promise.resolve(token);
+            }
+        }
+        else {
+            throw new Error("Unknown apiKey type: " + this.apiKey);
+        }
+    }
+
+
+// Example function for fetching an api key.
+    function fetchBitlyApiKey() {
+        return igv.xhr.loadJson("https://s3.amazonaws.com/igv.org.restricted/bitly.json", {})
+            .then(function (json) {
+                return json["apiKey"];
+            })
+            .catch(function (error) {
+                console.error(error);
+            })
+    }
+
+// Example function for fetching an api key.
+    function fetchGoogleApiKey() {
+        return igv.xhr.loadJson("https://s3.amazonaws.com/igv.org.restricted/google.json", {})
+            .then(function (json) {
+                return json["apiKey"];
+            })
+            .catch(function (error) {
+                console.error(error);
+            })
+    }
+
+
+    return hic;
+
+})
+(hic || {});
+
+/*
+ *  The MIT License (MIT)
+ *
+ * Copyright (c) 2016-2017 The Regents of the University of California
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
+ * following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or substantial
+ * portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+ * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
+/**
+ * Created by dat on 3/8/17.
+ */
+var hic = (function (hic) {
+
+    hic.setApiKey = function (key) {
+
+        hic.apiKey = key;
+        igv.setApiKey(key);
+
+    }
+
+    hic.extractFilename = function (urlOrFile) {
+        var idx,
+            str;
+
+        if (igv.isFilePath(urlOrFile)) {
+            return urlOrFile.name;
+        }
+        else {
+
+            str = urlOrFile.split('?').shift();
+            idx = urlOrFile.lastIndexOf("/");
+
+            return idx > 0 ? str.substring(idx + 1) : str;
+        }
     };
 
     hic.igvSupports = function (path) {
@@ -21917,197 +28312,21 @@ var hic = (function (hic) {
         return (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
     }
 
-    return hic;
+    hic.presentError = function(prefix, error) {
 
-})(hic || {});
-
-/*
- *  The MIT License (MIT)
- *
- * Copyright (c) 2016-2017 The Regents of the University of California
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- * associated documentation files (the "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the
- * following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or substantial
- * portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
- * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
-
-
-var hic = (function (hic) {
-
-    hic.createColorSwatchSelector = function ($parent, colorHandler, closeHandler) {
-
-        var $div,
-            $fa,
-            $close_container,
-            rgbStrings,
-            s;
-
-        s = 1;
-        rgbStrings = [];
-        for(var v = 1; v >= 0.5; v -= .1) {
-            for (var rgb, h = 0; h < 1; h += 1/28) {
-                rgb = "rgb(" + hsvToRgb(h, s, v).join(",") + ")";
-                rgbStrings.push(rgb);
-            }
+        var msg = error.message;
+        if(httpMessages.hasOwnProperty(msg)) {
+            msg = httpMessages[msg];
         }
+        igv.presentAlert(prefix + ": " + msg);
 
-        // close button container
-        $close_container = $('<div>');
-        $parent.append($close_container);
-
-        // close button
-        $div = $('<div>', {class: 'hic-menu-close-button'});
-        $close_container.append($div);
-
-        $fa = $("<i>", {class: 'fa fa-times'});
-        $div.append($fa);
-
-        $fa.on('click', function (e) {
-            closeHandler();
-        });
-
-        rgbStrings.forEach(function (rgbString) {
-            var $swatch;
-
-            $swatch = hic.colorSwatch(rgbString);
-            $parent.append($swatch);
-
-            $swatch.click(function () {
-                colorHandler(rgbString);
-            });
-
-        });
-
-    };
-
-    hic.colorSwatch = function (rgbString) {
-        var $swatch,
-            $fa;
-
-        $swatch = $('<div>', {class: 'hic-color-swatch'});
-
-        $fa = $('<i>', {class: 'fa fa-square fa-lg', 'aria-hidden': 'true'});
-        $swatch.append($fa);
-
-        $fa.css({color: rgbString});
-
-        return $swatch;
-    };
-
-    function rgbToHex(rgb) {
-        rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
-        return (rgb && rgb.length === 4) ? "#" +
-        ("0" + parseInt(rgb[1], 10).toString(16)).slice(-2) +
-        ("0" + parseInt(rgb[2], 10).toString(16)).slice(-2) +
-        ("0" + parseInt(rgb[3], 10).toString(16)).slice(-2) : '';
     }
 
-    function hexToRgb(hex) {
-        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return "rgb(" +
-            parseInt(result[1], 16) + ", " +
-            parseInt(result[2], 16) + ", " +
-            parseInt(result[3], 16) + ")";
+    var httpMessages = {
+        "401": "Access unauthorized",
+        "403": "Access forbidden",
+        "404": "Not found"
     }
-
-    /**
-     * Converts an HSV color value to RGB. Conversion formula
-     * adapted from http://en.wikipedia.org/wiki/HSV_color_space.
-     * Assumes h, s, and v are contained in the set [0, 1] and
-     * returns r, g, and b in the set [0, 255].
-     *
-     * Credit: https://gist.githubusercontent.com/mjackson/5311256
-     *
-     * @param   Number  h       The hue
-     * @param   Number  s       The saturation
-     * @param   Number  v       The value
-     * @return  Array           The RGB representation
-     */
-    function hsvToRgb(h, s, v) {
-        var r, g, b;
-
-        var i = Math.floor(h * 6);
-        var f = h * 6 - i;
-        var p = v * (1 - s);
-        var q = v * (1 - f * s);
-        var t = v * (1 - (1 - f) * s);
-
-        switch (i % 6) {
-            case 0:
-                r = v, g = t, b = p;
-                break;
-            case 1:
-                r = q, g = v, b = p;
-                break;
-            case 2:
-                r = p, g = v, b = t;
-                break;
-            case 3:
-                r = p, g = q, b = v;
-                break;
-            case 4:
-                r = t, g = p, b = v;
-                break;
-            case 5:
-                r = v, g = p, b = q;
-                break;
-        }
-
-        return [Math.floor(r * 255), Math.floor(g * 255), Math.floor(b * 255)];
-    }
-
-    /**
-     * Converts an HSL color value to RGB. Conversion formula
-     * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
-     * Assumes h, s, and l are contained in the set [0, 1] and
-     * returns r, g, and b in the set [0, 255].
-     *
-     * Credit: https://gist.githubusercontent.com/mjackson/5311256
-     *
-     * @param   Number  h       The hue
-     * @param   Number  s       The saturation
-     * @param   Number  l       The lightness
-     * @return  Array           The RGB representation
-     */
-    function hslToRgb(h, s, l) {
-        var r, g, b;
-
-        if (s === 0) {
-            r = g = b = l; // achromatic
-        } else {
-            function hue2rgb(p, q, t) {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
-                if (t < 1 / 6) return p + (q - p) * 6 * t;
-                if (t < 1 / 2) return q;
-                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-                return p;
-            }
-
-            var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-            var p = 2 * l - q;
-
-            r = hue2rgb(p, q, h + 1 / 3);
-            g = hue2rgb(p, q, h);
-            b = hue2rgb(p, q, h - 1 / 3);
-        }
-
-        return [r * 255, g * 255, b * 255];
-    }
-
 
     return hic;
 
@@ -22131,9 +28350,6 @@ var hic = (function (hic) {
 
         this.track_height = 32;
 
-        this.browser.eventBus.subscribe('TrackLoad', this);
-        this.browser.eventBus.subscribe('LocusChange', this);
-
     };
 
     // Dupes of corresponding juicebox.scss variables
@@ -22145,9 +28361,9 @@ var hic = (function (hic) {
     hic.LayoutController.navbarHeight = function (figureMode) {
         var height;
         if (true === figureMode) {
-            height =  hic.LayoutController.nav_bar_label_height;
+            height = hic.LayoutController.nav_bar_label_height;
         } else {
-            height  = (2 * hic.LayoutController.nav_bar_widget_container_height) + hic.LayoutController.nav_bar_shim_height +  hic.LayoutController.nav_bar_label_height;
+            height = (2 * hic.LayoutController.nav_bar_widget_container_height) + hic.LayoutController.nav_bar_shim_height + hic.LayoutController.nav_bar_label_height;
         }
         // console.log('navbar height ' + height);
         return height;
@@ -22160,16 +28376,13 @@ var hic = (function (hic) {
             $label_delete_button_container,
             $upper_widget_container,
             $lower_widget_container,
-            $navbar_shim,
-            $a,
-            $b,
             $e,
             $fa;
 
         $navbar_container = $('<div class="hic-navbar-container">');
         $root.append($navbar_container);
 
-        if(true === browser.config.figureMode) {
+        if (true === browser.config.figureMode) {
             $navbar_container.height(hic.LayoutController.navbarHeight(browser.config.figureMode));
         } else {
 
@@ -22183,41 +28396,47 @@ var hic = (function (hic) {
 
         // container: label | menu button | browser delete button
         id = browser.id + '_' + 'hic-nav-bar-contact-map-label-delete-button-container';
-        $label_delete_button_container = $("<div>", { id:id });
+        $label_delete_button_container = $("<div>", {id: id});
         $navbar_container.append($label_delete_button_container);
 
         // label
         id = browser.id + '_' + 'hic-nav-bar-contact-map-label';
-        browser.$contactMaplabel = $("<div>", { id:id });
+        browser.$contactMaplabel = $("<div>", {id: id});
         $label_delete_button_container.append(browser.$contactMaplabel);
 
         // menu button
-        browser.$menuPresentDismiss = $("<div>", { class:'hic-nav-bar-menu-button' });
+        browser.$menuPresentDismiss = $("<div>", {class: 'hic-nav-bar-menu-button'});
         $label_delete_button_container.append(browser.$menuPresentDismiss);
 
-        $fa = $("<i>", { class:'fa fa-bars fa-lg' });
+        $fa = $("<i>", {class: 'fa fa-bars fa-lg'});
         browser.$menuPresentDismiss.append($fa);
         $fa.on('click', function (e) {
             browser.toggleMenu();
         });
 
         // browser delete button
-        $e = $("<div>", { class:'hic-nav-bar-delete-button' });
+        $e = $("<div>", {class: 'hic-nav-bar-delete-button'});
         $label_delete_button_container.append($e);
 
-        $fa = $("<i>", { class:'fa fa-minus-circle fa-lg' });
+        $fa = $("<i>", {class: 'fa fa-minus-circle fa-lg'});
         // class="fa fa-plus-circle fa-lg" aria-hidden="true"
         $e.append($fa);
 
         $fa.on('click', function (e) {
 
+            if (browser === hic.Browser.getCurrentBrowser()) {
+                hic.Browser.setCurrentBrowser(undefined);
+            }
+
             hic.allBrowsers.splice(_.indexOf(hic.allBrowsers, browser), 1);
             browser.$root.remove();
             browser = undefined;
 
-            if (1 === _.size(hic.allBrowsers)) {
+            if (1 === hic.allBrowsers.length) {
                 $('.hic-nav-bar-delete-button').hide();
+                hic.Browser.setCurrentBrowser(hic.allBrowsers[ 0 ]);
             }
+
         });
 
         // hide delete buttons for now. Delete button is only
@@ -22226,20 +28445,24 @@ var hic = (function (hic) {
 
         // upper widget container
         id = browser.id + '_upper_' + 'hic-nav-bar-widget-container';
-        $upper_widget_container = $("<div>", { id:id });
+        $upper_widget_container = $("<div>", {id: id});
         $navbar_container.append($upper_widget_container);
 
         // location box / goto
         browser.locusGoto = new hic.LocusGoto(browser, $upper_widget_container);
 
-        if(true === browser.config.figureMode) {
+        // resolution widget
+        // browser.resolutionSelector = new hic.ResolutionSelector(browser, $upper_widget_container);
+        // browser.resolutionSelector.setResolutionLock(browser.resolutionLocked);
+
+        if (true === browser.config.figureMode) {
             browser.$contactMaplabel.addClass('hidden-text');
             $upper_widget_container.hide();
         } else {
 
             // lower widget container
             id = browser.id + '_lower_' + 'hic-nav-bar-widget-container';
-            $lower_widget_container = $("<div>", { id:id });
+            $lower_widget_container = $("<div>", {id: id});
             $navbar_container.append($lower_widget_container);
 
             // colorscale
@@ -22252,9 +28475,6 @@ var hic = (function (hic) {
             browser.resolutionSelector = new hic.ResolutionSelector(browser, $lower_widget_container);
             browser.resolutionSelector.setResolutionLock(browser.resolutionLocked);
 
-            // shim
-            $navbar_shim = $('<div class="hic-nav-bar-shim">');
-            $navbar_container.append($navbar_shim);
         }
 
     }
@@ -22269,38 +28489,38 @@ var hic = (function (hic) {
 
         // .hic-x-track-container
         id = browser.id + '_' + 'x-track-container';
-        this.$x_track_container = $("<div>", { id:id });
+        this.$x_track_container = $("<div>", {id: id});
         $root.append(this.$x_track_container);
 
         // track labels
         id = browser.id + '_' + 'track-shim';
-        this.$track_shim = $("<div>", { id:id });
+        this.$track_shim = $("<div>", {id: id});
         this.$x_track_container.append(this.$track_shim);
 
         // x-tracks
         id = browser.id + '_' + 'x-tracks';
-        this.$x_tracks = $("<div>", { id:id });
+        this.$x_tracks = $("<div>", {id: id});
         this.$x_track_container.append(this.$x_tracks);
 
         // crosshairs guide
         id = browser.id + '_' + 'y-track-guide';
-        $e = $("<div>", { id:id });
-        this.$x_tracks.append($e);
+        this.$y_track_guide = $("<div>", {id: id});
+        this.$x_tracks.append(this.$y_track_guide);
 
         // content container
         id = browser.id + '_' + 'content-container';
-        this.$content_container = $("<div>", { id:id });
+        this.$content_container = $("<div>", {id: id});
         $root.append(this.$content_container);
 
         // If we are in mini-mode we must recalculate the content container height
         // to coinside with the root browser container height
-        if(true === browser.config.figureMode) {
-            tokens = _.map([ hic.LayoutController.navbarHeight(browser.config.figureMode) ], function(number){
+        if (true === browser.config.figureMode) {
+            tokens = _.map([hic.LayoutController.navbarHeight(browser.config.figureMode)], function (number) {
                 return number.toString() + 'px';
             });
             height_calc = 'calc(100% - (' + tokens.join(' + ') + '))';
 
-            this.$content_container.css( 'height', height_calc );
+            this.$content_container.css('height', height_calc);
         }
 
 
@@ -22310,38 +28530,41 @@ var hic = (function (hic) {
 
         // container: x-axis
         id = browser.id + '_' + 'x-axis-container';
-        $container = $("<div>", { id:id });
+        $container = $("<div>", {id: id});
         this.$content_container.append($container);
         this.xAxisRuler = new hic.Ruler(browser, 'x', $container);
 
 
         // container: y-tracks | y-axis | viewport | y-scrollbar
         id = browser.id + '_' + 'y-tracks-y-axis-viewport-y-scrollbar';
-        $container = $("<div>", { id:id });
+        $container = $("<div>", {id: id});
         this.$content_container.append($container);
 
         // y-tracks
         id = browser.id + '_' + 'y-tracks';
-        this.$y_tracks = $("<div>", { id:id });
+        this.$y_tracks = $("<div>", {id: id});
         $container.append(this.$y_tracks);
 
         // crosshairs guide
         id = browser.id + '_' + 'x-track-guide';
-        $e = $("<div>", { id:id });
-        this.$y_tracks.append($e);
+        this.$x_track_guide = $("<div>", {id: id});
+        this.$y_tracks.append(this.$x_track_guide);
 
         // y-axis
         this.yAxisRuler = new hic.Ruler(browser, 'y', $container);
 
         this.xAxisRuler.$otherRulerCanvas = this.yAxisRuler.$canvas;
+        this.xAxisRuler.otherRuler = this.yAxisRuler;
+
         this.yAxisRuler.$otherRulerCanvas = this.xAxisRuler.$canvas;
+        this.yAxisRuler.otherRuler = this.xAxisRuler;
 
         // viewport | y-scrollbar
         browser.contactMatrixView = new hic.ContactMatrixView(browser, $container);
 
         // container: x-scrollbar
         id = browser.id + '_' + 'x-scrollbar-container';
-        $container = $("<div>", { id:id });
+        $container = $("<div>", {id: id});
         this.$content_container.append($container);
 
         // x-scrollbar
@@ -22353,18 +28576,19 @@ var hic = (function (hic) {
 
         var $menu,
             $div,
-            $fa;
+            $fa,
+            config;
 
         // menu
-        $menu = $('<div>', { class:'hic-menu' });
+        $menu = $('<div>', {class: 'hic-menu'});
         $root.append($menu);
 
         // menu close button
-        $div = $('<div>', { class:'hic-menu-close-button' });
+        $div = $('<div>', {class: 'hic-menu-close-button'});
         $menu.append($div);
 
         // $fa = $("<i>", { class:'fa fa-minus-circle fa-lg' });
-        $fa = $("<i>", { class:'fa fa-times' });
+        $fa = $("<i>", {class: 'fa fa-times'});
         $div.append($fa);
 
         $fa.on('click', function (e) {
@@ -22375,7 +28599,7 @@ var hic = (function (hic) {
         // chromosome select widget
         browser.chromosomeSelector = new hic.ChromosomeSelectorWidget(browser, $menu);
 
-        if(true === browser.config.figureMode) {
+        if (true === browser.config.figureMode) {
 
             browser.chromosomeSelector.$container.hide();
 
@@ -22390,11 +28614,24 @@ var hic = (function (hic) {
             browser.resolutionSelector.setResolutionLock(browser.resolutionLocked);
         }
 
-        browser.annotation2DWidget = new hic.AnnotationWidget(browser, $menu, '2D Annotations', function () {
+        config =
+        {
+            title: '2D Annotations',
+            loadTitle: 'Load:',
+            alertMessage: 'No 2D annotations currently loaded for this map'
+        };
+        browser.annotation2DWidget = new hic.AnnotationWidget(browser, $menu, config, function () {
             return browser.tracks2D;
         });
 
-        browser.annotation1DDWidget = new hic.AnnotationWidget(browser, $menu, 'Tracks', function () {
+        config =
+        {
+            title: 'Tracks',
+            loadTitle: 'Load Tracks:',
+            alertMessage: 'No tracks currently loaded for this map'
+        };
+
+        browser.annotation1DDWidget = new hic.AnnotationWidget(browser, $menu, config, function () {
             return browser.trackRenderers;
         });
 
@@ -22404,37 +28641,35 @@ var hic = (function (hic) {
 
     }
 
-    hic.LayoutController.prototype.receiveEvent = function(event) {
+    hic.LayoutController.prototype.tracksLoaded = function (trackXYPairs) {
         var self = this,
-            trackRendererPair,
-            rev;
+            trackRendererPair;
 
-        if ('TrackLoad' === event.type) {
+        self.doLayoutTrackXYPairCount(trackXYPairs.length + self.browser.trackRenderers.length);
 
-            _.each(event.data.trackXYPairs, function (trackPair, index) {
+        trackXYPairs.forEach(function (trackPair, index) {
 
-                var w,
-                    h;
+            var w, h;
 
-                self.doLayoutTrackXYPairCount(1 + _.size(self.browser.trackRenderers));
+            trackRendererPair = {};
+            w = h = self.track_height;
+            trackRendererPair.x = new hic.TrackRenderer(self.browser, {
+                width: undefined,
+                height: h
+            }, self.$x_tracks, trackRendererPair, trackPair, 'x', index);
+            trackRendererPair.y = new hic.TrackRenderer(self.browser, {
+                width: w,
+                height: undefined
+            }, self.$y_tracks, trackRendererPair, trackPair, 'y', index);
 
-                trackRendererPair = {};
-                w = h = self.track_height;
-                trackRendererPair.x = new hic.TrackRenderer(self.browser, {width: undefined, height: h}, self.$x_tracks, trackRendererPair, trackPair, 'x', index);
-                trackRendererPair.y = new hic.TrackRenderer(self.browser, {width: w, height: undefined}, self.$y_tracks, trackRendererPair, trackPair, 'y', index);
+            self.browser.trackRenderers.push(trackRendererPair);
 
-                self.browser.trackRenderers.push(trackRendererPair);
-
-            });
-
-            this.browser.updateLayout();
-
-        } else if ('LocusChange' === event.type) {
-            this.browser.renderTracks(false);
-        }
+        });
 
 
-    };
+
+    }
+
 
     hic.LayoutController.prototype.removeAllTrackXYPairs = function () {
         var self = this,
@@ -22446,7 +28681,7 @@ var hic = (function (hic) {
             return;
         }
 
-        _.each(indices, function(unused) {
+        _.each(indices, function (unused) {
             var discard,
                 index;
 
@@ -22454,15 +28689,15 @@ var hic = (function (hic) {
             discard = _.last(self.browser.trackRenderers);
 
             // discard DOM element's
-            discard[ 'x' ].$viewport.remove();
-            discard[ 'y' ].$viewport.remove();
+            discard['x'].$viewport.remove();
+            discard['y'].$viewport.remove();
 
             // remove discard from list
             index = self.browser.trackRenderers.indexOf(discard);
             self.browser.trackRenderers.splice(index, 1);
 
             discard = undefined;
-            self.doLayoutTrackXYPairCount( _.size(self.browser.trackRenderers) );
+            self.doLayoutTrackXYPairCount(_.size(self.browser.trackRenderers));
         });
 
         // this.browser.updateLayout();
@@ -22478,15 +28713,15 @@ var hic = (function (hic) {
             discard = _.last(this.browser.trackRenderers);
 
             // discard DOM element's
-            discard[ 'x' ].$viewport.remove();
-            discard[ 'y' ].$viewport.remove();
+            discard['x'].$viewport.remove();
+            discard['y'].$viewport.remove();
 
             // remove discard from list
             index = this.browser.trackRenderers.indexOf(discard);
             this.browser.trackRenderers.splice(index, 1);
 
             discard = undefined;
-            this.doLayoutTrackXYPairCount( _.size(this.browser.trackRenderers) );
+            this.doLayoutTrackXYPairCount(_.size(this.browser.trackRenderers));
 
             this.browser.updateLayout();
 
@@ -22506,14 +28741,14 @@ var hic = (function (hic) {
             discard = trackRendererPair;
 
             // discard DOM element's
-            discard[ 'x' ].$viewport.remove();
-            discard[ 'y' ].$viewport.remove();
+            discard['x'].$viewport.remove();
+            discard['y'].$viewport.remove();
 
             // remove discard from list
             index = this.browser.trackRenderers.indexOf(discard);
             this.browser.trackRenderers.splice(index, 1);
 
-            this.doLayoutTrackXYPairCount( _.size(this.browser.trackRenderers) );
+            this.doLayoutTrackXYPairCount(_.size(this.browser.trackRenderers));
 
             this.browser.updateLayout();
 
@@ -22534,12 +28769,12 @@ var hic = (function (hic) {
 
         track_aggregate_height = (0 === trackXYPairCount) ? 0 : trackXYPairCount * this.track_height;
 
-        tokens = _.map([ hic.LayoutController.navbarHeight(this.browser.config.figureMode), track_aggregate_height ], function(number){
+        tokens = _.map([hic.LayoutController.navbarHeight(this.browser.config.figureMode), track_aggregate_height], function (number) {
             return number.toString() + 'px';
         });
         height_calc = 'calc(100% - (' + tokens.join(' + ') + '))';
 
-        tokens = _.map([ track_aggregate_height, this.axis_height, this.scrollbar_height ], function(number){
+        tokens = _.map([track_aggregate_height, this.axis_height, this.scrollbar_height], function (number) {
             return number.toString() + 'px';
         });
         width_calc = 'calc(100% - (' + tokens.join(' + ') + '))';
@@ -22551,11 +28786,11 @@ var hic = (function (hic) {
         this.$track_shim.width(track_aggregate_height);
 
         // x-tracks
-        this.$x_tracks.css( 'width', width_calc );
+        this.$x_tracks.css('width', width_calc);
 
 
         // content container
-        this.$content_container.css( 'height', height_calc );
+        this.$content_container.css('height', height_calc);
 
         // x-axis - repaint canvas
         this.xAxisRuler.updateWidthWithCalculation(width_calc);
@@ -22567,10 +28802,10 @@ var hic = (function (hic) {
         this.yAxisRuler.updateHeight(this.yAxisRuler.$axis.height());
 
         // viewport
-        this.browser.contactMatrixView.$viewport.css( 'width', width_calc );
+        this.browser.contactMatrixView.$viewport.css('width', width_calc);
 
         // x-scrollbar
-        this.browser.contactMatrixView.scrollbarWidget.$x_axis_scrollbar_container.css( 'width', width_calc );
+        this.browser.contactMatrixView.scrollbarWidget.$x_axis_scrollbar_container.css('width', width_calc);
 
     };
 
@@ -22701,13 +28936,14 @@ var hic = (function (hic) {
         this.browser = browser;
 
         // container
-        this.$container = $('<div class="hic-normalization-selector-container">');
+        this.$container = $("<div>", { class:'hic-normalization-selector-container',  title:'Normalization' });
         $parent.append(this.$container);
 
         // label
         $label = $('<div>');
         $label.text( (true === browser.config.figureMode) ? 'Normalization' : 'Norm');
         this.$container.append($label);
+        // $label.hide();
 
         // select
         this.$normalization_selector = $('<select name="select">');
@@ -22768,6 +29004,7 @@ var hic = (function (hic) {
             this.$normalization_selector.append(elements.join(''));
         }
 
+        // TODO -- this is quite fragile.  If the NormVectorIndexLoad event is received before MapLoad you'll never see the pulldown widget
         if ("MapLoad" === event.type) {
             // TODO -- start norm widget "not ready" state
             this.startNotReady();
@@ -22926,7 +29163,7 @@ var hic = (function (hic) {
             percentages,
             str;
 
-        if (false === this.isDragging && event.type === "LocusChange") {
+        if (!this.isDragging && event.type === "LocusChange") {
 
             var state = event.data.state,
                 dataset = self.browser.dataset;
@@ -23031,7 +29268,7 @@ var hic = (function (hic) {
         this.sweepRect = {};
     };
 
-    hic.SweepZoom.prototype.reset = function (pageCoords) {
+    hic.SweepZoom.prototype.initialize = function (pageCoords) {
 
         this.anchor = pageCoords;
         this.coordinateFrame = this.$rulerSweeper.parent().offset();
@@ -23078,7 +29315,7 @@ var hic = (function (hic) {
 
     };
 
-    hic.SweepZoom.prototype.dismiss = function () {
+    hic.SweepZoom.prototype.commit = function () {
         var state,
             resolution,
             posX,
@@ -23088,8 +29325,8 @@ var hic = (function (hic) {
             width,
             height,
             xMax,
-            yMax;
-
+            yMax,
+            minimumResolution;
 
         this.$rulerSweeper.hide();
 
@@ -23115,7 +29352,8 @@ var hic = (function (hic) {
         xMax = x + width;
         yMax = y + height;
 
-        this.browser.goto(state.chr1, x, xMax, state.chr2, y, yMax);
+        minimumResolution = this.browser.dataset.bpResolutions[ this.browser.dataset.bpResolutions.length - 1 ];
+        this.browser.goto(state.chr1, x, xMax, state.chr2, y, yMax, minimumResolution);
 
     };
 
@@ -23242,20 +29480,11 @@ var hic = (function (hic) {
                 trackRenderer.track.name,
                 function () {
 
-                    var alphanumeric = parseAlphanumeric(igv.dialog.$dialogInput.val());
+                    var value = igv.dialog.$dialogInput.val().trim();
 
-                    if (undefined !== alphanumeric) {
-                        trackRenderer.$label.text(alphanumeric);
-                    }
+                    trackRenderer.track.name = ('' === value || undefined === value) ? 'untitled' : value;
 
-                    function parseAlphanumeric(value) {
-
-                        var alphanumeric_re = /(?=.*[a-zA-Z].*)([a-zA-Z0-9 ]+)/,
-                            alphanumeric = alphanumeric_re.exec(value);
-
-                        return (null !== alphanumeric) ? alphanumeric[0] : "untitled";
-                    }
-
+                    trackRenderer.$label.text(trackRenderer.track.name);
                 },
                 undefined));
 
@@ -23275,8 +29504,11 @@ var hic = (function (hic) {
                 },
                 undefined,
                 function () {
+                    var browser;
+
+                    browser = trackRenderer.browser;
+                    browser.layoutController.removeTrackRendererPair(trackRenderer.trackRenderPair);
                     popover.hide();
-                    self.browser.layoutController.removeTrackRendererPair(trackRenderer.trackRenderPair);
                 },
                 true));
 
@@ -23343,7 +29575,8 @@ var hic = (function (hic) {
             str,
             doShowLabelAndGear,
             $x_track_label,
-            $x_track_menu_container;
+            $x_track_menu_container,
+            spinner;
 
         // track canvas container
         this.$viewport = ('x' === this.axis) ? $('<div class="x-track-canvas-container">') : $('<div class="y-track-canvas-container">');
@@ -23354,7 +29587,7 @@ var hic = (function (hic) {
             this.$viewport.height(size.height);
         }
         $container.append(this.$viewport);
-        this.$viewport.css( { order:order } );
+        this.$viewport.css({order: order});
 
         // canvas
         this.$canvas = $('<canvas>');
@@ -23374,6 +29607,15 @@ var hic = (function (hic) {
 
             this.$viewport.append(this.$label);
         }
+
+        // IGV STYLE SPINNER
+        // spinner = igv.spinner("24px")
+        // if ('x' === this.axis) {
+        //     spinner.style.position = "absolute";
+        //     spinner.style.left = "0px";
+        //     spinner.style.top = "0px"
+        // }
+        // this.$viewport[0].appendChild(spinner);
 
         // track spinner container
         this.$spinner = ('x' === this.axis) ? $('<div class="x-track-spinner">') : $('<div class="y-track-spinner">');
@@ -23417,11 +29659,11 @@ var hic = (function (hic) {
                 this.$menu_container.hide();
             }
 
-        }
+            // compatibility with igv menus
+            this.track.trackView = this;
+            this.track.trackView.trackDiv = this.$viewport.get(0);
 
-        // compatibility with igv menus
-        this.track.trackView = this;
-        this.track.trackView.trackDiv = this.$viewport.get(0);
+        }
 
         this.configTrackTransforms();
 
@@ -23438,7 +29680,7 @@ var hic = (function (hic) {
 
     hic.TrackRenderer.prototype.syncCanvas = function () {
 
-      //  this.tile = null;
+        //  this.tile = null;
 
         this.$canvas.width(this.$viewport.width());
         this.$canvas.attr('width', this.$viewport.width());
@@ -23446,17 +29688,21 @@ var hic = (function (hic) {
         this.$canvas.height(this.$viewport.height());
         this.$canvas.attr('height', this.$viewport.height());
 
-        igv.graphics.fillRect(this.ctx, 0, 0, this.$canvas.width(), this.$canvas.height(), {fillStyle: igv.rgbColor(255, 255, 255)});
+        this.repaint(false);
     };
 
     hic.TrackRenderer.prototype.setColor = function (color) {
 
-        _.each(this.trackRenderPair, function (trackRenderer) {
+        setColor(this.trackRenderPair.x);
+        setColor(this.trackRenderPair.y);
+
+        function setColor(trackRenderer) {
             trackRenderer.tile = undefined;
             trackRenderer.track.color = color;
-        });
+        }
 
         this.browser.renderTrackXY(this.trackRenderPair);
+
     };
 
     hic.TrackRenderer.prototype.dataRange = function () {
@@ -23465,138 +29711,149 @@ var hic = (function (hic) {
 
     hic.TrackRenderer.prototype.setDataRange = function (min, max, autoscale) {
 
-        _.each(this.trackRenderPair, function (trackRenderer) {
-            trackRenderer.tile = undefined;
-            trackRenderer.track.dataRange = {min: min, max: max};
-            trackRenderer.track.autscale = autoscale;
-        });
+        setDataRange.call(this.trackRenderPair.x);
+        setDataRange.call(this.trackRenderPair.y);
+
+        function setDataRange() {
+
+            this.tile = undefined;
+
+
+            if (min !== undefined) {
+                this.track.dataRange.min = min;
+            }
+
+            if (max !== undefined) {
+                this.track.dataRange.max = max;
+            }
+
+            this.track.autscale = autoscale;
+        }
 
         this.browser.renderTrackXY(this.trackRenderPair);
 
     };
 
-    hic.TrackRenderer.prototype.repaint = function () {
-
+    /**
+     * Return a promise to get the renderer ready to paint,  that is with a valid tile, loading features
+     * and drawing tile if neccessary.
+     *
+     * @returns {*}
+     */
+    hic.TrackRenderer.prototype.readyToPaint = function () {
         var self = this,
-            lengthPixel,
-            lengthBP,
-            startBP,
-            endBP,
-            genomicState,
-            chrName;
+            genomicState, chrName, lengthPixel, lengthBP, startBP, endBP;
 
-        genomicState = _.mapObject(self.browser.genomicState(), function (val) {
-            return _.isObject(val) ? val[self.axis] : val;
-        });
-
-        if (/*this.$zoomInNotice &&*/ self.track.visibilityWindow && self.track.visibilityWindow > 0) {
-
-            if ((genomicState.bpp * Math.max(self.$canvas.width(), self.$canvas.height()) > self.track.visibilityWindow) /*|| ('all' === genomicState.chromosome.name && !self.track.supportsWholeGenome)*/) {
-
-                self.tile = undefined;
-                self.ctx.clearRect(0, 0, self.$canvas.width(), self.$canvas.height());
-
-                self.stopSpinner();
-                // self.$zoomInNotice.show();
-
-                return;
-
-            } else {
-                // self.$zoomInNotice.hide();
-            }
-
-        } // if (/*this.$zoomInNotice &&*/ self.track.visibilityWindow && self.track.visibilityWindow > 0)
-
+        genomicState = self.browser.genomicState(self.axis);
         chrName = genomicState.chromosome.name;
 
         if (self.tile && self.tile.containsRange(chrName, genomicState.startBP, genomicState.endBP, genomicState.bpp)) {
-            self.drawTileWithGenomicState(self.tile, genomicState);
-            return;
+
+            return Promise.resolve();
+
+        } else if (genomicState.bpp * Math.max(self.$canvas.width(), self.$canvas.height()) > self.track.visibilityWindow) {
+
+            return Promise.resolve();
 
         } else {
 
             // Expand the requested range so we can pan a bit without reloading
             lengthPixel = 3 * Math.max(self.$canvas.width(), self.$canvas.height());
-
             lengthBP = Math.round(genomicState.bpp * lengthPixel);
-
             startBP = Math.max(0, Math.round(genomicState.startBP - lengthBP / 3));
-
             endBP = startBP + lengthBP;
 
-            if (self.loading) { //&& self.loading.start === startBP && self.loading.end === endBP) {
-                return;
-            } else {
+            self.startSpinner();
 
-                self.loading =
-                {
-                    start: startBP,
-                    end: endBP
-                };
+            return self.track
 
-                self.startSpinner();
-                self.track
-                    .getFeatures(genomicState.chromosome.name, startBP, endBP, genomicState.bpp)
-                    .then(function (features) {
+                .getFeatures(genomicState.chromosome.name, startBP, endBP, genomicState.bpp)
 
-                        var buffer,
-                            ctx;
+                .then(function (features) {
 
-                        self.loading = false;
+                    var buffer, ctx;
+                    buffer = document.createElement('canvas');
+                    buffer.width = 'x' === self.axis ? lengthPixel : self.$canvas.width();
+                    buffer.height = 'x' === self.axis ? self.$canvas.height() : lengthPixel;
+                    ctx = buffer.getContext("2d");
 
-                        self.stopSpinner();
+                    if (features) {
 
-                        buffer = document.createElement('canvas');
-                        buffer.width = 'x' === self.axis ? lengthPixel : self.$canvas.width();
-                        buffer.height = 'x' === self.axis ? self.$canvas.height() : lengthPixel;
-                        ctx = buffer.getContext("2d");
+                        self.canvasTransform(ctx);
 
-                        if (features) {
+                        self.drawConfiguration =
+                        {
+                            features: features,
 
-                            self.canvasTransform(ctx);
+                            context: ctx,
 
-                            self.drawConfiguration =
-                            {
-                                features: features,
+                            pixelWidth: lengthPixel,
+                            pixelHeight: Math.min(buffer.width, buffer.height),
 
-                                context: ctx,
+                            bpStart: startBP,
+                            bpEnd: endBP,
 
-                                pixelWidth: lengthPixel,
-                                pixelHeight: Math.min(buffer.width, buffer.height),
+                            bpPerPixel: genomicState.bpp,
 
-                                bpStart: startBP,
-                                bpEnd: endBP,
+                            genomicState: genomicState,
 
-                                bpPerPixel: genomicState.bpp,
+                            viewportContainerX: (genomicState.startBP - startBP) / genomicState.bpp,
 
-                                genomicState: genomicState,
+                            viewportContainerWidth: Math.max(self.$canvas.width(), self.$canvas.height()),
 
-                                viewportContainerX: (genomicState.startBP - startBP) / genomicState.bpp,
+                            labelTransform: self.labelReflectionTransform
+                        };
 
-                                viewportContainerWidth: Math.max(self.$canvas.width(), self.$canvas.height()),
+                        self.track.draw(self.drawConfiguration);
 
-                                labelTransform: self.labelReflectionTransform
-                            };
 
-                            self.track.draw(self.drawConfiguration);
+                    } else {
+                        ctx.clearRect(0, 0, self.$canvas.width(), self.$canvas.height());
+                    }
+                    
+                    self.tile = new Tile(chrName, startBP, endBP, genomicState.bpp, buffer);
+                    return "OK";
 
-                        } else {
-                            ctx.clearRect(0, 0, self.$canvas.width(), self.$canvas.height());
-                        }
+                })
+        }
+    }
 
-                        self.tile = new Tile(chrName, startBP, endBP, genomicState.bpp, buffer);
+    /**
+     *
+     */
+    hic.TrackRenderer.prototype.repaint = function (loadIfNeeded) {
 
-                        self.repaint();
+        var self = this,
+            genomicState,
+            chrName;
 
-                    })
-                    .catch(function (error) {
+        if (loadIfNeeded === undefined) loadIfNeeded = false;
 
-                        self.stopSpinner();
-                        self.loading = false;
-                        throw new Error(error);
-                    });
+        genomicState = self.browser.genomicState(self.axis);
 
+        if (self.track.visibilityWindow && self.track.visibilityWindow > 0) {
+
+            if ((genomicState.bpp * Math.max(self.$canvas.width(), self.$canvas.height()) > self.track.visibilityWindow)) {
+                self.tile = undefined;
+                self.ctx.clearRect(0, 0, self.$canvas.width(), self.$canvas.height());
             }
+        }
+
+        chrName = genomicState.chromosome.name;
+
+        if (self.tile && self.tile.containsRange(chrName, genomicState.startBP, genomicState.endBP, genomicState.bpp)) {
+            self.drawTileWithGenomicState(self.tile, genomicState);
+
+        } else if (loadIfNeeded) {
+
+            self.readyToPaint()
+                .then(function (ignore) {
+                    self.drawTileWithGenomicState(self.tile, genomicState);
+                })
+                .catch(function (error) {
+                    console.error(error);
+                })
+
         }
 
     };
@@ -23620,14 +29877,25 @@ var hic = (function (hic) {
     };
 
     hic.TrackRenderer.prototype.startSpinner = function () {
-        this.$spinner.show();
-        this.throbber.start();
+
+        this.browser.startSpinner();
+
+        //igv.startSpinnerAtParentElement(this.$viewport[0]);
+
+        //    this.$spinner.show();
+        //    this.throbber.start();
+        //    console.log("Spinner show");
     };
 
     hic.TrackRenderer.prototype.stopSpinner = function () {
-        // this.startSpinner();
-        this.throbber.stop();
-        this.$spinner.hide();
+
+        this.browser.stopSpinner();
+
+        //igv.stopSpinnerAtParentElement(this.$viewport[0]);
+
+        //    this.throbber.stop();
+        //    this.$spinner.hide();
+        //    console.log("Spinner stop");
     };
 
     hic.TrackRenderer.prototype.isLoading = function () {
@@ -23643,7 +29911,7 @@ var hic = (function (hic) {
     };
 
     Tile.prototype.containsRange = function (chr, startBP, endBP, bpp) {
-        return this.bpp === bpp && startBP >= this.startBP && endBP <= this.endBP && chr === this.chr;
+        return chr === this.chr && this.bpp === bpp && this.startBP <= startBP && this.endBP >= endBP;
     };
 
     return hic;
