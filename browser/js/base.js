@@ -3702,11 +3702,14 @@ function applyRetinaFix(canvas, setParentStyle=false) {
     if (pixelRatio !== 1) {
         const width = canvas.width;
         const height = canvas.height;
-        canvas.setAttribute('style', `width: ${width}px; height: ${height}px;`);
+
         if (setParentStyle && canvas.parentNode) {
-            canvas.parentNode.setAttribute('style', `width: ${width}px; height: ${height}px;`);
+            canvas.parentNode.style.width = width + 'px';
+            canvas.parentNode.style.height = height + 'px';
         }
 
+        canvas.style.width = width + 'px';
+        canvas.style.height = height + 'px';
         canvas.setAttribute('width', width * pixelRatio);
         canvas.setAttribute('height', height * pixelRatio);
         const ctx = canvas.getContext('2d');
