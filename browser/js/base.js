@@ -11237,8 +11237,6 @@ Browser.prototype.callingcard_base = function(arg) {
                     });
                 }
             }
-            // ctx.fillStyle  =  barcolor;
-            // ctx.fillRect(position, bary, w, curveonly? 2 : barh);
             ctx.beginPath();
             ctx.arc(position, bary, size, 0, 2 * Math.PI);
             ctx.strokeStyle = barcolor;
@@ -11247,12 +11245,12 @@ Browser.prototype.callingcard_base = function(arg) {
             tk.insertions.push([position, bary, score, strand[i], barcode[i]]);
             if (tosvg) {
                 svgdata.push({
-                    type: svgt_rect,
-                    x: svgx,
+                    type: svgt_circle,
+                    x: position,
                     y: bary,
-                    w: svgw,
-                    h: barh,
-                    fill: barcolor
+                    r: size,
+                    color: barcolor,
+                    alpha: opacity,
                 });
             }
         }
@@ -32231,6 +32229,9 @@ but not this one!! [X, hmSpan+x]
             return;
         }
         this.svg.content.push('<path d="M' + (X + e.x1 + L) + ' ' + (Y + e.y1) + ' A ' + e.radius + ' ' + e.radius + ' 1 0 0 ' + (X + e.x2 + L) + ' ' + (Y + e.y2) + '"' + ' style="fill: none; ' + svgColor('stroke', e.color) + ' stroke-width:1;"/>');
+        return;
+    case svgt_circle:
+        this.svg.content.push('<circle cx="' + (X + e.x + L) + '" cy="' + (Y + e.y) + '" r="' + e.r + '"' + ' style="fill: none; opacity: ' + e.alpha + '; ' + svgColor('stroke', e.color) + ' stroke-width:1;"/>');
         return;
     case svgt_trihm:
         /*       p3
