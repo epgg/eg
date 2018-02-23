@@ -931,7 +931,7 @@ Browser.prototype.fud_load_callingcard=function() {
 				lst.push(e.chr+'\t'+e.start+'\t'+e.stop+'\t'+e.count+'\t'+(e.strand?e.strand:'.')+'\t'+(e.barcode?e.barcode:'.'));
                 // id++;
 			}
-			bbj.fud_post_maketrack(lst.join('\n'), {ft:FT_callingcard_n,label:eui.file.name,mode:M_full});
+			bbj.fud_post_maketrack(lst.join('\n'), {ft:FT_callingcard_c,label:eui.file.name,mode:M_full});
 			fud_loaded_says(eui.file.name,true);
 		}
 		var fd=eui.parentNode.parentNode;
