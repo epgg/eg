@@ -907,7 +907,7 @@ Browser.prototype.fud_load_callingcard=function() {
 			var c={
 				chr:t[0],
 				start:t[1],
-				stop:t[2],
+				stop:t[3],
 				count:parseInt(lst[3]),
 				isgene:false
 			};

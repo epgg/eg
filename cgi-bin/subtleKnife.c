@@ -4374,13 +4374,11 @@ while(tok != NULL)
 			assert((tt->mode=strMayPositiveInt(tok))!=-1);
 			break;
 		case FT_callingcard_n:
-			tt->name=strdup(tok);
-			assert((tok=strtok(NULL,delim)) != NULL);
-			tt->urlpath=strdup(tok);
-			assert((tok=strtok(NULL,delim)) != NULL);
-			assert((tt->mode=strMayPositiveInt(tok))!=-1);
-			assert((tok=strtok(NULL,delim)) != NULL);
-			assert((tt->summeth=strMayPositiveInt(tok))!=-1);
+    		tt->name=strdup(tok);
+    		assert((tok=strtok(NULL,delim)) != NULL);
+    		tt->urlpath=strdup(tok);
+    		assert((tok=strtok(NULL,delim)) != NULL);
+    		assert((tt->mode=strMayPositiveInt(tok))!=-1);
 			break;
 		case FT_callingcard_c:
 			tt->name=strdup(tok);
