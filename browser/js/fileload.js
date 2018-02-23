@@ -898,7 +898,7 @@ Browser.prototype.fud_load_callingcard=function() {
 				print2console('Error at line '+(i+1)+': no read count',2);
 				return;
 			}
-			var t=bbj.genome.parseCoordinate([lst[0],parseInt(lst[1])],4);
+			var t=bbj.genome.parseCoordinate([lst[0],parseInt(lst[1]),parseInt(lst[2])],1);
 		
 			if(!t) {
 				print2console('Error at line '+(i+1)+': wrong coordinate',2);
@@ -907,7 +907,7 @@ Browser.prototype.fud_load_callingcard=function() {
 			var c={
 				chr:t[0],
 				start:t[1],
-				stop:parseInt(lst[2]),
+				stop:t[2],
 				count:parseInt(lst[3]),
 				isgene:false
 			};
@@ -956,7 +956,11 @@ Browser.prototype.fud_maketrack=function(key,tk) {
 	// print2console(key,2);
 	// no need to tell cgi the ft, all will be processed in the same way
 	var bbj=this;
-	this.ajax('maketrack=on&key='+key,function(data){bbj.fud_maketrack_cb(data,key,tk)});
+	let paramsObj = {
+		maketrack: "on",
+		key: key
+	}
+	this.ajax(paramsObj,function(data){bbj.fud_maketrack_cb(data,key,tk)});
 }
 
 Browser.prototype.fud_maketrack_cb=function(data,key,tk)

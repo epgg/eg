@@ -108,7 +108,8 @@
 // #define WWWT "/var/www/browser/t" // Deployment version
 #define WWWT "/var/www/html/browser/t" // Docker version
 #define BINdir "."
-#define Mysqlserver "10.20.127.12"
+// #define Mysqlserver "10.20.127.12" // Deployment version
+#define Mysqlserver "localhost" // Docker version
 #define Mysqluser "hguser"
 #define Mysqlpswd "hguser"
 #define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /usr/lib/cgi-bin/Juicebox.jar"
@@ -10469,6 +10470,8 @@ if(cgiVarExists("hmtk12"))
 	parseTrackParam(cgiString("hmtk12"), FT_cat_n, &trackSl);
 if(cgiVarExists("hmtk13"))
 	parseTrackParam(cgiString("hmtk13"), FT_cat_c, &trackSl);
+if(cgiVarExists("hmtk35"))
+	parseTrackParam(cgiString("hmtk35"), FT_callingcard_n, &trackSl);
 if(cgiVarExists("hmtk36"))
 	parseTrackParam(cgiString("hmtk36"), FT_callingcard_c, &trackSl);
 
