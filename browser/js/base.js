@@ -26257,6 +26257,11 @@ remove a thing through menu 'remove' option
                     }
                     if (isRemoveConfirmed) {
                         tlst.push(t);
+                        // There is also a reference to the track in genome.hmtk.
+                        // Such an awkward place to delete it, but I don't want to add if statements elsewhere.
+                        // I HOPE, no- ... , PRAY there's no side-effects.
+                        // Blessed be ye `delete` statement, and may the LORD striketh down all bugs.  Amen.
+                        delete bbj.genome.hmtk[t.name]; 
                     }
                 }
             }
@@ -32857,6 +32862,27 @@ function showallapp() {
         });
     }
     placePanel(menu);
+}
+
+/**
+ * Renee seems to be having issues with track legends becoming misaligned on her computer.  Here's a fix.
+ */
+function makeReneeHappy() {
+    let mainTbody = document.querySelector('#sukn_main > table > tbody');
+    let problemRow = mainTbody.children[3];
+    let legendColumn = problemRow.firstElementChild; // a <td>
+    for (let legend of legendColumn.children) {
+        legend.style.paddingBottom = '1px';
+    }
+    /*
+    The jquery version
+
+    let mainTbody = $('#sukn_main > table > tbody');
+    let problemRow = mainTbody.children().eq(3); // Child at index 3
+    let legendColumn = problemRow.children().first(); // The first <td>
+    let legendCanvases = legendColumn.children('canvas');
+    legendCanvases.css('padding-bottom', '100px');
+    */
 }
 
 /** __app__ end **/
