@@ -234,8 +234,8 @@ struct nnode
     char strand;
     char *name;
     double *data;
-	unsigned int *xdata; // For calling card data
-	unsigned int *ydata; // For calling card data
+	float *xdata; // For calling card data
+	unsigned long *ydata; // For calling card data
 	int id;
     };
 
@@ -696,7 +696,7 @@ original list is *altered*
 */
 if(sl==NULL) return NULL;
 int count=0;
-struct genericItem *t;
+struct callingCard *t;
 for(t=sl; t!=NULL; t=t->next) count++;
 struct nsortItem *array=malloc(sizeof(struct nsortItem)*count);
 if(array==NULL)
@@ -711,10 +711,10 @@ for(t=sl; t!=NULL; t=t->next)
 	array[i++].ptr=(void *)t;
 	}
 qsort(array, count, sizeof(struct nsortItem), nsort_compDsc);
-struct genericItem *newsl=NULL;
+struct callingCard *newsl=NULL;
 for(i=0; i<count; i++)
 	{
-	t=(struct genericItem *)array[i].ptr;
+	t=(struct callingCard *)array[i].ptr;
 	t->next=newsl;
 	newsl=t;
 	}
@@ -731,7 +731,7 @@ original list is *altered*
 */
 if(sl==NULL) return NULL;
 int count=0;
-struct genericItem *t;
+struct callingCard *t;
 for(t=sl; t!=NULL; t=t->next) count++;
 struct nsortItem *array=malloc(sizeof(struct nsortItem)*count);
 if(array==NULL)
@@ -746,10 +746,10 @@ for(t=sl; t!=NULL; t=t->next)
 	array[i++].ptr=(void *)t;
 	}
 qsort(array, count, sizeof(struct nsortItem), nsort_compAsc);
-struct genericItem *newsl=NULL;
+struct callingCard *newsl=NULL;
 for(i=0; i<count; i++)
 	{
-	t=(struct genericItem *)array[i].ptr;
+	t=(struct callingCard *)array[i].ptr;
 	t->next=newsl;
 	newsl=t;
 	}
@@ -1565,7 +1565,7 @@ struct callingCard *sl=NULL, *tail=NULL, *cc;
 ti_iter_t iter=ti_queryi(fin, chridx, begin, end);
 const char *row;
 char delim[]="\t";
-char *tmpstr, *tok, *rest;
+char *tmpstr, *tok;
 int len;
 int count = 0;
 long l;
@@ -1582,8 +1582,8 @@ while((row=ti_read(fin, iter, &len)) != 0)
 	cc=malloc(sizeof(struct callingCard));
 	// We expect to encounter values of chr, start, stop, and count
 	// Not necessarily strand and barcode
-	cc->strand = NULL;
-	cc->barcode = NULL;
+	cc->strand = 0;
+	cc->barcode = 0;
 	// chr
 	tok = strtok(tmpstr, delim);
 	if (tok == NULL) {
@@ -1669,7 +1669,7 @@ return sl;
 
 struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	unsigned long len = ccCount(cclist);
-	if (SQUAWK) fprintf(stderr, "%d calling cards\n", len);
+	if (SQUAWK) fprintf(stderr, "%lu calling cards\n", len);
 	struct callingCardData *data = malloc(sizeof(struct callingCardData));
 	struct callingCard *current = cclist;
 	int i = 0;
@@ -1688,13 +1688,13 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 	while (current != NULL) {
 		xdata[i] = (current->start + current->stop)/2;
 		ydata[i] = current->count;
-		if (current->strand != NULL) {
+		if (current->strand != 0) {
 			strand[i] = current->strand;
 		} else {
 			strand[i] = '\0';
 		}
 		
-		if (current->barcode != NULL) {
+		if (current->barcode != 0) {
 			barcode[i] = current->barcode;
 		} else {
 			barcode[i] = malloc(sizeof(char));
@@ -2404,10 +2404,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		return NULL;
 		}
 	int i, dspStart, offset = 0;
-    int start, stop;
 	float width;
 	struct region *r;
-	struct callingCard *cclist=NULL, *tmp=NULL;
+	struct callingCard *tmp=NULL;
 	struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
 
 	boolean atbplevel = dsp->usedSummaryNumber >= dsp->entireLength;
@@ -2420,15 +2419,15 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 	if (SQUAWK) fprintf(stderr, "width: %f\n", width);
 	for(r=dsp->head; r!=NULL; r=r->next) {
 	    if(r->summarySize > 0) {
-			if (!move) {start = r->dstart; stop = r->dstop;}
 			if (SQUAWK) fprintf(stderr, "fetching calling cards from %s:%d-%d\n", chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
 			tmp = tabixQuery_callingCard(fin, chrInfo[r->chromIdx]->name, r->dstart, r->dstop);
-			if (tmp == NULL)
+			if (tmp == NULL) {
 				if (SQUAWK) fprintf(stderr, "No calling cards in view\n");
-			else
-				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%d,%d,%d\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+			} else {
+				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%lu,%lu,%lu\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+			}
 			tmpData = getCallingCardData(tmp);
-			if (SQUAWK) fprintf(stderr, "%d data points\n", tmpData->length);
+			if (SQUAWK) fprintf(stderr, "%lu data points\n", tmpData->length);
 			dspStart = r->dstart;
 			if (SQUAWK) fprintf(stderr, "dspStart = %d\n", dspStart);
 		
@@ -8549,7 +8548,7 @@ if(cgiVarExists("makegeneplot"))
 				
 				else if ((ft==FT_callingcard_c || ft==FT_callingcard_n)) {
 					// Get all calling cards in region; note that this does not perform local smoothing/collapsing
-					struct callingCard *cclist = beditemsort_startAsc(tabixQuery_callingCard(fin, chrInfo[item->chrIdx]->name, item->start, item->stop));
+					struct callingCard *cclist = callingCardSort_startAsc(tabixQuery_callingCard(fin, chrInfo[item->chrIdx]->name, item->start, item->stop));
 					struct callingCardData *ccData = getCallingCardData(cclist);
 					int width = ((item->stop) - (item->start)) / spnum;
 					for (i = 0; i < ccData->length; i++) {
@@ -10578,7 +10577,6 @@ if(hm.trackSl!=NULL)
 							if(SQUAWK) fprintf(stderr, "numerical tk error 2(%s)\n", tk->urlpath);
 							_exit(0);
 						}
-						struct region *r;
 						struct callingCardData *current;// = ccData;
 						if (ccData != NULL && ccData->length > 0) {
 							for(current = ccData; current!=NULL; current=current->next) {
@@ -10714,8 +10712,7 @@ if(hm.trackSl!=NULL)
 
 							struct callingCardData *ccData = tabixQuery_callingCard_dsp(hm.dsp, tk, move);
 							int i = 0;
-							struct region *r;
-							struct callingCardData *current;// = ccData;
+							struct callingCardData *current;
 							if (ccData->next == NULL) fprintf(stderr, "ccData->next is NULL\n");
 							if (SQUAWK) fprintf(stderr, "printing xdata\n");
 							printf("'xdata':[");
@@ -10730,7 +10727,7 @@ if(hm.trackSl!=NULL)
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
 								for (i = 0; i < current->length; i++)
-									printf("%d,", current->ydata[i]);
+									printf("%lu,", current->ydata[i]);
 								printf("],");
 							}
 							if (SQUAWK) fprintf(stderr, "printing strand\n");
