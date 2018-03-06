@@ -45,7 +45,8 @@ dom_create('p',d.__contentdiv,'color:white').innerHTML='<table style="color:whit
 	<a href=http://genome.ucsc.edu/FAQ/FAQformat.html#format1.8 target=_blank>bedGraph</a> and\
 	<a href=http://genome.ucsc.edu/goldenPath/help/wiggle.html target=_blank>Wiggle</a>  for numerical data.<br>\
 	<a href=http://wiki.wubrowse.org/Long-range target=_blank>Pairwise interaction format</a> for (but not limited to) 5C, Chia-Pet, Hi-C results.<br>\
-	<a href=http://wiki.wubrowse.org/Hammock target=_blank>Hammock</a> for annotationdata.\
+	<a href=http://wiki.wubrowse.org/Hammock target=_blank>Hammock</a> for annotation data.<br>\
+	<a href=http://www.google.com target=_blank>Calling card</a> (experimental).\
 	</td></tr></table>';
 
 /* TODO add controls for:
@@ -78,6 +79,7 @@ d3.formatradio.push(make_radiobutton(td0,{value:'bed',label:'BED <span style="fo
 d3.formatradio.push(make_radiobutton(td0,{value:'gff',label:'GFF <span style="font-size:70%;">ANNOTATION DATA | <a href=http://genome.ucsc.edu/FAQ/FAQformat.html#format3 target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'lr',label:'Pairwise interaction <span style="font-size:70%;"><a href=http://wiki.wubrowse.org/Long-range target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'custom',label:'Custom <span style="font-size:70%;">ANNOTATION DATA</span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
+d3.formatradio.push(make_radiobutton(td0,{value:'callingcard',label:'Calling card (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://www.google.com" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 var t=dom_create('table',td0,'margin:10px 10px 10px 20px;border:1px solid white;display:none;');
 d3.customformatter=t;
 var tr=t.insertRow(0);
@@ -204,6 +206,11 @@ case 'hammock':
 	s.style.display='none';
 	h.style.display='block';
 	return;
+case 'callingcard':
+	b.style.display='none';
+	s.style.display='none';
+	h.style.display='none';
+	return;
 default: fatalError('unknown format');
 }
 }
@@ -299,6 +306,9 @@ case 'lr':
 	return;
 case 'hammock':
 	bbj.fud_load_hammock();
+	return;
+case 'callingcard':
+	bbj.fud_load_callingcard();
 	return;
 }
 }
@@ -849,32 +859,110 @@ reader.onload=function(e) {
 reader.readAsText(apps.fud.editui.file);
 }
 
-
-
-
-Browser.prototype.fud_post_maketrack=function(textdata,tk)
-{
-this.cloak();
-print2console('Uploading data to server...',0);
-var bbj=this;
-ajaxPost('txt\n'+textdata,function(key){bbj.fud_maketrack(key,tk);});
+Browser.prototype.fud_load_callingcard=function() {
+	var reader=new FileReader();
+	reader.onerror=function(){print2console('Error reading file',2);}
+	reader.onabort=function(){print2console('Error reading file',2);}
+	reader.onload=function(e) {
+		var lines=e.target.result.split('\n');
+		if(lines.length==0) {
+			print2console('File has no content',2);
+			return;
+		}
+		var bbj=apps.fud.bbj;
+		var eui=apps.fud.editui;
+		var data=[];
+		for(var i=0; i<lines.length; i++) {
+			if(lines[i].length==0) continue;
+			var lst=lines[i].split(/\s/);
+			// // escape disgusting stuff
+			// if(lst[0].length==0 || lst[0]=='track' || lst[0]=='browser') continue;
+			// print2console(lst,2);
+			if(lst.length<4) {
+				print2console('Error at line '+(i+1)+': less than 4 fields',2);
+				return;
+			}
+			if(!lst[0] || lst[0].length==0) {
+				print2console('Error at line '+(i+1)+': no chromosome name',2);
+				return;
+			}
+			if(!lst[1] || lst[1].length==0) {
+				print2console('Error at line '+(i+1)+': no start coordinate',2);
+				return;
+			}
+			if(!lst[2] || lst[2].length==0) {
+				print2console('Error at line '+(i+1)+': no stop coordinate',2);
+				return;
+			}
+			if(!lst[3] || lst[3].length==0) {
+				print2console('Error at line '+(i+1)+': no read count',2);
+				return;
+			}
+			var t=bbj.genome.parseCoordinate([lst[0],parseInt(lst[1]),parseInt(lst[2])],1);
+		
+			if(!t) {
+				print2console('Error at line '+(i+1)+': wrong coordinate',2);
+				return;
+			}
+			var c={
+				chr:t[0],
+				start:t[1],
+				stop:t[3],
+				count:parseInt(lst[3]),
+				isgene:false
+			};
+			if(lst[4]) {
+				c.strand=lst[4];
+			}
+			if(lst[5]) {
+				c.barcode=lst[5];
+			}
+			data.push(c);
+		}
+	
+		if(data.length==0) {
+			print2console('Nothing loaded from file '+eui.file.name,2);
+		} else {
+			print2console('Read '+data.length+' lines',1);
+			var lst=[];
+            // var id=1;
+			for(var i=0; i<data.length; i++) {
+				var e=data[i];
+				lst.push(e.chr+'\t'+e.start+'\t'+e.stop+'\t'+e.count+'\t'+(e.strand?e.strand:'.')+'\t'+(e.barcode?e.barcode:'.'));
+                // id++;
+			}
+			bbj.fud_post_maketrack(lst.join('\n'), {ft:FT_callingcard_c,label:eui.file.name,mode:M_full});
+			fud_loaded_says(eui.file.name,true);
+		}
+		var fd=eui.parentNode.parentNode;
+		fd.parentNode.removeChild(fd);
+	};
+	reader.readAsText(apps.fud.editui.file);
 }
 
-Browser.prototype.fud_maketrack=function(key,tk)
-{
-if(!key) {
-	print2console('Sorry, please try again',2);
-	return;
+Browser.prototype.fud_post_maketrack=function(textdata,tk) {
+	this.cloak();
+	print2console('Uploading data to server...',0);
+	var bbj=this;
+	ajaxPost('txt\n'+textdata,function(key){bbj.fud_maketrack(key,tk);});
 }
-print2console('Making track...',0);
-// no need to tell cgi the ft, all will be processed in the same way
-var bbj=this;
-let paramsObj = {
-	maketrack: "on",
-	key: key
+
+Browser.prototype.fud_maketrack=function(key,tk) {
+	if(!key) {
+		print2console('Sorry, please try again',2);
+		return;
+	}
+	print2console('Making track...',0);
+	// print2console(key,2);
+	// no need to tell cgi the ft, all will be processed in the same way
+	var bbj=this;
+	let paramsObj = {
+		maketrack: "on",
+		key: key
+	}
+	this.ajax(paramsObj,function(data){bbj.fud_maketrack_cb(data,key,tk)});
 }
-this.ajax(paramsObj,function(data){bbj.fud_maketrack_cb(data,key,tk)});
-}
+
 Browser.prototype.fud_maketrack_cb=function(data,key,tk)
 {
 loading_done();

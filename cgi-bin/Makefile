@@ -1,6 +1,6 @@
 CC=gcc
 COPT= -O -g
-CFLAGS= -Wall -Wformat -Wimplicit -Wreturn-type -Wuninitialized
+CFLAGS= -Wall -Wformat -Wimplicit -Wreturn-type -Wuninitialized -std=c99
 DFLAGS= -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE -D_GNU_SOURCE
 SAM=samtools
 TABIX=tabix
