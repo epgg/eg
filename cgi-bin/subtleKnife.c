@@ -105,11 +105,11 @@
 #define ymdayfile "yearmonthday" // a bed file
 #define Rose_input_fn "input_bed_file"
 #define trashDir "/usr/lib/trash"
-// #define WWWT "/var/www/browser/t" // Deployment version
-#define WWWT "/var/www/html/browser/t" // Docker version
+#define WWWT "/var/www/browser/t" // Deployment version
+// #define WWWT "/var/www/html/browser/t" // Docker version
 #define BINdir "."
-// #define Mysqlserver "10.20.127.12" // Deployment version
-#define Mysqlserver "localhost" // Docker version
+#define Mysqlserver "10.20.127.12" // Deployment version
+// #define Mysqlserver "localhost" // Docker version
 #define Mysqluser "hguser"
 #define Mysqlpswd "hguser"
 #define juicebox "/usr/bin/java -Duser.home=/tmp -Xms512m -Xmx2048m -jar /usr/lib/cgi-bin/Juicebox.jar"

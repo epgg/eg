@@ -1,6 +1,6 @@
 var bb, cc;
 var horcrux = {};
-var washUver = '46';
+var washUver = '46.1';
 var washUtag = '\
 <span style="color:#3a81ba;">W<span style="font-size:80%;">ASH</span>U</span> \
 <span style="color:#ff9900;">E<span style="font-size:80%;">PI</span></span>\
@@ -1346,6 +1346,14 @@ function Genome(param) {
             custtkpanel_show(FT_bam_c);
         }, false);
         d3.innerHTML = 'BAM';
+        
+        d3 = dom_create('div', d2);
+        d3.className = 'largebutt';
+        d3.addEventListener('click', function() {
+            custtkpanel_show(FT_callingcard_c);
+        }, false);
+        d3.innerHTML = 'Calling card';
+
         dom_create('br', d2);
         d3 = dom_create('div', d2, 'color:rgb(81,118,96);');
         d3.className = 'largebutt';
@@ -1369,6 +1377,7 @@ function Genome(param) {
         this.custtk.ui_weaver = this.custtk_makeui(FT_weaver_c, d2);
         this.custtk.ui_bed = this.custtk_makeui(FT_bed_c, d2);
         this.custtk.ui_bigbed = this.custtk_makeui(FT_bigbed_c, d2);
+        this.custtk.ui_callingcard = this.custtk_makeui(FT_callingcard_c, d2);
         this.custtk.ui_lr = this.custtk_makeui(FT_lr_c, d2);
         this.custtk.ui_hi = this.custtk_makeui(FT_hi_c, d2);
         this.custtk.ui_cool = this.custtk_makeui(FT_cool_c, d2);
@@ -1480,7 +1489,7 @@ Genome.prototype.jsonGenome = function(data) {
             if (!(FT_cool_c in v))
                 this.custtk.ui_cool.examplebutt.style.display = 'none';
             if (!(FT_callingcard_c in v))
-                this.custtk.ui_bed.examplebutt.style.display='none';
+                this.custtk.ui_callingcard.examplebutt.style.display='none';
             if (FT_weaver_c in v) {
                 var g = this;
                 for (var qn in v[FT_weaver_c]) {
@@ -9284,6 +9293,9 @@ noweavertk: no FT_weaver_c, use when weaving is disabled at large view range
         case FT_bigbed_c:
             lst[FT_bigbed_c].push(name + ',' + label + ',' + url + ',' + mode);
             break;
+        case FT_callingcard_c:
+            lst[FT_callingcard_c].push(name + ',' + label + ',' + url + ',' + mode + ',' + summ);
+            break;
         case FT_bam_n:
             lst[FT_bam_n].push(name + ',' + url + ',' + mode);
             break;
@@ -14002,6 +14014,19 @@ Chromosome bar size <button type=button change=1 onclick=hengeview_changechrbars
         });
         gflag.applst.push({
             name: 'bigBed track',
+            toggle: fn
+        });
+        fn = function() {
+            custtk_shortcut(FT_callingcard_c);
+        }
+        ;
+        apps.custtk.shortcut[FT_callingcard_c] = dom_create('div', d2, 'display:none;', {
+            c: 'header_b ilcell',
+            t: 'callingcard',
+            clc: fn
+        });
+        gflag.applst.push({
+            name: 'Calling card',
             toggle: fn
         });
         fn = function() {
@@ -27990,6 +28015,10 @@ function custtk_useexample(ft) {
         c.ui_bigbed.input_url.value = info[ft].url;
         c.ui_bigbed.input_name.value = info[ft].name;
         return;
+    case FT_callingcard_c:
+        c.ui_callingcard.input_url.value = info[ft].url;
+        c.ui_callingcard.input_name.value = info[ft].name;
+        return;
     case FT_bedgraph_c:
         c.ui_bedgraph.input_url.value = info[ft].url;
         c.ui_bedgraph.input_name.value = info[ft].name;
@@ -28042,6 +28071,7 @@ function custtkpanel_show(ft) {
     apps.custtk.main.__hbutt2.style.display = 'block';
     c.ui_bed.style.display = ft == FT_bed_c ? 'block' : 'none';
     c.ui_bigbed.style.display = ft == FT_bigbed_c ? 'block' : 'none';
+    c.ui_callingcard.style.display = ft == FT_callingcard_c ? 'block' : 'none';
     c.ui_bedgraph.style.display = ft == FT_bedgraph_c ? 'block' : 'none';
     c.ui_cat.style.display = ft == FT_cat_c ? 'block' : 'none';
     c.ui_bam.style.display = ft == FT_bam_c ? 'block' : 'none';
@@ -28340,6 +28370,17 @@ real tracks, not datahub
         _tmp.label = c.input_name.value;
         _tmp.mode = parseInt(c.mode.options[c.mode.selectedIndex].value);
         break;
+    case FT_callingcard_c:
+        c = bbj.genome.custtk.ui_callingcard;
+        _tmp.url = c.input_url.value.trim();
+        _tmp.label = c.input_name.value;
+        _tmp.mode = parseInt(c.mode.options[c.mode.selectedIndex].value);
+        _tmp.qtc = {
+            logtype:4,
+            opacity:1,
+            height:100
+        };
+        break;
     case FT_lr_c:
         c = bbj.genome.custtk.ui_lr;
         _tmp.url = c.input_url.value.trim();
@@ -28587,6 +28628,10 @@ Genome.prototype.custtk_makeui = function(ft, holder) {
         d._h.innerHTML = 'bigBed track | <a href=http://wiki.wubrowse.org/BigBed target=_blank>help</a>';
         ftname = 'bigBed';
         break;
+    case FT_callingcard_c:
+        d._h.innerHTML = 'Calling card track | <a href=http://wiki.wubrowse.org/Calling_card target=_blank>help</a>';
+        ftname = 'callingcard';
+        break;
     case FT_anno_c:
         d._h.innerHTML = 'Hammock track | <a href=' + FT2noteurl[FT_anno_n] + ' target=_blank>help</a>';
         ftname = 'hammock';
@@ -28673,7 +28718,7 @@ Genome.prototype.custtk_makeui = function(ft, holder) {
             d.input_name.value = '';
     });
     // row 3
-    if (ft == FT_anno_c || ft == FT_bed_c || ft == FT_bigbed_c || ft == FT_lr_c || ft == FT_sam_c || ft == FT_bam_c || ft == FT_hi_c || ft == FT_cool_c) {
+    if (ft == FT_anno_c || ft == FT_bed_c || ft == FT_bigbed_c || ft == FT_lr_c || ft == FT_sam_c || ft == FT_bam_c || ft == FT_hi_c || ft == FT_cool_c || ft == FT_callingcard_c) {
         tr = table.insertRow(-1);
         td = tr.insertCell(0);
         td.align = 'right';
