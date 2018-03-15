@@ -15229,8 +15229,10 @@ Browser.prototype.trackHeightChanged = function() {
 
     let totalHeight = 0;
     const canvases = this.hmdiv.getElementsByTagName('canvas');
-    for (let i = 0; i < canvases.length; i++) {
-        totalHeight += canvases[i].height / getPixelRatioSafely();
+    for (let canvas of canvases) {
+        if (canvas.style.display !== "none") {
+            totalHeight += canvas.height / getPixelRatioSafely();
+        }
     }
     this.hmdiv.parentNode.style.height = Math.round(totalHeight);
 
