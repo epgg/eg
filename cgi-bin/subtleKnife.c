@@ -2299,8 +2299,10 @@ assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
 //free(dummyname);
 
 char *command;
-assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
-//assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+// Uncomment for production
+// assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+// Uncomment for Docker
+assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
 fprintf(stderr, "querying bigwig (%s)\n", command);
 if(system(command)==-1)
 	{
