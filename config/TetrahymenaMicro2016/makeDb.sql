@@ -20,7 +20,7 @@ insert into config values(
 "CYP4Z1\\nCYP2A7\\nCYP2A6\\nCYP3A4\\nCYP1A1\\nCYP4V2\\nCYP51A1\\nCYP2C19\\nCYP26B1\\nCYP11B2\\nCYP24A1\\nCYP4B1\\nCYP2C8",
 "{}",
 "chr1,2636516,chr1,2844833",
-null,
+'gene,IES,CBS',
 "chr1,chr2,chr3,chr4,chr5",
 true,
 true,

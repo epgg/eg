@@ -1,4 +1,20 @@
 {
+Genes : [
+	{name:'gene',label:'Genes',
+		filetype:'hammock',
+		url:'http://egg.wustl.edu/d/TetrahymenaMicro2016/geneStruct.gz',
+		boxcolor:'#002EB8',
+		details:{
+			source:'TGD',
+			'download date':'Dec. 15, 2016',
+			},
+		isgene:true,dbsearch:true },
+],
+
+'IES/CBS': [
+        {name:'IES', label:'IES', filetype:'bed',url:'http://egg.wustl.edu/d/TetrahymenaMicro2016/mic.ies.gff.bed.gz'},
+        {name:'CBS', label:'CBS', filetype:'bed',url:'http://egg.wustl.edu/d/TetrahymenaMicro2016/mic.cbs.gff.bed.gz'},
+],
 
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
