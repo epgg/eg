@@ -14397,6 +14397,14 @@ d.cellSpacing=10;
             toggle: toggle29
         });
     }
+    gflag.applst.push({
+        name: '3D/VR scene (experimental)',
+        label: 'Render current tracks in 3D',
+        toggle: function() {
+            menu_shutup();
+            renderVrScene();
+        }
+    });
 
     menu.c32 = dom_create('div', menu);
     menu.c33 = menu_addoption(null, ' ', get_genome_info, menu);
