@@ -18,14 +18,14 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/rn4/",
 "/srv/epgg/data/data/subtleKnife/seq/rn4.gz",
 "CYP4Z1\\nCYP2A7\\nCYP2A6\\nCYP3A4\\nCYP1A1\\nCYP4V2\\nCYP51A1\\nCYP2C19\\nCYP26B1\\nCYP11B2\\nCYP24A1\\nCYP4B1\\nCYP2C8",
-"{21:{hg19:'http://vizhub.wustl.edu/public/rn4/weaver/rn4_hg19_axt.gz',mm9:'http://vizhub.wustl.edu/public/rn4/weaver/rn4_mm9_axt.gz'}}",
+"{21:{hg19:'https://vizhub.wustl.edu/public/rn4/weaver/rn4_hg19_axt.gz',mm9:'https://vizhub.wustl.edu/public/rn4/weaver/rn4_mm9_axt.gz'}}",
 "chr4,80447920,chr4,80636829",
 "refGene,rmsk_all",
 "chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chrX,chrUn,chrM",
 true,
 true,
 "rno",
-"Assembly version|rn4|Sequence source|<a href=http://hgdownload.soe.ucsc.edu/goldenPath/rn4/bigZips/ target=_blank>UCSC Genome Browser</a>|Date parsed|February 17, 2013|Chromosomes|23|Contigs & misc|22|Logo art|<a href=http://en.wikipedia.org/wiki/File:Rat_diabetic.jpg target=_blank>link</a>",
+"Assembly version|rn4|Sequence source|<a href=https://hgdownload.soe.ucsc.edu/goldenPath/rn4/bigZips/ target=_blank>UCSC Genome Browser</a>|Date parsed|February 17, 2013|Chromosomes|23|Contigs & misc|22|Logo art|<a href=https://en.wikipedia.org/wiki/File:Rat_diabetic.jpg target=_blank>link</a>",
 0,
 false
 );

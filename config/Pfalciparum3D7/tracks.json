@@ -3,8 +3,8 @@
 Genes : [
 	{name:'gene',label:'Plasmodium genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/Pfalciparum3D7/gene.gz',
-                queryUrl:'http://plasmodb.org/plasmo/showRecord.do?name=GeneRecordClasses.GeneRecordClass&primary_key=',
+		url:'https://egg.wustl.edu/d/Pfalciparum3D7/gene.gz',
+                queryUrl:'https://plasmodb.org/plasmo/showRecord.do?name=GeneRecordClasses.GeneRecordClass&primary_key=',
 		boxcolor:'#002EB8',
 		details:{
 			source:'Plasmo3D',
@@ -17,7 +17,7 @@ Genes : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/Pfalciparum3D7/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/Pfalciparum3D7/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

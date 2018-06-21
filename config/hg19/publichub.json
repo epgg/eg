@@ -4,26 +4,26 @@
 {
 "name":"Reference human epigenomes from Roadmap Epigenomics Consortium",
 "desc":"The NIH Roadmap Epigenomics Mapping Consortium was launched with the goal of producing a public resource of human epigenomic data to catalyze basic biology and disease-oriented research. The Consortium leverages experimental pipelines built around next-generation sequencing technologies to map DNA methylation, histone modifications, chromatin accessibility and small RNA transcripts in stem cells and primary ex vivo tissues selected to represent the normal counterparts of tissues and organ systems frequently involved in human disease (quoted from Roadmap website).",
-"url":"http://vizhub.wustl.edu/public/hg19/roadmap",
-"institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+"url":"https://vizhub.wustl.edu/public/hg19/roadmap",
+"institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
 
 "hublist":[
 	{
 	"id":"roadmap",
 	"trackcount":2737,
 	"name":"Roadmap Data from GEO",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap9_methylC.md",
-	"institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap9_methylC.md",
+	"institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
 	"desc":"The NIH Roadmap Epigenomics Mapping Consortium was launched with the goal of producing a public resource of human epigenomic data to catalyze basic biology and disease-oriented research. The Consortium leverages experimental pipelines built around next-generation sequencing technologies to map DNA methylation, histone modifications, chromatin accessibility and small RNA transcripts in stem cells and primary ex vivo tissues selected to represent the normal counterparts of tissues and organ systems frequently involved in human disease (quoted from Roadmap website)."
 	},
         {   
         "id":"mcrf",
         "trackcount":16,
         "name":"methylCRF tracks from Roadmap",
-        "logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-        "url":"http://vizhub.wustl.edu/public/hg19/methylCRF.roadmap.hub",
-        "institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+        "logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+        "url":"https://vizhub.wustl.edu/public/hg19/methylCRF.roadmap.hub",
+        "institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"Single CpG methylation value prediction by methylCRF algorithm (PMID:23804401) using Roadmap data."
         }
 ]
@@ -32,80 +32,80 @@
 {
 "name":"Roadmap Epigenomics Integrative Analysis Hub",
 "desc":"The NIH Roadmap Epigenomics Mapping Consortium was launched with the goal of producing a public resource of human epigenomic data to catalyze basic biology and disease-oriented research. The Consortium leverages experimental pipelines built around next-generation sequencing technologies to map DNA methylation, histone modifications, chromatin accessibility and small RNA transcripts in stem cells and primary ex vivo tissues selected to represent the normal counterparts of tissues and organ systems frequently involved in human disease (quoted from Roadmap website).",
-"url":"http://vizhub.wustl.edu/public/hg19/roadmap",
-"institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+"url":"https://vizhub.wustl.edu/public/hg19/roadmap",
+"institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
 
 "hublist":[
 	{
 	"id":"roadmap_consolidated_pval",
 	"trackcount":1136,
 	"name":"Observed DNase and ChIP-seq Pvalue and Normalized RPKM RNAseq signal tracks",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.pvalsig",
-	"institution":["<a href=http://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.pvalsig",
+	"institution":["<a href=https://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"Observed data Pvalue tracks for DNase and ChIP-seq, and Normalized RPKM signal tracks for RNAseq"
 	},
 	{
 	"id":"roadmap_consolidated_fc",
 	"trackcount":1136,
 	"name":"Observed DNase and ChIP-seq Fold-change and Normalized RPKM RNAseq signal tracks",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.fcsig",
-	"institution":["<a href=http://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.fcsig",
+	"institution":["<a href=https://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"Observed data Fold-change tracks for DNase and ChIP-seq, and Normalized RPKM signal tracks for RNAseq"
 	},
 	{
 	"id":"roadmap_consolidated_hmm",
 	"trackcount":352,
 	"name":"All Chromatin states tracks",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.hmm",
-	"institution":["<a href=http://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.hmm",
+	"institution":["<a href=https://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"include 15 state core model from observed data, 18 state expanded model from observed data and 25 state model from imputed data"
 	},
 	{
 	"id":"roadmap_consolidated_imp",
 	"trackcount":4315,
 	"name":"Imputed data signal tracks",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.impsig",
-	"institution":["<a href=http://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md.impsig",
+	"institution":["<a href=https://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"All data types (histone, DNase, RNA and methylation)"
 	},
 	{
 	"id":"roadmap_unconsolidated_pval",
 	"trackcount":1915,
 	"name":"Unconsolidated epigenomes, Observed DNase and ChIP-seq Pvalue signal tracks",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_unconsolidated_02182015.json.md.pvalsig",
-	"institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_unconsolidated_02182015.json.md.pvalsig",
+	"institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"For the unconsolidated epigenomes, observed data Pvalue tracks for DNase and ChIP-seq"
 	},
 	{
 	"id":"roadmap_unconsolidated_fc",
 	"trackcount":1915,
 	"name":"Unconsolidated epigenomes, Observed DNase and ChIP-seq Fold-change signal tracks",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_unconsolidated_02182015.json.md.fcsig",
-	"institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_unconsolidated_02182015.json.md.fcsig",
+	"institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
         "desc":"For the unconsolidated epigenomes,observed data Fold-change tracks for DNase and ChIP-seq"
 	},
 	{
 	"id":"roadmap_consolidated",
 	"trackcount":18181,
 	"name":"Complete Consolidated dataset",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md",
-	"institution":["<a href=http://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
-	"desc":"This is the complete set of Roadmap Epigenomics Integrative Analysis Hub. Consolidated refer to the 127 reference epigenomes that uses additional steps of pooling and subsampling and these are the ones used in the paper. All data types were reprocessed for the consolidated epigenomes.Also please refer to <a href=http://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a> if get slow loading of this hub."
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_consolidated_02182015.json.md",
+	"institution":["<a href=https://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a>","<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"desc":"This is the complete set of Roadmap Epigenomics Integrative Analysis Hub. Consolidated refer to the 127 reference epigenomes that uses additional steps of pooling and subsampling and these are the ones used in the paper. All data types were reprocessed for the consolidated epigenomes.Also please refer to <a href=https://egg2.wustl.edu/roadmap/web_portal/ target=_blank>web portal</a> if get slow loading of this hub."
 	},
 	{
 	"id":"roadmap_unconsolidated",
 	"trackcount":9990,
 	"name":"Roadmap Epigenomics Analysis Hub Unconsolidated set",
-	"url":"http://vizhub.wustl.edu/public/hg19/roadmap_unconsolidated_02182015.json.md",
-	"logo":"http://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
-	"institution":["<a href=http://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
+	"url":"https://vizhub.wustl.edu/public/hg19/roadmap_unconsolidated_02182015.json.md",
+	"logo":"https://epigenomegateway.wustl.edu/support/img/roadmap_logo.png",
+	"institution":["<a href=https://www.roadmapepigenomics.org/ target=_blank>Roadmap Epigenomics Consortium</a>"],
 	"desc":"Unconsolidated data is basically all the ChIP-seq and DNase Release 9 data at the EDACC as it was except filtered for 36 bp read length mappability and processed to create peak calls and signal tracks."
 	}
 ]
@@ -115,15 +115,15 @@
 "id":"encode",
 "trackcount":4251,
 "name":"Encyclopedia of DNA Elements",
-"url":"http://vizhub.wustl.edu/public/hg19/encode.md",
-"logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
-"institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
+"url":"https://vizhub.wustl.edu/public/hg19/encode.md",
+"logo":"https://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
+"institution":["<a href=https://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
 "desc":"The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active (quoted from UCSC ENCODE website)."
 },
 
 {
 "name":"Encyclopedia of DNA Elements (update)",
-"url":"http://vizhub.wustl.edu/public/hg19/encode.md",
+"url":"https://vizhub.wustl.edu/public/hg19/encode.md",
 "institution":["<a href=https://www.encodeproject.org/ target=_blank>ENCODE consortium</a>"],
 "desc":"The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active",
 "hublist":[
@@ -131,27 +131,27 @@
     "id":"encode-mpssur",
     "trackcount":7729,
     "name":"ENCODE signal of unique reads",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_mpssur.json",
-    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
-    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
+    "url":"https://vizhub.wustl.edu/public/hg19/hg19_mpssur.json",
+    "logo":"https://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
+    "institution":["<a href=https://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
     "desc":"signal of unique reads"
     },
     {
     "id":"encode-mpssar",
     "trackcount":7842,
     "name":"ENCODE signal of all reads",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_mpssar.json",
-    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
-    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
+    "url":"https://vizhub.wustl.edu/public/hg19/hg19_mpssar.json",
+    "logo":"https://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
+    "institution":["<a href=https://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
     "desc":"signal of all reads"
     },
     {
     "id":"encode-other",
     "trackcount":5937,
     "name":"ENCODE all other types",
-    "url":"http://vizhub.wustl.edu/public/hg19/hg19_other_rmdup.json",
-    "logo":"http://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
-    "institution":["<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
+    "url":"https://vizhub.wustl.edu/public/hg19/hg19_other_rmdup.json",
+    "logo":"https://epigenomegateway.wustl.edu/support/img/encode-logo-small-2x.png",
+    "institution":["<a href=https://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>"],
     "desc":"base overlap signal,fold change over control,genome compartments,percentage normalized signal etc."
     }
 ]
@@ -161,7 +161,7 @@
 "id":"longrange",
 "trackcount":156,
 "name":"Long-range chromatin interaction experiments",
-"url":"http://vizhub.wustl.edu/public/hg19/longrange4",
+"url":"https://vizhub.wustl.edu/public/hg19/longrange4",
 "desc":"A collection of published long-range chromatin interaction data sets on human cell types."
 },
 
@@ -169,14 +169,14 @@
 "id":"juicebox",
 "trackcount":206,
 "name":"HiC interaction from Juicebox",
-"url":"http://epgg-test.wustl.edu/dli/long-range-test/hg19-juiceboxhub",
+"url":"https://epgg-test.wustl.edu/dli/long-range-test/hg19-juiceboxhub",
 "desc":"HiC interaction data sets from Juicebox."
 },
 {
 "id":"cooler",
 "trackcount":185,
 "name":"Cool interaction from Cooler",
-"url":"http://epgg-test.wustl.edu/dli/long-range-test/hg19-coolhub",
+"url":"https://epgg-test.wustl.edu/dli/long-range-test/hg19-coolhub",
 "desc":"HiC interaction data sets from Cooler."
 },
 
@@ -184,8 +184,16 @@
 "id":"tcga",
 "trackcount":2551,
 "name":"Human 450K and 27K array data from TCGA",
-"url":"http://vizhub.wustl.edu/public/hg19/TCGA-450k-hub2",
+"url":"https://vizhub.wustl.edu/public/hg19/TCGA-450k-hub2",
 "desc":"Human 450K and 27K array data from TCGA."
+},
+{
+"id":"Lindsey",
+"trackcount":18,
+"name":"A promoter interaction map for cardiovascular disease genetics",
+"url":"https://wangftp.wustl.edu/~dli/Lindsey_Montefiori/DataHub_Lindsey_Montefiori.txt",
+"institution":["<a href=https://www.uchicago.edu/ target=_blank>University of Chicago</a>"],
+"desc":"Promoter capture Hi-C and RNA-seq in iPSCs and iPSC-derived cardiomyocytes"
 },
 
 {"name":"Trial datasets",
@@ -195,44 +203,44 @@
 "id":"longrangetest",
 "trackcount":1,
 "name":"HiC interaction experiments",
-"url":"http://epgg-test.wustl.edu/dli/long-range-test/hub",
+"url":"https://epgg-test.wustl.edu/dli/long-range-test/hub",
 "desc":"A collection of published long-range chromatin interaction data sets on human cell types."
 },
 {
     "id":"ec",
     "trackcount":26,
     "name":"Endometrioid Cancer Methylome from Wang Lab",
-    "logo":"http://wang.wustl.edu/img/WangLabHomeLogo.png",
-    "url":"http://wangftp.wustl.edu/~bzhang/CNV_EC/DataHub_EC_CNV",
-    "institution":["<a href=http://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
+    "logo":"https://wang.wustl.edu/img/WangLabHomeLogo.png",
+    "url":"https://wangftp.wustl.edu/~bzhang/CNV_EC/DataHub_EC_CNV",
+    "institution":["<a href=https://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
     "desc":"The methylMnM software is used to identify DMRs by integrating MeDIP-Seq and MRE-Seq assay results."
 },
 {
     "id":"gbm",
     "trackcount":27,
     "name":"Glioblastoma Methylome from Wang Lab",
-    "logo":"http://wang.wustl.edu/img/WangLabHomeLogo.png",
-    "url":"http://wangftp.wustl.edu/~bzhang/CNV_GBM/DataHub_GBM_CNV",
-    "institution":["<a href=http://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
+    "logo":"https://wang.wustl.edu/img/WangLabHomeLogo.png",
+    "url":"https://wangftp.wustl.edu/~bzhang/CNV_GBM/DataHub_GBM_CNV",
+    "institution":["<a href=https://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
     "desc":"The methylMnM software is used to identify DMRs by integrating MeDIP-Seq and MRE-Seq assay results."
 },
 {
     "id":"UCS",
     "trackcount":52,
     "name":"Uterine Carcinosarcoma methylome from Wang Lab",
-    "logo":"http://wang.wustl.edu/img/WangLabHomeLogo.png",
-    "url":"http://wangftp.wustl.edu/~dli/hub/jli_UCS/hub",
-    "institution":["<a href=http://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
+    "logo":"https://wang.wustl.edu/img/WangLabHomeLogo.png",
+    "url":"https://wangftp.wustl.edu/~dli/hub/jli_UCS/hub",
+    "institution":["<a href=https://wang.wustl.edu/ target=_blank>Wang Lab at Washington University in St. Louis</a>"],
     "desc":"The methylMnM software is used to identify DMRs by integrating MeDIP-Seq and MRE-Seq assay results."
 },
 {
     "id":"fimo",
     "trackcount":2,
     "name":"Motif Scan by Fimo",
-    "logo":"http://epigenomegateway.wustl.edu/support/img/fimo.png",
-    "url":"http://vizhub.wustl.edu/public/hg19/fimo_motif/hub",
-    "institution":["<a href=http://meme.nbcr.net/meme/cgi-bin/fimo.cgi target=_blank>Fimo</a>"],
-    "desc":"The tracks (downloaded from the link above) display statistically significant matches between the human genome and motifs from the <a href=http://jaspar.genereg.net>JASPAR CORE 2009</a> and <a href=http://biobase-international.com/index.php?id=transfac>TRANSFAC 10.2</a> motif databases. The quality of each match is summarized as a q-value, defined as the minimal false discovery rate threshold at which the match would be deemed significant.  Only matches with a q-value ≤ 0.1 are shown."
+    "logo":"https://epigenomegateway.wustl.edu/support/img/fimo.png",
+    "url":"https://vizhub.wustl.edu/public/hg19/fimo_motif/hub",
+    "institution":["<a href=https://meme.nbcr.net/meme/cgi-bin/fimo.cgi target=_blank>Fimo</a>"],
+    "desc":"The tracks (downloaded from the link above) display statistically significant matches between the human genome and motifs from the <a href=https://jaspar.genereg.net>JASPAR CORE 2009</a> and <a href=https://biobase-international.com/index.php?id=transfac>TRANSFAC 10.2</a> motif databases. The quality of each match is summarized as a q-value, defined as the minimal false discovery rate threshold at which the match would be deemed significant.  Only matches with a q-value ≤ 0.1 are shown."
 }
 ]
 }

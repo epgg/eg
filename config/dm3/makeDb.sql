@@ -19,7 +19,7 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/dm3/",
 "/srv/epgg/data/data/subtleKnife/seq/dm3.gz",
 "CYP4Z1\\nCYP2A7\\nCYP2A6\\nCYP3A4\\nCYP1A1\\nCYP4V2\\nCYP51A1\\nCYP2C19\\nCYP26B1\\nCYP11B2\\nCYP24A1\\nCYP4B1\\nCYP2C8",
-"{3:{url:'http://vizhub.wustl.edu/hubSample/dm3/1.gz',name:'test track'},1:{url:'http://vizhub.wustl.edu/hubSample/dm3/bed.gz',name:'test track'},5:{url:'http://vizhub.wustl.edu/hubSample/dm3/1_sorted.gz',name:'test track'},100:{url:'http://vizhub.wustl.edu/hubSample/dm3/hub'}}",
+"{3:{url:'https://vizhub.wustl.edu/hubSample/dm3/1.gz',name:'test track'},1:{url:'https://vizhub.wustl.edu/hubSample/dm3/bed.gz',name:'test track'},5:{url:'https://vizhub.wustl.edu/hubSample/dm3/1_sorted.gz',name:'test track'},100:{url:'https://vizhub.wustl.edu/hubSample/dm3/hub'}}",
 "chr3R,2636516,chr3R,2844833",
 "longrange,modencode",
 "refGene,rmsk_all",
@@ -27,7 +27,7 @@ insert into config values(
 true,
 true,
 "dme",
-"Assembly version|dm3|Sequence source|<a href=http://hgdownload.cse.ucsc.edu/goldenPath/dm3/bigZips/ target=_blank>UCSC browser</a>|Date parsed|January 1, 2012|Chromosomes|8|Misc|7|Total bases|139,485,381|Logo art|<a href=http://imgs.sfgate.com/c/pictures/2006/06/30/mn_fruitflies30.jpg target=_blank>link</a>",
+"Assembly version|dm3|Sequence source|<a href=https://hgdownload.cse.ucsc.edu/goldenPath/dm3/bigZips/ target=_blank>UCSC browser</a>|Date parsed|January 1, 2012|Chromosomes|8|Misc|7|Total bases|139,485,381|Logo art|<a href=https://imgs.sfgate.com/c/pictures/2006/06/30/mn_fruitflies30.jpg target=_blank>link</a>",
 0,
 false
 );

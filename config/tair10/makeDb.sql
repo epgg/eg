@@ -19,7 +19,7 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/tair10/",
 "/srv/epgg/data/data/subtleKnife/seq/tair10.gz",
 "CYP71B7\\nCYP86C3\\nCYP86C4\\nCYP79F2\\nCYP722A1\\nCYP86C1\\nCYP705A24\\nCYP76C6\\nCYP76C5\\nCYP94D1\\nCYP96A8\\nCYP705A27\\nCYP705A25\\nCYP59\\nCYP708A1\\nCYP79C3P\\nCYP86A7\\nCYP89A2\\nCYP89A7",
-"{3:{url:'http://vizhub.wustl.edu/hubSample/tair10/1.gz',name:'test track'},5:{url:'http://vizhub.wustl.edu/hubSample/tair10/bed.gz',name:'test track'},100:{url:'http://vizhub.wustl.edu/hubSample/tair10/hub'}}",
+"{3:{url:'https://vizhub.wustl.edu/hubSample/tair10/1.gz',name:'test track'},5:{url:'https://vizhub.wustl.edu/hubSample/tair10/bed.gz',name:'test track'},100:{url:'https://vizhub.wustl.edu/hubSample/tair10/hub'}}",
 "Chr1,11310415,Chr1,11320096",
 "mock",
 "tair10Gene,repeat",
@@ -27,7 +27,7 @@ insert into config values(
 true,
 true,
 "ath",
-"Assembly version|tair10|Sequence source|<a href=ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/ target=_blank>TAIR</a>|Date parsed|December 1, 2011|Chromosomes|7|Total bases|119,667,750|Logo art|<a href=http://www.prl.msu.edu/Facultypages/NSF_MFT_Site/images/arabidopsis.jpg target=_blank>link</a>",
+"Assembly version|tair10|Sequence source|<a href=ftp://ftp.arabidopsis.org/home/tair/Sequences/whole_chromosomes/ target=_blank>TAIR</a>|Date parsed|December 1, 2011|Chromosomes|7|Total bases|119,667,750|Logo art|<a href=https://www.prl.msu.edu/Facultypages/NSF_MFT_Site/images/arabidopsis.jpg target=_blank>link</a>",
 0,
 false
 );

@@ -19,7 +19,7 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/galGal4/",
 "/srv/epgg/data/data/subtleKnife/seq/galGal4.gz",
 "cyp2v1\\ncyp2aa4\\ncyp2x8\\ncyp2p9\\ncyp3c4\\ncyp24a1\\ncyp2p6\\ncyp2x12\\ncyp19a1a\\ncyp20a1\\ncyp2aa2\\ncyp11a1\\ncyp2ad2",
-"{3:{url:'http://vizhub.wustl.edu/hubSample/galGal4/num1.gz',name:'test track'},1:{url:'http://vizhub.wustl.edu/hubSample/galGal4/bed.gz',name:'test track'},100:{url:'http://vizhub.wustl.edu/hubSample/galGal4/hub'}}",
+"{3:{url:'https://vizhub.wustl.edu/hubSample/galGal4/num1.gz',name:'test track'},1:{url:'https://vizhub.wustl.edu/hubSample/galGal4/bed.gz',name:'test track'},100:{url:'https://vizhub.wustl.edu/hubSample/galGal4/hub'}}",
 "chr2,32817948,chr2,32831737",
 "published",
 "refGene,rmsk_all",
@@ -27,7 +27,7 @@ insert into config values(
 true,
 true,
 "gga",
-"Assembly version|galGal4|Sequence source|<a href=http://hgdownload.cse.ucsc.edu/goldenPath/galGal4/bigZips/ target=_blank>UCSC browser</a>|Date parsed|May 6, 2015|Chromosomes|33|Contigs|15899|Total bases|1,046,932,099|Logo art|<a href=http://orientalbirdimages.org/images/data/redjunglefowl_copy2.jpg target=_blank>link</a>",
+"Assembly version|galGal4|Sequence source|<a href=https://hgdownload.cse.ucsc.edu/goldenPath/galGal4/bigZips/ target=_blank>UCSC browser</a>|Date parsed|May 6, 2015|Chromosomes|33|Contigs|15899|Total bases|1,046,932,099|Logo art|<a href=https://orientalbirdimages.org/images/data/redjunglefowl_copy2.jpg target=_blank>link</a>",
 0,
 false
 );

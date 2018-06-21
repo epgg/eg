@@ -30,7 +30,7 @@ insert into config values(
 true,
 true,
 "ptr",
-"Assembly version|panTro5|Sequence source|<a href=http://hgdownload.soe.ucsc.edu/goldenPath/panTro5/bigZips/ target=_blank>UCSC Genome Browser</a>|Date parsed|Oct 31, 2017|Chromosomes|26|Contigs & misc|44,423|Logo art|<a href=https://genome.ucsc.edu/images/Pan_troglodytes.jpg target=_blank>link</a>",
+"Assembly version|panTro5|Sequence source|<a href=https://hgdownload.soe.ucsc.edu/goldenPath/panTro5/bigZips/ target=_blank>UCSC Genome Browser</a>|Date parsed|Oct 31, 2017|Chromosomes|26|Contigs & misc|44,423|Logo art|<a href=https://genome.ucsc.edu/images/Pan_troglodytes.jpg target=_blank>link</a>",
 0,
 false
 );

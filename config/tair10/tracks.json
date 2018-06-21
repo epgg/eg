@@ -3,8 +3,8 @@
 Genes : [
 	{name:'tair10Gene',label:'TAIR genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/tair10/tair10Gene.gz',
-		queryUrl:'http://www.arabidopsis.org/servlets/TairObject?type=gene&name=',
+		url:'https://egg.wustl.edu/d/tair10/tair10Gene.gz',
+		queryUrl:'https://www.arabidopsis.org/servlets/TairObject?type=gene&name=',
 		boxcolor:'#002EB8',
 		isgene:true,dbsearch:true },
 ],
@@ -12,7 +12,7 @@ Genes : [
 Repeat : [
 	{name:'repeat',label:'Transposable elements',
 		filetype:'bed',
-		url:'http://egg.wustl.edu/d/tair10/repeat.gz',
+		url:'https://egg.wustl.edu/d/tair10/repeat.gz',
 	},
 ],
 
@@ -20,7 +20,7 @@ Repeat : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/tair10/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/tair10/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

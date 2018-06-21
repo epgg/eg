@@ -2,7 +2,7 @@
 Genes : [
 	{name:'gene',label:'Genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/TetrahymenaMacro2014/gene.gz',
+		url:'https://egg.wustl.edu/d/TetrahymenaMacro2014/gene.gz',
 		boxcolor:'#002EB8',
 		details:{
 			source:'TGD',
@@ -14,7 +14,7 @@ Genes : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/TetrahymenaMacro2014/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/TetrahymenaMacro2014/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

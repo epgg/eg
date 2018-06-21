@@ -3,16 +3,16 @@
 id:'modencode',
 trackcount:1082,
 name:'Fruit fly modENCODE',
-url:'http://vizhub.wustl.edu/public/dm3/modencode.md',
-logo:'http://genome.ucsc.edu/images/ENCODE_scaleup_logo.png',
-institution:['<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>'],
+url:'https://vizhub.wustl.edu/public/dm3/modencode.md',
+logo:'https://genome.ucsc.edu/images/ENCODE_scaleup_logo.png',
+institution:['<a href=https://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>'],
 desc:'The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active (quoted from UCSC ENCODE website).',
 },
 {
 id:'longrange',
 trackcount:27,
 name:'Long-range chromatin interaction experiments',
-url:'http://vizhub.wustl.edu/public/dm3/longrange.md',
+url:'https://vizhub.wustl.edu/public/dm3/longrange.md',
 desc:'A collection of published long-range chromatin interaction data sets on fruit flies.'
 },
 ]

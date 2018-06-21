@@ -25,7 +25,7 @@ insert into config values(
 true,
 true,
 \N,
-"Assembly version|mm10|Sequence source|<a href=http://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/ target=_blank>UCSC browser</a>|Date parsed|July 31, 2013|Chromosomes|22|Misc|44|Total bases|2,730,871,774|Logo art|<a href=http://free-extras.com/images/mouse-8552.htm target=_blank>link</a>",
+"Assembly version|mm10|Sequence source|<a href=https://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/ target=_blank>UCSC browser</a>|Date parsed|July 31, 2013|Chromosomes|22|Misc|44|Total bases|2,730,871,774|Logo art|<a href=https://free-extras.com/images/mouse-8552.htm target=_blank>link</a>",
 0,
 false
 );

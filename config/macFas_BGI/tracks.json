@@ -3,8 +3,8 @@
 Genes : [
 	{name:'gene',label:'CE genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/macFas_BGI/gene.gz',
-		queryUrl:'http://www.ensembl.org/id/',
+		url:'https://egg.wustl.edu/d/macFas_BGI/gene.gz',
+		queryUrl:'https://www.ensembl.org/id/',
 		boxcolor:'#002EB8',
 		isgene:true,dbsearch:true },
 ],
@@ -22,7 +22,7 @@ RepeatMasker : [
 			9:['Other repeats','#488E8E'],
 			8:['RNA repeat','#cc33ff'],
 			10:['Unknown','#5C5C5C']},
-		url:'http://egg.wustl.edu/d/macFas_BGI/rmsk_ensemble.gz',
+		url:'https://egg.wustl.edu/d/macFas_BGI/rmsk_ensemble.gz',
 	},
 ],
 
@@ -30,7 +30,7 @@ RepeatMasker : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/macFas_BGI/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/macFas_BGI/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

@@ -19,7 +19,7 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/spombe201203/",
 "/srv/epgg/data/data/subtleKnife/seq/spombe201203.gz",
 "no gene",
-"{3:{url:'http://vizhub.wustl.edu/hubSample/spombe201203/rand.gz',name:'test track'},15:{url:'http://vizhub.wustl.edu/hubSample/spombe201203/rand1.bigWig',name:'test track'},1:{url:'http://vizhub.wustl.edu/hubSample/spombe201203/bed.gz',name:'test track'},100:{url:'http://vizhub.wustl.edu/hubSample/spombe201203/hub'}}",
+"{3:{url:'https://vizhub.wustl.edu/hubSample/spombe201203/rand.gz',name:'test track'},15:{url:'https://vizhub.wustl.edu/hubSample/spombe201203/rand1.bigWig',name:'test track'},1:{url:'https://vizhub.wustl.edu/hubSample/spombe201203/bed.gz',name:'test track'},100:{url:'https://vizhub.wustl.edu/hubSample/spombe201203/hub'}}",
 "chromosome3,322500,chromosome3,353700",
 "mock",
 "pombase_gene,repeat",
@@ -27,7 +27,7 @@ insert into config values(
 true,
 true,
 "spo",
-"Assembly release|March 2012|Sequence source|<a href=http://www.pombase.org target=_blank>PomBase</a>|Date parsed|November 6, 2012|Chromosomes|3|Total bases|12,631,379|Logo art|<a href=http://cwp.embo.org/pc09-17/ target=_blank>link</a>",
+"Assembly release|March 2012|Sequence source|<a href=https://www.pombase.org target=_blank>PomBase</a>|Date parsed|November 6, 2012|Chromosomes|3|Total bases|12,631,379|Logo art|<a href=https://cwp.embo.org/pc09-17/ target=_blank>link</a>",
 0,
 false
 );
