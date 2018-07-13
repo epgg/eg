@@ -234,7 +234,7 @@ struct nnode
     char strand;
     char *name;
     double *data;
-	float *xdata; // For calling card data
+	double *xdata; // For calling card data
 	unsigned long *ydata; // For calling card data
 	int id;
     };
@@ -417,7 +417,7 @@ struct callingCard
 struct callingCardData
 	{
 	struct callingCardData *next;
-	float *xdata;
+	double *xdata;
 	unsigned long *ydata;
 	char *strand;
 	char **barcode;
@@ -1681,12 +1681,12 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 		data->barcode = NULL;
 		return data;
 	}
-	float *xdata = malloc(sizeof(float) * len);
+	double *xdata = malloc(sizeof(double) * len);
 	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
 	char *strand = malloc(sizeof(char) * len);
 	char **barcode = malloc(sizeof(char*) * len);
 	while (current != NULL) {
-		xdata[i] = (current->start + current->stop)/2;
+		xdata[i] = (double) (current->start + current->stop)/2;
 		ydata[i] = current->count;
 		if (current->strand != 0) {
 			strand[i] = current->strand;
@@ -2406,7 +2406,7 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		return NULL;
 		}
 	int i, dspStart, offset = 0;
-	float width;
+	double width;
 	struct region *r;
 	struct callingCard *tmp=NULL;
 	struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
@@ -2415,9 +2415,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 	if (SQUAWK) fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 	if (SQUAWK) fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 	if (SQUAWK) fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-	if (!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+	if (!atbplevel) width = (double) dsp->entireLength / (double) dsp->usedSummaryNumber;
 	else if (move) width = 1.0;
-	else width = round((float) dsp->hmspan / (float) dsp->entireLength);
+	else width = round((double) dsp->hmspan / (double) dsp->entireLength);
 	if (SQUAWK) fprintf(stderr, "width: %f\n", width);
 	for(r=dsp->head; r!=NULL; r=r->next) {
 	    if(r->summarySize > 0) {
@@ -2435,9 +2435,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		
 			for (i = 0; i < tmpData->length; i++) {
 				if (!atbplevel) {
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset)/width;
+						tmpData->xdata[i] = (tmpData->xdata[i] - (double) r->dstart + (double) offset)/width;
 				} else {
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset) * width;
+						tmpData->xdata[i] = (tmpData->xdata[i] - (double) r->dstart + (double) offset) * width;
 				}
 			}
 			offset += (r->dstop - r->dstart);
