@@ -3,8 +3,8 @@
 Genes : [
 	{name:'sgdGene',label:'SGD genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/sacCer3/sgdGene.gz',
-		queryUrl:'http://yeastmine.yeastgenome.org/yeastmine/keywordSearchResults.do?searchTerm=',
+		url:'https://egg.wustl.edu/d/sacCer3/sgdGene.gz',
+		queryUrl:'https://yeastmine.yeastgenome.org/yeastmine/keywordSearchResults.do?searchTerm=',
 		boxcolor:'#002EB8',
 		details:{
 			source:'UCSC Genome Browser',
@@ -13,8 +13,8 @@ Genes : [
 		isgene:true,dbsearch:true },
 	{name:'xenoRefGene',label:'non-yeast RefSeq genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/sacCer3/xenoRefGene.gz',
-		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		url:'https://egg.wustl.edu/d/sacCer3/xenoRefGene.gz',
+		queryUrl:'https://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
 		details:{
 			source:'UCSC Genome Browser',
 			'download date':'Jun 21, 2017',
@@ -25,7 +25,7 @@ Genes : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/sacCer3/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/sacCer3/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

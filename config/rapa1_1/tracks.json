@@ -3,8 +3,8 @@
 Genes : [
 	{name:'gene',label:'BRAD genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/rapa1_1/gene.gz',
-		queryUrl:'http://brassicadb.org/cgi-bin/gbrowse/Brassica/?name=',
+		url:'https://egg.wustl.edu/d/rapa1_1/gene.gz',
+		queryUrl:'https://brassicadb.org/cgi-bin/gbrowse/Brassica/?name=',
 		boxcolor:'#002EB8',
 		isgene:true,dbsearch:true },
 ],
@@ -12,7 +12,7 @@ Genes : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/rapa1_1/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/rapa1_1/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

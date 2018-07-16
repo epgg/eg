@@ -3,8 +3,8 @@
 Genes : [
 	{name:'refGene',label:'RefSeq genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/ce10/refGene.gz',
-		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		url:'https://egg.wustl.edu/d/ce10/refGene.gz',
+		queryUrl:'https://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
 		boxcolor:'#002EB8',
 		details:{
 			source:'UCSC Genome Browser',
@@ -13,8 +13,8 @@ Genes : [
 		isgene:true,dbsearch:true },
 	{name:'xenoRefGene',label:'non-celegans RefSeq genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/ce10/xenoRefGene.gz',
-		queryUrl:'http://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
+		url:'https://egg.wustl.edu/d/ce10/xenoRefGene.gz',
+		queryUrl:'https://www.ncbi.nlm.nih.gov/entrez/query.fcgi?cmd=Search&db=Nucleotide&doptcmdl=GenBank&term=',
 		details:{
 			source:'UCSC Genome Browser',
 			'download date':'Jan. 27, 2014',
@@ -37,7 +37,7 @@ RepeatMasker : [
 			10:['Unknown','#5C5C5C']},
 		scorenamelst:["Smith-Waterman score","SW score normalized by length","1-divergence%"],
 		showscoreidx:2,
-		url:'http://egg.wustl.edu/d/ce10/rmsk_all.gz',
+		url:'https://egg.wustl.edu/d/ce10/rmsk_all.gz',
 		defaultmode:'barplot',
 		height:35,
 	},
@@ -47,7 +47,7 @@ RepeatMasker : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/ce10/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/ce10/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},

@@ -52,9 +52,10 @@ class DataProvider {
     static makeProviderForTrack(track, browser, params) {
         switch (track.ft) {
             case FT_hi_c:
-                return new HicProvider(hic.HiCReader.fromUrl(track.url), BrowserHicFormatter);
+                const hicStrategy = new HicFetchStrategy(hic.HiCReader.fromUrl(track.url), track.label);
+                return new LongRangeProvider(hicStrategy);
             case FT_cool_c:
-                return new CoolerProvider(track.url, track.label, CoolerFormatter);
+                return new LongRangeProvider(new CoolerFetchStrategy(track.url, track.label));
             case FT_bigwighmtk_n:
             case FT_bigwighmtk_c:
                 //return new BigWigProvider(new igv.BWSource({url:track.url}), BrowserBigWigFormatter);

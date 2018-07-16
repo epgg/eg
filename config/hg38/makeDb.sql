@@ -23,14 +23,14 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/hg38/",
 "/srv/epgg/data/data/subtleKnife/seq/hg38.gz",
 "CYP4Z1\\nCYP2A7\\nCYP2A6\\nCYP3A4\\nCYP1A1\\nCYP4V2\\nCYP51A1\\nCYP2C19\\nCYP26B1\\nCYP11B2\\nCYP24A1\\nCYP4B1\\nCYP2C8",
-"{}",
+"{36:{url:'https://epgg-test.wustl.edu/dli/test/HCT116_Brd4-SB100_2.ccf.gz',name:'example calling card track'}}",
 "chr7,27066840,chr7,27266928",
 "refGene,rmsk_all",
 "chr1,chr2,chr3,chr4,chr5,chr6,chr7,chr8,chr9,chr10,chr11,chr12,chr13,chr14,chr15,chr16,chr17,chr18,chr19,chr20,chr21,chr22,chrX,chrY,chrM",
 true,
 true,
 "hsa",
-"Assembly version|GRCh38/hg38|Sequence source|<a href=http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/ target=_blank>UCSC browser</a>|Date parsed|March 7, 2014|Chromosomes|25|Scaffolds|68|Logo art|<a href=http://turing.iimas.unam.mx/~cgg/gallery/EverybodysHive.html target=_blank>link</a>",
+"Assembly version|GRCh38/hg38|Sequence source|<a href=https://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/ target=_blank>UCSC browser</a>|Date parsed|March 7, 2014|Chromosomes|25|Scaffolds|68|Logo art|<a href=https://turing.iimas.unam.mx/~cgg/gallery/EverybodysHive.html target=_blank>link</a>",
 0,
 false
 );

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #define WWWT "/var/www/browser/t" // Deployment version
-#define WWWT "/var/www/html/browser/t" // Docker version
+#define WWWT "/var/www/browser/t" // Deployment version
+// #define WWWT "/var/www/html/browser/t" // Docker version
 
 int main()
 {

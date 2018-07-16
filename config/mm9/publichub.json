@@ -3,39 +3,39 @@
 id:'encode2015',
 trackcount:1087,
 name:'Mouse ENCODE (updated)',
-url:'http://vizhub.wustl.edu/public/mm9/mm9encode2015',
-logo:'http://www.mouseencode.org/s/images/all/ENCODE_MOUSE_LOGO_WHITE.png',
-institution:['<a href=http://www.mouseencode.org/ target=_blank>mouseENCODE consortium</a>'],
+url:'https://vizhub.wustl.edu/public/mm9/mm9encode2015',
+logo:'https://www.mouseencode.org/s/images/all/ENCODE_MOUSE_LOGO_WHITE.png',
+institution:['<a href=https://www.mouseencode.org/ target=_blank>mouseENCODE consortium</a>'],
 desc:'The Mouse ENCODE Consortium consisted of a number of Data Production Centers and made use of the human ENCODE Data Coordination Center (DCC) at the University of California, Santa Cruz (currently at Stanford University). Production Centers generally focused on different data types, including transcription factor and polymerase occupancy, DNaseI hypersensitivity, histone modification, and RNA transcription.',
 },
 {
 id:'encode',
 trackcount:1082,
 name:'Mouse ENCODE',
-url:'http://vizhub.wustl.edu/public/mm9/encode.md',
-logo:'http://genome.ucsc.edu/images/ENCODE_scaleup_logo.png',
-institution:['<a href=http://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>'],
+url:'https://vizhub.wustl.edu/public/mm9/encode.md',
+logo:'https://genome.ucsc.edu/images/ENCODE_scaleup_logo.png',
+institution:['<a href=https://genome.ucsc.edu/ENCODE/ target=_blank>ENCODE consortium</a>'],
 desc:'The Encyclopedia of DNA Elements (ENCODE) Consortium is an international collaboration of research groups funded by the National Human Genome Research Institute (NHGRI). The goal of ENCODE is to build a comprehensive parts list of functional elements in the human genome, including elements that act at the protein and RNA levels, and regulatory elements that control cells and circumstances in which a gene is active (quoted from UCSC ENCODE website).',
 },
 {
 id:'longrange',
 trackcount:27,
 name:'Long-range chromatin interaction experiments',
-url:'http://vizhub.wustl.edu/public/mm9/longrange.md',
+url:'https://vizhub.wustl.edu/public/mm9/longrange.md',
 desc:'A collection of published long-range chromatin interaction data sets on mouse samples.'
 },
 {
 "id":"juicebox",
 "trackcount":74,
 "name":"HiC interaction from Juicebox",
-"url":"http://epgg-test.wustl.edu/dli/long-range-test/mm9-juiceboxhub",
+"url":"https://epgg-test.wustl.edu/dli/long-range-test/mm9-juiceboxhub",
 "desc":"HiC interaction data sets from Juicebox."
 },
 {
 "id":"cooler",
 "trackcount":79,
 "name":"HiC interaction from Cooler",
-"url":"http://epgg-test.wustl.edu/dli/long-range-test/mm9-coolhub",
+"url":"https://epgg-test.wustl.edu/dli/long-range-test/mm9-coolhub",
 "desc":"HiC interaction data sets from Cooler."
 }
 ]

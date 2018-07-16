@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Utility class for splitting requests for regions into consistent chunks, to take advantage of HTTP caching.
  * 

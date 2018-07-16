@@ -18,9 +18,13 @@ class RegionWrapper {
     }
 
     get chromosome() { return this[RegionWrapper.CHROMOSOME_INDEX]; }
-    get startBasePair() { return this[RegionWrapper.START_BASE_PAIR_INDEX]; }
-    get endBasePair() { return this[RegionWrapper.END_BASE_PAIR_INDEX]; }
-    get lengthInBasePairs() { return this.endBasePair - this.startBasePair; }
+    get chr() { return this.chromosome; }
+    get start() { return this[RegionWrapper.START_BASE_PAIR_INDEX]; }
+    get end() { return this[RegionWrapper.END_BASE_PAIR_INDEX]; }
+    getLength() { return this.end - this.start; }
+    toString() {
+        return `${this.chromosome}:${this.start}-${this.end}`;
+    }
 }
 
 RegionWrapper.CHROMOSOME_INDEX = 0;

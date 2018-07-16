@@ -3,9 +3,9 @@
 id:'encode2015',
 trackcount:1616,
 name:'Mouse ENCODE (updated)',
-url:'http://vizhub.wustl.edu/public/mm10/mm10encode2015',
-logo:'http://www.mouseencode.org/s/images/all/ENCODE_MOUSE_LOGO_WHITE.png',
-institution:['<a href=http://www.mouseencode.org/ target=_blank>mouseENCODE consortium</a>'],
+url:'https://vizhub.wustl.edu/public/mm10/mm10encode2015',
+logo:'https://www.mouseencode.org/s/images/all/ENCODE_MOUSE_LOGO_WHITE.png',
+institution:['<a href=https://www.mouseencode.org/ target=_blank>mouseENCODE consortium</a>'],
 desc:'The Mouse ENCODE Consortium consisted of a number of Data Production Centers and made use of the human ENCODE Data Coordination Center (DCC) at the University of California, Santa Cruz (currently at Stanford University). Production Centers generally focused on different data types, including transcription factor and polymerase occupancy, DNaseI hypersensitivity, histone modification, and RNA transcription.',
 },
 ]

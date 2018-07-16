@@ -1,17 +1,13 @@
-/**
-  * Additions and bug fixes for juicebox.js.  Intended to patch <https://igv.org/web/jb/release/1.0/juicebox-1.0.js>.
-  *
-  * @author Silas Hsu
-  * @since version 43.2, July 2017
-  */
- 'use strict'
+'use strict';
 
-///////////////
-// Additions //
-///////////////
+/**
+ * Additions and bug fixes for juicebox.js.  Intended to patch <https://igv.org/web/jb/release/1.0/juicebox-1.0.js>.
+ *
+ * @author Silas Hsu
+ * @since version 43.2, July 2017
+ */
 
 hic.Dataset.MIN_BINS_PER_REGION = 50;
-hic.Dataset.BLOCK_CACHE_SIZE = 20;
 
 /**
 * Searches the internal list of chromosomes for one with a name matching the input.  Returns -1 if not found.
@@ -80,29 +76,6 @@ hic.Dataset.prototype.binsizeToZoomIndex = function(targetResolution) { // Based
 
 hic.HiCReader.fromUrl = function(url) {
     return new hic.HiCReader({
-        url: url,
-        config: {}
+        url: url
     });
 }
-
-
-///////////////
-// Bug fixes //
-///////////////
-
-
-hic = (function (hic) {
-    let _getNormalizationVector = hic.Dataset.prototype.getNormalizationVector;
-
-    /*
-     * hic.Dataset.prototype.getNormalizedBlock() calls getNormalizationVector() and uses `=== undefined` to check the
-     * result.  We wrap this function so falsy values get converted to undefined.
-     */
-    hic.Dataset.prototype.getNormalizationVector = function (type, chrIdx, unit, binSize) {
-        return _getNormalizationVector.bind(this)(type, chrIdx, unit, binSize)
-            .then(normVector => normVector || undefined);
-    }
-
-    return hic;
-})
-(hic)

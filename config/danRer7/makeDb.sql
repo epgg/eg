@@ -19,7 +19,7 @@ insert into config values(
 "/srv/epgg/data/data/subtleKnife/danRer7/",
 "/srv/epgg/data/data/subtleKnife/seq/danRer7.gz",
 "cyp2v1\\ncyp2aa4\\ncyp2x8\\ncyp2p9\\ncyp3c4\\ncyp24a1\\ncyp2p6\\ncyp2x12\\ncyp19a1a\\ncyp20a1\\ncyp2aa2\\ncyp11a1\\ncyp2ad2",
-"{3:{url:'http://vizhub.wustl.edu/hubSample/danRer7/num1.gz',name:'test track'},1:{url:'http://vizhub.wustl.edu/hubSample/danRer7/bed.gz',name:'test track'},100:{url:'http://vizhub.wustl.edu/hubSample/danRer7/hub'}}",
+"{3:{url:'https://vizhub.wustl.edu/hubSample/danRer7/num1.gz',name:'test track'},1:{url:'https://vizhub.wustl.edu/hubSample/danRer7/bed.gz',name:'test track'},100:{url:'https://vizhub.wustl.edu/hubSample/danRer7/hub'}}",
 "chr19,18966019,chr19,19564024",
 "published",
 "refGene,rmsk_all",
@@ -27,7 +27,7 @@ insert into config values(
 true,
 true,
 "dre",
-"Assembly version|danRer7|Sequence source|<a href=http://hgdownload.cse.ucsc.edu/goldenPath/danRer7/bigZips/ target=_blank>UCSC browser</a>|Date parsed|September 1, 2011|Chromosomes|26|Contigs|1107|Total bases|1,412,464,843|Logo art|<a href=http://en.wikipedia.org/wiki/File:Zebrafisch.jpg target=_blank>link</a>",
+"Assembly version|danRer7|Sequence source|<a href=https://hgdownload.cse.ucsc.edu/goldenPath/danRer7/bigZips/ target=_blank>UCSC browser</a>|Date parsed|September 1, 2011|Chromosomes|26|Contigs|1107|Total bases|1,412,464,843|Logo art|<a href=https://en.wikipedia.org/wiki/File:Zebrafisch.jpg target=_blank>link</a>",
 0,
 false
 );

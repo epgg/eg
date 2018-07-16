@@ -3,14 +3,14 @@
 Genes : [
 	{name:'AGPv2_5a',label:'Maize genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/AGPv2/AGPv2_5a.gz',
-		queryUrl:'http://www.maizesequence.org/Zea_mays/Gene?db=core;gene=',
+		url:'https://egg.wustl.edu/d/AGPv2/AGPv2_5a.gz',
+		queryUrl:'https://www.maizesequence.org/Zea_mays/Gene?db=core;gene=',
 		boxcolor:'#002EB8',
 		isgene:true,dbsearch:true },
 	{name:'refGene',label:'RefSeq genes',
 		filetype:'hammock',
-		url:'http://egg.wustl.edu/d/AGPv2/refGene.gz',
-		queryUrl:'http://www.ncbi.nlm.nih.gov/gene/?term=',
+		url:'https://egg.wustl.edu/d/AGPv2/refGene.gz',
+		queryUrl:'https://www.ncbi.nlm.nih.gov/gene/?term=',
 		boxcolor:'#002EB8',
 		isgene:true,dbsearch:true },
 ],
@@ -18,7 +18,7 @@ Genes : [
 Repeat : [
 	{name:'MTECrepeats',label:'All repeats',
 		filetype:'bed',
-		url:'http://egg.wustl.edu/d/AGPv2/MTECrepeats.gz',
+		url:'https://egg.wustl.edu/d/AGPv2/MTECrepeats.gz',
 	},
 ],
 
@@ -26,7 +26,7 @@ Repeat : [
 'G/C related' : [
 	{name:'gc5Base',label:'GC percent',
 		filetype:'bigwig',
-		url:'http://egg.wustl.edu/d/AGPv2/gc5Base.bigWig',
+		url:'https://egg.wustl.edu/d/AGPv2/gc5Base.bigWig',
 		height:50,
 		colorpositive:'#4785C2/#4747C2',
 		fixedscale:{min:0,max:100},
