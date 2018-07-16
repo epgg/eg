@@ -79,7 +79,7 @@ d3.formatradio.push(make_radiobutton(td0,{value:'bed',label:'BED <span style="fo
 d3.formatradio.push(make_radiobutton(td0,{value:'gff',label:'GFF <span style="font-size:70%;">ANNOTATION DATA | <a href=http://genome.ucsc.edu/FAQ/FAQformat.html#format3 target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'lr',label:'Pairwise interaction <span style="font-size:70%;"><a href=http://wiki.wubrowse.org/Long-range target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 d3.formatradio.push(make_radiobutton(td0,{value:'custom',label:'Custom <span style="font-size:70%;">ANNOTATION DATA</span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
-d3.formatradio.push(make_radiobutton(td0,{value:'callingcard',label:'Calling card (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://www.google.com" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
+d3.formatradio.push(make_radiobutton(td0,{value:'callingcard',label:'Calling card (experimental) <span style="font-size:70%;">DISCRETE NUMERICAL DATA | <a href="http://wiki.wubrowse.org/Calling_card" target=_blank>format</a></span>',id:Math.random().toString(),call:fud_file_formatchange,linebreak:true}));
 var t=dom_create('table',td0,'margin:10px 10px 10px 20px;border:1px solid white;display:none;');
 d3.customformatter=t;
 var tr=t.insertRow(0);
