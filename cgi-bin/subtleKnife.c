@@ -235,7 +235,7 @@ struct nnode
     char *name;
     double *data;
 	double *xdata; // For calling card data
-	unsigned long *ydata; // For calling card data
+	double *ydata; // For calling card data
 	int id;
     };
 
@@ -410,7 +410,7 @@ struct callingCard
 	char *chrom;
 	unsigned long start;
 	unsigned long stop;
-	unsigned long count;
+	double value;
 	char strand;
 	char *barcode; // may be used as ID
 	};
@@ -418,7 +418,7 @@ struct callingCardData
 	{
 	struct callingCardData *next;
 	double *xdata;
-	unsigned long *ydata;
+	double *ydata;
 	char *strand;
 	char **barcode;
 	unsigned long length;
@@ -1629,7 +1629,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			haveInvalid = TRUE;
 			continue;
 		} else
-			cc->count = l;
+			cc->value = l;
 	}
 	// strand, if present
 	tok = strtok(NULL, delim);
@@ -1682,12 +1682,12 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 		return data;
 	}
 	double *xdata = malloc(sizeof(double) * len);
-	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
+	double *ydata = malloc(sizeof(double) * len);
 	char *strand = malloc(sizeof(char) * len);
 	char **barcode = malloc(sizeof(char*) * len);
 	while (current != NULL) {
 		xdata[i] = (double) (current->start + current->stop)/2;
-		ydata[i] = current->count;
+		ydata[i] = current->value;
 		if (current->strand != 0) {
 			strand[i] = current->strand;
 		} else {
@@ -2426,7 +2426,7 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 			if (tmp == NULL) {
 				if (SQUAWK) fprintf(stderr, "No calling cards in view\n");
 			} else {
-				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%lu,%lu,%lu\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%lu,%lu,%f\n", tmp->chrom, tmp->start, tmp->stop, tmp->value);
 			}
 			tmpData = getCallingCardData(tmp);
 			if (SQUAWK) fprintf(stderr, "%lu data points\n", tmpData->length);
@@ -10583,7 +10583,7 @@ if(hm.trackSl!=NULL)
 						if (ccData != NULL && ccData->length > 0) {
 							for(current = ccData; current!=NULL; current=current->next) {
 								for (int i = 0; i < current->length; i++) {
-									fprintf(fout, "%f\t%lu\n", current->xdata[i], current->ydata[i]);
+									fprintf(fout, "%f\t%f\n", current->xdata[i], current->ydata[i]);
 								}
 							}
 						}
@@ -10729,7 +10729,7 @@ if(hm.trackSl!=NULL)
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
 								for (i = 0; i < current->length; i++)
-									printf("%lu,", current->ydata[i]);
+									printf("%f,", current->ydata[i]);
 								printf("],");
 							}
 							if (SQUAWK) fprintf(stderr, "printing strand\n");
