@@ -234,8 +234,8 @@ struct nnode
     char strand;
     char *name;
     double *data;
-	float *xdata; // For calling card data
-	unsigned long *ydata; // For calling card data
+	double *xdata; // For calling card data
+	double *ydata; // For calling card data
 	int id;
     };
 
@@ -410,15 +410,15 @@ struct callingCard
 	char *chrom;
 	unsigned long start;
 	unsigned long stop;
-	unsigned long count;
+	double value;
 	char strand;
 	char *barcode; // may be used as ID
 	};
 struct callingCardData
 	{
 	struct callingCardData *next;
-	float *xdata;
-	unsigned long *ydata;
+	double *xdata;
+	double *ydata;
 	char *strand;
 	char **barcode;
 	unsigned long length;
@@ -1629,7 +1629,7 @@ while((row=ti_read(fin, iter, &len)) != 0)
 			haveInvalid = TRUE;
 			continue;
 		} else
-			cc->count = l;
+			cc->value = l;
 	}
 	// strand, if present
 	tok = strtok(NULL, delim);
@@ -1681,13 +1681,13 @@ struct callingCardData *getCallingCardData(struct callingCard *cclist) {
 		data->barcode = NULL;
 		return data;
 	}
-	float *xdata = malloc(sizeof(float) * len);
-	unsigned long *ydata = malloc(sizeof(unsigned long) * len);
+	double *xdata = malloc(sizeof(double) * len);
+	double *ydata = malloc(sizeof(double) * len);
 	char *strand = malloc(sizeof(char) * len);
 	char **barcode = malloc(sizeof(char*) * len);
 	while (current != NULL) {
-		xdata[i] = (current->start + current->stop)/2;
-		ydata[i] = current->count;
+		xdata[i] = (double) (current->start + current->stop)/2;
+		ydata[i] = current->value;
 		if (current->strand != 0) {
 			strand[i] = current->strand;
 		} else {
@@ -2299,8 +2299,10 @@ assert(asprintf(&outfile, "%s/%s.%d", trashDir, dummyname, rr)>0);
 //free(dummyname);
 
 char *command;
-assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
-//assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+// Uncomment for production
+// assert(asprintf(&command, "%s/bwquery %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
+// Uncomment for Docker
+assert(asprintf(&command, "%s/querybw %s %s %d %d %d %s %d", BINdir, urlpath, chrom, start, stop, spnum, outfile, summeth)>0);
 fprintf(stderr, "querying bigwig (%s)\n", command);
 if(system(command)==-1)
 	{
@@ -2404,7 +2406,7 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		return NULL;
 		}
 	int i, dspStart, offset = 0;
-	float width;
+	double width;
 	struct region *r;
 	struct callingCard *tmp=NULL;
 	struct callingCardData *returnData=NULL, *tail=NULL, *tmpData=NULL;
@@ -2413,9 +2415,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 	if (SQUAWK) fprintf(stderr, "dsp usedSummaryNumber: %d\n", dsp->usedSummaryNumber);
 	if (SQUAWK) fprintf(stderr, "dsp hmspan: %d\n", dsp->hmspan);
 	if (SQUAWK) fprintf(stderr, "dsp entireLength: %ld\n", dsp->entireLength);
-	if (!atbplevel) width = (float) dsp->entireLength / (float) dsp->usedSummaryNumber;
+	if (!atbplevel) width = (double) dsp->entireLength / (double) dsp->usedSummaryNumber;
 	else if (move) width = 1.0;
-	else width = round((float) dsp->hmspan / (float) dsp->entireLength);
+	else width = round((double) dsp->hmspan / (double) dsp->entireLength);
 	if (SQUAWK) fprintf(stderr, "width: %f\n", width);
 	for(r=dsp->head; r!=NULL; r=r->next) {
 	    if(r->summarySize > 0) {
@@ -2424,7 +2426,7 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 			if (tmp == NULL) {
 				if (SQUAWK) fprintf(stderr, "No calling cards in view\n");
 			} else {
-				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%lu,%lu,%lu\n", tmp->chrom, tmp->start, tmp->stop, tmp->count);
+				if (SQUAWK) fprintf(stderr, "Starting calling card: %s,%lu,%lu,%f\n", tmp->chrom, tmp->start, tmp->stop, tmp->value);
 			}
 			tmpData = getCallingCardData(tmp);
 			if (SQUAWK) fprintf(stderr, "%lu data points\n", tmpData->length);
@@ -2433,9 +2435,9 @@ struct callingCardData *tabixQuery_callingCard_dsp(struct displayedRegion *dsp, 
 		
 			for (i = 0; i < tmpData->length; i++) {
 				if (!atbplevel) {
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset)/width;
+						tmpData->xdata[i] = (tmpData->xdata[i] - (double) r->dstart + (double) offset)/width;
 				} else {
-						tmpData->xdata[i] = (tmpData->xdata[i] - (float) r->dstart + (float) offset) * width;
+						tmpData->xdata[i] = (tmpData->xdata[i] - (double) r->dstart + (double) offset) * width;
 				}
 			}
 			offset += (r->dstop - r->dstart);
@@ -10581,7 +10583,7 @@ if(hm.trackSl!=NULL)
 						if (ccData != NULL && ccData->length > 0) {
 							for(current = ccData; current!=NULL; current=current->next) {
 								for (int i = 0; i < current->length; i++) {
-									fprintf(fout, "%f\t%lu\n", current->xdata[i], current->ydata[i]);
+									fprintf(fout, "%f\t%f\n", current->xdata[i], current->ydata[i]);
 								}
 							}
 						}
@@ -10727,7 +10729,7 @@ if(hm.trackSl!=NULL)
 							for(current = ccData; current!=NULL; current=current->next) {
 								printf("[");
 								for (i = 0; i < current->length; i++)
-									printf("%lu,", current->ydata[i]);
+									printf("%f,", current->ydata[i]);
 								printf("],");
 							}
 							if (SQUAWK) fprintf(stderr, "printing strand\n");
