@@ -1,10 +1,17 @@
 [
 {
+id: 'target',
+trackcount:825,
+name:'TaRGET II',
+url:'http://target.wustl.edu/dli/data_summary/target.hub.json',
+institution:['<a href=http://target.wustl.edu// target=_blank>TaRGET II consortium</a>'],
+desc:'The TaRGET (Toxicant Exposures and Responses by Genomic and Epigenomic Regulators of Transcription) Program is a research consortium funded by the National Institute of Environmental Health Sciences (NIEHS). The goal of the collaboration is to address the role of environmental exposures in disease pathogenesis as a function of epigenome perturbation, including understanding the environmental control of epigenetic mechanisms and assessing the utility of surrogate tissue analysis in mouse models of disease-relevant environmental exposures.',
+},
+{
 id:'encode2015',
 trackcount:1616,
 name:'Mouse ENCODE (updated)',
 url:'https://vizhub.wustl.edu/public/mm10/mm10encode2015',
-logo:'https://www.mouseencode.org/s/images/all/ENCODE_MOUSE_LOGO_WHITE.png',
 institution:['<a href=https://www.mouseencode.org/ target=_blank>mouseENCODE consortium</a>'],
 desc:'The Mouse ENCODE Consortium consisted of a number of Data Production Centers and made use of the human ENCODE Data Coordination Center (DCC) at the University of California, Santa Cruz (currently at Stanford University). Production Centers generally focused on different data types, including transcription factor and polymerase occupancy, DNaseI hypersensitivity, histone modification, and RNA transcription.',
 },
