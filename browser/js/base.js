@@ -5510,7 +5510,7 @@ to draw a cottontk, must call from cottonbbj (but not target bbj)
                         }
                         //leepc12_hotfix for bed color strand
                         if (tkobj.ft == FT_bed_c || tkobj.ft == FT_bigbed_c) {
-                            ctx.font = '10pt Sans-serif';
+                            ctx.font = '0pt Sans-serif';
                             if (item.strand == '+' || item.strand == '>')
                                 bedcolor = '#FF0000';
                             //'#800000'; // maroon
